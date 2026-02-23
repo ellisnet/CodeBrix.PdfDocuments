@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Resources\Messages.de.restext" />
+    <None Remove="Resources\Messages.restext" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\Messages.de.restext" />
+    <EmbeddedResource Include="Resources\Messages.restext" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\CodeBrix.Compression-private\src\CodeBrix.Compression\CodeBrix.Compression.csproj" />
+    <ProjectReference Include="..\..\..\CodeBrix.Imaging-private\src\CodeBrix.Imaging\CodeBrix.Imaging.csproj" />
+  </ItemGroup>
+
+</Project>

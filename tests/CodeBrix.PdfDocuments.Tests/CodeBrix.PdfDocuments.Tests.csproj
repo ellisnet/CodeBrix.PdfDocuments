@@ -1,0 +1,54 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'" />
+
+  <ItemGroup>
+    <None Remove="SampleFiles\Roboto-Regular.ttf" />
+    <None Remove="SampleFiles\test-image-01.bmp" />
+    <None Remove="SampleFiles\test-image-01.jpg" />
+    <None Remove="SampleFiles\test-image-01.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="SampleFiles\Roboto-Regular.ttf" />
+    <EmbeddedResource Include="SampleFiles\test-image-01.bmp" />
+    <EmbeddedResource Include="SampleFiles\test-image-01.jpg" />
+    <EmbeddedResource Include="SampleFiles\test-image-01.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AngleSharp" Version="1.4.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="xunit.v3" Version="3.2.2" />
+    <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="14.10.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\CodeBrix.Imaging-private\src\CodeBrix.Imaging\CodeBrix.Imaging.csproj" />
+    <ProjectReference Include="..\..\..\SilverAssertions-private\src\SilverAssertions\SilverAssertions.csproj" />
+    <ProjectReference Include="..\..\src\CodeBrix.PdfDocCreate.DocumentObjectModel\CodeBrix.PdfDocCreate.DocumentObjectModel.csproj" />
+    <ProjectReference Include="..\..\src\CodeBrix.PdfDocCreate.Rendering\CodeBrix.PdfDocCreate.Rendering.csproj" />
+    <ProjectReference Include="..\..\src\CodeBrix.PdfDocuments\CodeBrix.PdfDocuments.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Assets\**\*.pdf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\**\*.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\frog-and-toad.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>
