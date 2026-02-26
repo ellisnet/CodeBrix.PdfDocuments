@@ -15,8 +15,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\CodeBrix.Compression-private\src\CodeBrix.Compression\CodeBrix.Compression.csproj" />
-    <ProjectReference Include="..\..\..\CodeBrix.Imaging-private\src\CodeBrix.Imaging\CodeBrix.Imaging.csproj" />
+    <PackageReference Include="CodeBrix.Compression.MitLicenseForever" Version="1.0.48" />
+    <PackageReference Include="CodeBrix.Imaging.ApacheLicenseForever" Version="1.0.48" />
   </ItemGroup>
 
 </Project>
