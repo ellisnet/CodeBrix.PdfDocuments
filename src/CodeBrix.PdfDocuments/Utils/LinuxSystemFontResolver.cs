@@ -134,7 +134,9 @@ public static class LinuxSystemFontResolver
         {
             return ResolveFontConfig().Where(x => x.EndsWith(".ttf", StringComparison.OrdinalIgnoreCase)).ToArray();
         }
+#pragma warning disable CS0168 // Variable is declared but never used
         catch(Exception ex)
+#pragma warning restore CS0168 // Variable is declared but never used
         {
 #if DEBUG
             Console.Error.WriteLine(ex.ToString());
@@ -194,7 +196,9 @@ public static class LinuxSystemFontResolver
                 } // Whend 
             } // End Using reader 
         }
+#pragma warning disable CS0168 // Variable is declared but never used
         catch (Exception ex)
+#pragma warning restore CS0168 // Variable is declared but never used
         {
 #if DEBUG
             Console.Error.WriteLine(ex.Message);

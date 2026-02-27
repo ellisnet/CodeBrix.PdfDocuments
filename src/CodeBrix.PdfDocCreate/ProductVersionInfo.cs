@@ -81,7 +81,7 @@ public static class ProductVersionInfo
     /// <summary>
     /// The copyright information. Also used as NuGet Copyright.
     /// </summary>
-    public const string Copyright = "Copyright © 2026 Ellisnet"; // Also used as NuGet Copyright.
+    public const string Copyright = "Copyright (c) 2026 Jeremy Ellis and contributors"; // Also used as NuGet Copyright.
 
     /// <summary>
     /// The trademark the product.
@@ -96,8 +96,8 @@ public static class ProductVersionInfo
     // Build = days since 2026-01-01  -  change values ONLY here
     public const string VersionMajor = "1"; // Also used for NuGet Version.
     public const string VersionMinor = "0"; // Also used for NuGet Version.
-    public const string VersionBuild = "45"; // Also used for NuGet Version.
-    public const string VersionPatch = "0"; // Also used for NuGet Version.
+    public const string VersionBuild = "49"; // Also used for NuGet Version.
+    public const string VersionPatch = "0"; // NOT used for NuGet Version.
 
     /// <summary>
     /// E.g. "1/1/2005", for use in NuGet Script.
@@ -123,7 +123,7 @@ public static class ProductVersionInfo
     /// <summary>
     /// Nuspec Doc: A comma-separated list of authors of the package code.
     /// </summary>
-    public const string NuGetAuthors = "Ellisnet";
+    public const string NuGetAuthors = "Jeremy Ellis";
 
     /// <summary>
     /// Nuspec Doc: A comma-separated list of the package creators. This is often the same list as in authors.

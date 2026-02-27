@@ -117,7 +117,9 @@ public class FontResolver
                 Debug.WriteLine(fontPathFile);
                 tempFontInfoList.Add(fontInfo);
             }
+#pragma warning disable CS0168 // Variable is declared but never used
             catch (System.Exception e)
+#pragma warning restore CS0168 // Variable is declared but never used
             {
 #if DEBUG
                 System.Console.Error.WriteLine(e);
@@ -133,7 +135,9 @@ public class FontResolver
                 FontFamilyModel family = DeserializeFontFamily(familyName, familyGroup);
                 InstalledFonts.Add(familyName.ToLower(), family);
             }
+#pragma warning disable CS0168 // Variable is declared but never used
             catch (System.Exception e)
+#pragma warning restore CS0168 // Variable is declared but never used
             {
 #if DEBUG
                 System.Console.Error.WriteLine(e);

@@ -33,8 +33,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\CodeBrix.PdfDocCreate.DocumentObjectModel\CodeBrix.PdfDocCreate.DocumentObjectModel.csproj" />
-    <ProjectReference Include="..\..\src\CodeBrix.PdfDocCreate.Rendering\CodeBrix.PdfDocCreate.Rendering.csproj" />
+    <ProjectReference Include="..\..\src\CodeBrix.PdfDocCreate\CodeBrix.PdfDocCreate.csproj" />
     <ProjectReference Include="..\..\src\CodeBrix.PdfDocuments\CodeBrix.PdfDocuments.csproj" />
   </ItemGroup>
 

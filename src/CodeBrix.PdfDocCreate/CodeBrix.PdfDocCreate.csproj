@@ -32,12 +32,12 @@
     <TargetFramework>net10.0</TargetFramework>
 
     <!-- NuGet Package Properties -->
-    <PackageId>CodeBrix.PdfDocuments.MitLicenseForever</PackageId>
+    <PackageId>CodeBrix.PdfDocCreate.MitLicenseForever</PackageId>
     <!--<Version>value generated via VersionResult from ProductVersionInfo.cs above</Version>-->
     <Authors>Jeremy Ellis</Authors>
-    <Product>CodeBrix.PdfDocuments</Product>
-    <Title>CodeBrix.PdfDocuments</Title>
-    <Description>CodeBrix.PdfDocuments is an Open Source .NET 10 (and higher) library that easily creates and processes PDF documents. The same drawing routines can be used to create PDF documents, draw on the screen, or send output to any printer.</Description>
+    <Product>CodeBrix.PdfDocCreate</Product>
+    <Title>CodeBrix.PdfDocCreate</Title>
+    <Description>CodeBrix PdfDocCreate - the Open Source .NET library that easily creates documents based on an object model with paragraphs, tables, styles, etc. and renders them into PDF or RTF.</Description>
     <PackageProjectUrl>https://github.com/ellisnet/CodeBrix.PdfDocuments</PackageProjectUrl>
     <RepositoryUrl>https://github.com/ellisnet/CodeBrix.PdfDocuments</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
@@ -47,7 +47,7 @@
     <Copyright>Copyright (c) 2026 Jeremy Ellis and contributors</Copyright>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <PackageTags>PdfDocuments;PDF;document;creation;CodeBrix</PackageTags>
+    <PackageTags>PdfDocCreate;PDF;RTF;document;creation;CodeBrix</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
@@ -56,18 +56,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Remove="Resources\Messages.de.restext" />
-    <None Remove="Resources\Messages.restext" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <EmbeddedResource Include="Resources\Messages.de.restext" />
-    <EmbeddedResource Include="Resources\Messages.restext" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="CodeBrix.Compression.MitLicenseForever" Version="1.0.48" />
-    <PackageReference Include="CodeBrix.Imaging.ApacheLicenseForever" Version="1.0.48" />
+    <!--
+      ProjectReference is used for local build/debug in Visual Studio.
+      The pack target automatically resolves the dependency using the referenced
+      project's PackageId (CodeBrix.PdfDocuments.MitLicenseForever) and PackageVersion.
+    -->
+    <ProjectReference Include="..\CodeBrix.PdfDocuments\CodeBrix.PdfDocuments.csproj" />
   </ItemGroup>
 
 </Project>
