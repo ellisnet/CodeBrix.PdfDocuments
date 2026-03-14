@@ -1,0 +1,93 @@
+﻿<Project Sdk="Microsoft.NET.Sdk" InitialTargets="SetVersionFromProductVersionInfo">
+
+  <!-- Inline task to read version constants from PackageVersionInfo.cs at build time -->
+  <UsingTask TaskName="ReadVersionFromSource" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <SourceFilePath ParameterType="System.String" Required="true" />
+      <VersionResult ParameterType="System.String" Output="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System.Text.RegularExpressions" />
+      <Code Type="Fragment" Language="cs">
+        var content = File.ReadAllText(SourceFilePath);
+        var major = Regex.Match(content, @"VersionMajor\s*=\s*""(\d+)""").Groups[1].Value;
+        var minor = Regex.Match(content, @"VersionMinor\s*=\s*""(\d+)""").Groups[1].Value;
+        var build = Regex.Match(content, @"VersionBuild\s*=\s*""(\d+)""").Groups[1].Value;
+        VersionResult = $"{major}.{minor}.{build}";
+      </Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="SetVersionFromProductVersionInfo">
+    <ReadVersionFromSource SourceFilePath="$(MSBuildProjectDirectory)\..\Shared\PackageVersionInfo.cs">
+      <Output TaskParameter="VersionResult" PropertyName="Version" />
+      <Output TaskParameter="VersionResult" PropertyName="PackageVersion" />
+      <Output TaskParameter="VersionResult" PropertyName="AssemblyVersion" />
+      <Output TaskParameter="VersionResult" PropertyName="FileVersion" />
+    </ReadVersionFromSource>
+    <Message Importance="high" Text="Version read from PackageVersionInfo.cs: $(Version)" />
+  </Target>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+    <!-- NuGet Package Properties -->
+    <PackageId>CodeBrix.PdfRasterizer.MitLicenseForever</PackageId>
+    <!--<Version>value generated via VersionResult from PackageVersionInfo.cs above</Version>-->
+    <Authors>Jeremy Ellis</Authors>
+    <Product>CodeBrix.PdfRasterizer</Product>
+    <Title>CodeBrix.PdfRasterizer</Title>
+    <Description>CodeBrix.PdfRasterizer is an Open Source .NET 10 (and higher) library that renders PDF pages to images (PNG, JPEG, BMP, GIF, TIFF) using the PDFium native rendering engine, with support for thumbnails, page information, and cross-platform operation (Windows, macOS, Linux).</Description>
+    <PackageProjectUrl>https://github.com/ellisnet/CodeBrix.PdfDocuments</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/ellisnet/CodeBrix.PdfDocuments</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageIcon>icon-codebrix-128.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <Copyright>Copyright (c) 2026 Jeremy Ellis and contributors</Copyright>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <PackageTags>PdfRasterizer;PDF;rasterize;rasterizer;image;thumbnail;PDFium;CodeBrix</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Shared\PackageVersionInfo.cs" Link="PackageVersionInfo.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      ProjectReference is used for local build/debug in Visual Studio.
+      The pack target automatically resolves the dependency using the referenced
+      project's PackageId (CodeBrix.PdfDocuments.MitLicenseForever) and PackageVersion.
+    -->
+    <ProjectReference Include="..\CodeBrix.PdfDocuments\CodeBrix.PdfDocuments.csproj" />
+  </ItemGroup>
+
+  <!-- PDFium native binaries (BSD-licensed, from Docnet.Core / https://github.com/GowenGit/docnet) -->
+  <ItemGroup>
+    <None Include="runtimes\linux\native\pdfium.so" Pack="true" PackagePath="runtimes\linux-x64\native" Link="runtimes\linux-x64\native\pdfium.so" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="runtimes\linux\native\LICENSE" Pack="true" PackagePath="runtimes\linux-x64\native" Link="runtimes\linux-x64\native\LICENSE" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="runtimes\linux-arm64\native\pdfium.so" Pack="true" PackagePath="runtimes\linux-arm64\native" Link="runtimes\linux-arm64\native\pdfium.so" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="runtimes\linux-arm64\native\LICENSE" Pack="true" PackagePath="runtimes\linux-arm64\native" Link="runtimes\linux-arm64\native\LICENSE" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="runtimes\linux-arm\native\pdfium.so" Pack="true" PackagePath="runtimes\linux-arm\native" Link="runtimes\linux-arm\native\pdfium.so" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="runtimes\linux-arm\native\LICENSE" Pack="true" PackagePath="runtimes\linux-arm\native" Link="runtimes\linux-arm\native\LICENSE" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="runtimes\osx-x64\native\pdfium.dylib" Pack="true" PackagePath="runtimes\osx-x64\native" Link="runtimes\osx-x64\native\pdfium.dylib" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="runtimes\osx-x64\native\LICENSE" Pack="true" PackagePath="runtimes\osx-x64\native" Link="runtimes\osx-x64\native\LICENSE" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="runtimes\osx-arm64\native\pdfium.dylib" Pack="true" PackagePath="runtimes\osx-arm64\native" Link="runtimes\osx-arm64\native\pdfium.dylib" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="runtimes\osx-arm64\native\LICENSE" Pack="true" PackagePath="runtimes\osx-arm64\native" Link="runtimes\osx-arm64\native\LICENSE" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="runtimes\win-x64\native\pdfium.dll" Pack="true" PackagePath="runtimes\win-x64\native" Link="runtimes\win-x64\native\pdfium.dll" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="runtimes\win-x64\native\LICENSE" Pack="true" PackagePath="runtimes\win-x64\native" Link="runtimes\win-x64\native\LICENSE" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="runtimes\win-x86\native\pdfium.dll" Pack="true" PackagePath="runtimes\win-x86\native" Link="runtimes\win-x86\native\pdfium.dll" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="runtimes\win-x86\native\LICENSE" Pack="true" PackagePath="runtimes\win-x86\native" Link="runtimes\win-x86\native\LICENSE" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="CodeBrix.Imaging.ApacheLicenseForever" Version="1.0.73" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\icon-codebrix-128.png" Pack="true" PackagePath="" />
+    <None Include="..\..\README.md" Pack="true" PackagePath="" />
+  </ItemGroup>
+
+</Project>

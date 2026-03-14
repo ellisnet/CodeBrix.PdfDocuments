@@ -1,72 +1,48 @@
+using CodeBrix.Imaging;
+using CodeBrix.Imaging.Formats.Png;
+using CodeBrix.Imaging.PixelFormats;
 using CodeBrix.PdfDocuments.Pdf;
-using ImageMagick;
+using CodeBrix.PdfRasterizer;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace CodeBrix.PdfDocuments.Tests.Helpers; //Was previously: namespace PdfSharpCore.Test.Helpers;
 
 public class PdfHelper
 {
     private static readonly string _rootPath = PathHelper.GetInstance().RootDir;
+    private static readonly PageRasterizer _rasterizer = new();
 
     /// <summary>
-    ///   Rasterize all pages within a PDF to PNG images
+    ///   Rasterize all pages within a PDF to PNG images using PDFium.
     /// </summary>
-    /// <returns></returns>
-    /// <exception cref="Exception"></exception>
-    public static RasterizeOutput Rasterize(PdfDocument document)
+    public static async Task<IList<Image>> Rasterize(PdfDocument document)
     {
-        var readerSettings = new MagickReadSettings
-        {
-            Density = new Density(300, 300),
-            BackgroundColor = MagickColors.White
-        };
-        var images = new MagickImageCollection();
-            
-        // Add all pages to the collection
-        using var ms = new MemoryStream();
-        document.Save(ms);
-
-        try
-        {
-            images.Read(ms, readerSettings);
-        }
-        catch (MagickDelegateErrorException ex)
-        {
-            throw new Exception("Ghostscript is not installed or is an incompatible version, unable to rasterize PDF", ex);
-        }
-            
-        // Remove transparency to guarantee a standard white background
-        foreach (var img in images)
-        {
-            img.Alpha(AlphaOption.Deactivate);
-            img.BackgroundColor = MagickColors.White;
-        }
-
-        return new RasterizeOutput
-        {
-            ImageCollection = images,
-        };
+        return await _rasterizer.RasterizeToImages(document, dpi: 300);
     }
-        
-    public static List<string> WriteImageCollection(MagickImageCollection images, string outDir, string filePrefix)
+
+    public static async Task<List<string>> WriteImageCollection(IList<Image> images, string outDir, string filePrefix)
     {
         var outPaths = new List<string>();
         for (var pageNum = 0; pageNum < images.Count; pageNum++)
         {
             var outPath = GetOutFilePath(outDir, $"{filePrefix}_{pageNum+1}.png");
-            images[pageNum].Write(outPath);
+            await using var fs = new FileStream(outPath, FileMode.Create, FileAccess.Write);
+            await images[pageNum].SaveAsync(fs, PngFormat.Instance, CancellationToken.None);
             outPaths.Add(outPath);
         }
 
         return outPaths;
     }
-        
-    public static string WriteImage(IMagickImage image, string outDir, string fileNameWithoutExtension)
+
+    public static async Task<string> WriteImage(Image image, string outDir, string fileNameWithoutExtension)
     {
         var outPath = GetOutFilePath(outDir, $"{fileNameWithoutExtension}.png");
-        image.Write(outPath);
+        await using var fs = new FileStream(outPath, FileMode.Create, FileAccess.Write);
+        await image.SaveAsync(fs, PngFormat.Instance, CancellationToken.None);
         return outPath;
     }
 
@@ -74,25 +50,43 @@ public class PdfHelper
     //   For instance, actual and expected must both be sourced from .png files
     public static DiffOutput Diff(string actualImagePath, string expectedImagePath, string outputPath = null, string filePrefix = null, int fuzzPct = 4)
     {
-        var actual = new MagickImage(actualImagePath);
-        var expected = new MagickImage(expectedImagePath);
+        using var actual = Image.Load<Rgba32>(actualImagePath);
+        using var expected = Image.Load<Rgba32>(expectedImagePath);
+
+        if (actual.Width != expected.Width || actual.Height != expected.Height)
+        {
+            return new DiffOutput
+            {
+                DiffValue = double.MaxValue
+            };
+        }
+
+        var diffCount = 0.0;
+        var fuzzThreshold = (int)(255 * fuzzPct / 100.0);
 
         // Allow for subtle differences due to cross-platform rendering of the PDF fonts
-        actual.ColorFuzz = new Percentage(fuzzPct);
-        var diffImg = actual.Compare(expected, ErrorMetric.Absolute, out var diffVal);
-            
-        if (diffVal > 0 && outputPath != null && filePrefix != null)
+        for (var y = 0; y < actual.Height; y++)
         {
-            WriteImage(diffImg, outputPath, $"{filePrefix}_diff");
+            for (var x = 0; x < actual.Width; x++)
+            {
+                var ap = actual[x, y];
+                var ep = expected[x, y];
+                if (Math.Abs(ap.R - ep.R) > fuzzThreshold ||
+                    Math.Abs(ap.G - ep.G) > fuzzThreshold ||
+                    Math.Abs(ap.B - ep.B) > fuzzThreshold ||
+                    Math.Abs(ap.A - ep.A) > fuzzThreshold)
+                {
+                    diffCount++;
+                }
+            }
         }
-            
+
         return new DiffOutput
         {
-            DiffValue = diffVal,
-            DiffImage = diffImg
+            DiffValue = diffCount
         };
     }
-        
+
     private static string GetOutFilePath(string outDir, string name)
     {
         var dir = Path.Combine(_rootPath, outDir);
@@ -101,14 +95,7 @@ public class PdfHelper
     }
 }
 
-public class RasterizeOutput
-{
-    public List<string> OutputPaths;
-    public MagickImageCollection ImageCollection;
-}
-
 public class DiffOutput
 {
-    public IMagickImage DiffImage;
     public double DiffValue;
 }

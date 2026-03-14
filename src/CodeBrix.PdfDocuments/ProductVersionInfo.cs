@@ -27,7 +27,7 @@
 // DEALINGS IN THE SOFTWARE.
 #endregion
 
-using System;
+using CodeBrix.PdfDocuments.Shared;
 
 namespace CodeBrix.PdfDocuments; //Was previously: namespace PdfSharpCore;
 
@@ -104,22 +104,22 @@ public static class ProductVersionInfo
     /// <summary>
     /// The major version number of the product.
     /// </summary>
-    public const string VersionMajor = "1";
+    public const string VersionMajor = PackageVersionInfo.VersionMajor;
 
     /// <summary>
     /// The minor version number of the product.
     /// </summary>
-    public const string VersionMinor = "0";
+    public const string VersionMinor = PackageVersionInfo.VersionMinor;
 
     /// <summary>
     /// The build number of the product.
     /// </summary>
-    public const string VersionBuild = "72";  // V16G // Build = days since 2026-01-01  -  change this values ONLY HERE
+    public const string VersionBuild = PackageVersionInfo.VersionBuild;
 
     /// <summary>
     /// The patch number of the product.
     /// </summary>
-    public const string VersionPatch = "0"; // NOT used for NuGet Version.
+    public const string VersionPatch = PackageVersionInfo.VersionPatch;
 
     /// <summary>
     /// The Version Prerelease String for NuGet.
@@ -138,7 +138,7 @@ public static class ProductVersionInfo
     /// <summary>
     /// E.g. "2005-01-01", for use in NuGet Script.
     /// </summary>
-    public const string VersionReferenceDate = "2026-01-01";
+    public const string VersionReferenceDate = PackageVersionInfo.VersionReferenceDate;
 
     /// <summary>
     /// Use _ instead of blanks and special characters. Can be complemented with a suffix in the NuGet Script.

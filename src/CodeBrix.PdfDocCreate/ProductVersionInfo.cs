@@ -25,6 +25,8 @@
 // DEALINGS IN THE SOFTWARE.
 #endregion
 
+using CodeBrix.PdfDocuments.Shared;
+
 namespace CodeBrix.PdfDocCreate;
 
 /// <summary>
@@ -93,16 +95,16 @@ public static class ProductVersionInfo
     /// </summary>
     public const string Culture = "";
 
-    // Build = days since 2026-01-01  -  change values ONLY here
-    public const string VersionMajor = "1"; // Also used for NuGet Version.
-    public const string VersionMinor = "0"; // Also used for NuGet Version.
-    public const string VersionBuild = "72"; // Also used for NuGet Version.
-    public const string VersionPatch = "0"; // NOT used for NuGet Version.
+    // Shared NuGet version info
+    public const string VersionMajor = PackageVersionInfo.VersionMajor;
+    public const string VersionMinor = PackageVersionInfo.VersionMinor;
+    public const string VersionBuild = PackageVersionInfo.VersionBuild;
+    public const string VersionPatch = PackageVersionInfo.VersionPatch;
 
     /// <summary>
     /// E.g. "1/1/2005", for use in NuGet Script.
     /// </summary>
-    public const string VersionReferenceDate = "2026-01-01";
+    public const string VersionReferenceDate = PackageVersionInfo.VersionReferenceDate;
 
     /// <summary>
     /// Use _ instead of blanks and special characters. Can be complemented with a suffix in the NuGet Script.

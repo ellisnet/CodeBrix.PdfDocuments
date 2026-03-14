@@ -1,4 +1,5 @@
-﻿using AngleSharp.Html.Parser;
+﻿using AngleSharp.Dom;
+using AngleSharp.Html.Parser;
 using CodeBrix.Imaging.PixelFormats;
 using CodeBrix.PdfDocCreate.DocumentObjectModel;
 using CodeBrix.PdfDocCreate.Rendering;
@@ -17,6 +18,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
+using PdfCreateDocument = CodeBrix.PdfDocCreate.DocumentObjectModel.Document;
+
 namespace CodeBrix.PdfDocuments.Tests.DocumentObjectModel;
 
 public class CreatePdfTests
@@ -30,6 +33,19 @@ public class CreatePdfTests
     private const string WikipediaArticleTitle = "Cuneiform (writing system)";
     private const string WikipediaArticleSubject = "Wikipedia article on Cuneiform writing";
     private const string WikipediaArticleAuthor = "Wikipedia contributors";
+
+    private const double UsableWidthPt = 470; // Letter 612pt - 2 × 2.5cm margins
+    private const int ImageDownloadDelayMs = 300;
+
+    private static readonly HashSet<string> SupportedImageExtensions =
+        new(StringComparer.OrdinalIgnoreCase) { ".bmp", ".jpg", ".jpeg", ".png", ".webp", ".gif" };
+
+    private static readonly HashSet<string> StopSections =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            "References", "See also", "External links", "Notes",
+            "Further reading", "Bibliography", "Sources"
+        };
 
     public CreatePdfTests(ITestOutputHelper output)
     {
@@ -46,15 +62,23 @@ public class CreatePdfTests
         // Fetch the Wikipedia article HTML
         using var httpClient = new HttpClient();
         httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(
-            "CodeBrix.PdfDocuments.Tests/1.0 (https://github.com/ellisnet/CodeBrix.PdfDocuments-private; test suite)");
+            "CodeBrix.PdfDocuments.Tests/1.0 (https://github.com/ellisnet/CodeBrix.PdfDocuments; test suite)");
         var html = await httpClient.GetStringAsync(WikipediaUrl, CancellationToken.None);
 
-        // Parse the article content into structured elements
-        var articleElements = ParseWikipediaArticle(html);
+        // Parse the article content into structured elements (text, images, lists, block quotes)
+        var parser = new HtmlParser();
+        var htmlDoc = parser.ParseDocument(html);
+        var articleElements = ParseArticleElements(htmlDoc, s => _output.WriteLine(s));
         Assert.NotEmpty(articleElements);
 
+        // Ensure the ImageSource implementation is registered before downloading
+        ImageSource.ImageSourceImpl ??= new ImagingImageSource<Rgba32>();
+
+        // Download images with rate limiting to avoid 429 from Wikimedia
+        await DownloadImagesAsync(articleElements, httpClient, s => _output.WriteLine(s));
+
         // Build the CodeBrix.PdfDocCreate document
-        var doc = new Document
+        var doc = new PdfCreateDocument
         {
             Info =
             {
@@ -64,7 +88,93 @@ public class CreatePdfTests
             }
         };
 
-        // Define custom styles
+        DefineStyles(doc);
+
+        var section = doc.AddSection();
+        SetupPage(section);
+        AddHeaderAndFooter(section, WikipediaArticleTitle);
+
+        // Title page content
+        section.AddParagraph(WikipediaArticleTitle, "Title");
+        section.AddParagraph($"Source: {WikipediaUrl}", "Source");
+
+        var datePara = section.AddParagraph($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+        datePara.Style = "Source";
+        datePara.Format.SpaceBefore = 2;
+
+        var spacer = section.AddParagraph();
+        spacer.Format.SpaceAfter = 8;
+
+        // Render all elements in document order
+        var isFirstHeading1 = true;
+        foreach (var element in articleElements)
+        {
+            switch (element.Type)
+            {
+                case ElementType.Heading1:
+                    if (!isFirstHeading1)
+                    {
+                        // Horizontal rule before each major section (except the first)
+                        var rule = section.AddParagraph();
+                        rule.Format.Borders.Bottom.Width = 0.75;
+                        rule.Format.Borders.Bottom.Color = Colors.LightGray;
+                        rule.Format.SpaceAfter = 4;
+                    }
+                    section.AddParagraph(element.Text, "Heading1");
+                    isFirstHeading1 = false;
+                    break;
+
+                case ElementType.Heading2:
+                    section.AddParagraph(element.Text, "Heading2");
+                    break;
+
+                case ElementType.Paragraph:
+                    AddFormattedParagraph(section, element.Runs);
+                    break;
+
+                case ElementType.BulletList:
+                    AddListItems(section, element.ListItems, bullet: true);
+                    break;
+
+                case ElementType.NumberedList:
+                    AddListItems(section, element.ListItems, bullet: false);
+                    break;
+
+                case ElementType.BlockQuote:
+                    AddBlockQuote(section, element.Runs);
+                    break;
+
+                case ElementType.Image:
+                    if (element.ImageData?.Source is not null)
+                        AddInlineImage(section, element.ImageData);
+                    break;
+            }
+        }
+
+        // Render the MigraDoc document to a PDF
+        var renderer = new PdfDocumentRenderer(unicode: true) { Document = doc };
+        renderer.RenderDocument();
+
+        // Add PDF bookmarks from headings
+        AddBookmarks(renderer.PdfDocument, articleElements);
+
+        // Save via the PdfDocumentRenderer's PdfDocument
+        var pdfDocument = renderer.PdfDocument;
+        SaveDocument(pdfDocument, outName);
+        ValidateFileIsPdf(outName);
+
+        // Verify the PDF has multiple pages (the article is long enough)
+        var outPath = GetOutFilePath(outName);
+        using var verifyStream = File.OpenRead(outPath);
+        var reopened = Pdf.IO.PdfReader.Open(verifyStream);
+        Assert.True(reopened.PageCount > 1,
+            $"Expected multi-page PDF but got {reopened.PageCount} page(s)");
+    }
+
+    // ── Style definitions ────────────────────────────────────────────────
+
+    private static void DefineStyles(PdfCreateDocument doc)
+    {
         var titleStyle = doc.AddStyle("Title", "Normal");
         titleStyle.Font.Size = 24;
         titleStyle.Font.Bold = true;
@@ -74,14 +184,16 @@ public class CreatePdfTests
         var heading1Style = doc.Styles["Heading1"];
         heading1Style.Font.Size = 18;
         heading1Style.Font.Bold = true;
-        heading1Style.ParagraphFormat.SpaceBefore = 12;
+        heading1Style.Font.Color = new Color(0, 51, 102);
+        heading1Style.ParagraphFormat.SpaceBefore = 16;
         heading1Style.ParagraphFormat.SpaceAfter = 6;
         heading1Style.ParagraphFormat.KeepWithNext = true;
 
         var heading2Style = doc.Styles["Heading2"];
         heading2Style.Font.Size = 14;
         heading2Style.Font.Bold = true;
-        heading2Style.ParagraphFormat.SpaceBefore = 10;
+        heading2Style.Font.Color = new Color(0, 68, 136);
+        heading2Style.ParagraphFormat.SpaceBefore = 12;
         heading2Style.ParagraphFormat.SpaceAfter = 4;
         heading2Style.ParagraphFormat.KeepWithNext = true;
 
@@ -93,18 +205,37 @@ public class CreatePdfTests
         var sourceStyle = doc.AddStyle("Source", "Normal");
         sourceStyle.Font.Size = 8;
         sourceStyle.Font.Italic = true;
+        sourceStyle.Font.Color = Colors.DarkGray;
         sourceStyle.ParagraphFormat.SpaceBefore = 12;
         sourceStyle.ParagraphFormat.Alignment = ParagraphAlignment.Left;
 
         var captionStyle = doc.AddStyle("Caption", "Normal");
         captionStyle.Font.Size = 8;
         captionStyle.Font.Italic = true;
+        captionStyle.Font.Color = Colors.DarkGray;
         captionStyle.ParagraphFormat.SpaceBefore = 2;
         captionStyle.ParagraphFormat.SpaceAfter = 12;
         captionStyle.ParagraphFormat.Alignment = ParagraphAlignment.Center;
 
-        // Create the section with page setup
-        var section = doc.AddSection();
+        var bulletStyle = doc.AddStyle("BulletItem", "Normal");
+        bulletStyle.ParagraphFormat.LeftIndent = Unit.FromCentimeter(1);
+        bulletStyle.ParagraphFormat.FirstLineIndent = Unit.FromCentimeter(-0.5);
+        bulletStyle.ParagraphFormat.SpaceAfter = 2;
+
+        var blockQuoteStyle = doc.AddStyle("BlockQuote", "Normal");
+        blockQuoteStyle.Font.Italic = true;
+        blockQuoteStyle.Font.Color = new Color(80, 80, 80);
+        blockQuoteStyle.ParagraphFormat.LeftIndent = Unit.FromCentimeter(1.5);
+        blockQuoteStyle.ParagraphFormat.RightIndent = Unit.FromCentimeter(1);
+        blockQuoteStyle.ParagraphFormat.SpaceBefore = 6;
+        blockQuoteStyle.ParagraphFormat.SpaceAfter = 6;
+        blockQuoteStyle.ParagraphFormat.Borders.Left.Width = 2;
+        blockQuoteStyle.ParagraphFormat.Borders.Left.Color = Colors.LightGray;
+        blockQuoteStyle.ParagraphFormat.Borders.DistanceFromLeft = Unit.FromCentimeter(0.3);
+    }
+
+    private static void SetupPage(Section section)
+    {
         section.PageSetup.PageFormat = PageFormat.Letter;
         section.PageSetup.TopMargin = "2.5cm";
         section.PageSetup.BottomMargin = "2.5cm";
@@ -112,190 +243,342 @@ public class CreatePdfTests
         section.PageSetup.RightMargin = "2.5cm";
         section.PageSetup.HeaderDistance = "1.25cm";
         section.PageSetup.FooterDistance = "1.25cm";
+    }
 
-        // Add page header
-        var headerParagraph = section.Headers.Primary.AddParagraph($"{WikipediaArticleTitle} — Wikipedia");
+    private static void AddHeaderAndFooter(Section section, string articleTitle)
+    {
+        var headerParagraph = section.Headers.Primary.AddParagraph($"{articleTitle} — Wikipedia");
         headerParagraph.Format.Font.Size = 8;
         headerParagraph.Format.Font.Italic = true;
+        headerParagraph.Format.Font.Color = Colors.Gray;
         headerParagraph.Format.Alignment = ParagraphAlignment.Right;
         headerParagraph.Format.Borders.Bottom.Width = 0.5;
-        headerParagraph.Format.Borders.Bottom.Color = Colors.Gray;
+        headerParagraph.Format.Borders.Bottom.Color = Colors.LightGray;
 
-        // Add page footer with page number
         var footerParagraph = section.Footers.Primary.AddParagraph();
         footerParagraph.Format.Font.Size = 8;
+        footerParagraph.Format.Font.Color = Colors.Gray;
         footerParagraph.Format.Alignment = ParagraphAlignment.Center;
         footerParagraph.AddText("Page ");
         footerParagraph.AddPageField();
         footerParagraph.AddText(" of ");
         footerParagraph.AddNumPagesField();
-
-        // Add document title
-        section.AddParagraph(WikipediaArticleTitle, "Title");
-
-        // Add source attribution
-        section.AddParagraph($"Source: {WikipediaUrl}", "Source");
-
-        // Add a blank paragraph as spacing after the source line
-        var spacer = section.AddParagraph();
-        spacer.Format.SpaceAfter = 8;
-
-        // Add all parsed article elements
-        foreach (var element in articleElements)
-        {
-            switch (element.Type)
-            {
-                case ArticleElementType.Heading1:
-                    section.AddParagraph(element.Text, "Heading1");
-                    break;
-                case ArticleElementType.Heading2:
-                    section.AddParagraph(element.Text, "Heading2");
-                    break;
-                case ArticleElementType.Paragraph:
-                    section.AddParagraph(element.Text);
-                    break;
-            }
-        }
-
-        // Parse article images and append them after the article text
-        var articleImages = ParseWikipediaImages(html, _output);
-        if (articleImages.Count > 0)
-        {
-            // Start images on a new page
-            section.AddPageBreak();
-            section.AddParagraph("Article Images", "Heading1");
-
-            // Letter page: 612pt wide minus 2 × 2.5cm margins ≈ 612 - 141.7 ≈ 470pt usable
-            var usableWidth = Unit.FromPoint(470);
-
-            // Ensure the ImageSource implementation is registered before creating image sources
-            ImageSource.ImageSourceImpl ??= new ImagingImageSource<Rgba32>();
-
-            foreach (var articleImage in articleImages)
-            {
-                byte[] imageBytes;
-                try
-                {
-                    imageBytes = await httpClient.GetByteArrayAsync(articleImage.Url, CancellationToken.None);
-                }
-                catch (HttpRequestException ex)
-                {
-                    _output.WriteLine($"  [DOWNLOAD FAILED] {articleImage.FileName}: {ex.Message}");
-                    continue;
-                }
-
-                ImageSource.IImageSource imageSource;
-                try
-                {
-                    imageSource = ImageSource.FromStream(
-                        articleImage.Url,
-                        () => new MemoryStream(imageBytes));
-                }
-                catch (Exception ex)
-                {
-                    _output.WriteLine($"  [DECODE FAILED] {articleImage.FileName}: {ex.GetType().Name} - {ex.Message}");
-                    continue;
-                }
-
-                _output.WriteLine($"  [ADDED TO PDF] {articleImage.FileName} — decoded {imageSource.Width}x{imageSource.Height}, transparent={imageSource.Transparent}");
-
-                var img = section.AddImage(imageSource);
-                img.LockAspectRatio = true;
-
-                // Scale to 75% of usable page width, similar to DrawImageWithTextCaption
-                var targetWidth = usableWidth.Point * 0.75;
-                img.Width = Unit.FromPoint(targetWidth);
-
-                // Cap the height so a tall image doesn't overflow onto a blank page.
-                // Usable height ≈ Letter 792pt - 2 × 2.5cm margins - heading/footer space ≈ 600pt
-                var scaledHeight = (targetWidth / imageSource.Width) * imageSource.Height;
-                if (scaledHeight > 600)
-                {
-                    img.Height = Unit.FromPoint(600);
-                }
-
-                var caption = string.IsNullOrWhiteSpace(articleImage.Caption)
-                    ? $"(no caption - {articleImage.FileName})"
-                    : articleImage.Caption;
-                section.AddParagraph(caption, "Caption");
-            }
-        }
-
-        // Render the MigraDoc document to a PDF
-        var renderer = new PdfDocumentRenderer(unicode: true) { Document = doc };
-        renderer.RenderDocument();
-
-        // Save via the PdfDocumentRenderer's PdfDocument
-        var pdfDocument = renderer.PdfDocument;
-        SaveDocument(pdfDocument, outName);
-        ValidateFileIsPdf(outName);
-
-        // Verify the PDF has multiple pages (the article is long enough)
-        var outPath = GetOutFilePath(outName);
-        using var verifyStream = File.OpenRead(outPath);
-        var reopened = PdfDocuments.Pdf.IO.PdfReader.Open(verifyStream);
-        Assert.True(reopened.PageCount > 1,
-            $"Expected multi-page PDF but got {reopened.PageCount} page(s)");
     }
 
-    private static List<ArticleElement> ParseWikipediaArticle(string html)
+    // ── Document building helpers ────────────────────────────────────────
+
+    private static void AddFormattedParagraph(Section section, List<TextRun> runs)
+    {
+        if (runs is null || runs.Count == 0) return;
+
+        var para = section.AddParagraph();
+        AppendRuns(para, runs);
+    }
+
+    private static void AppendRuns(Paragraph para, List<TextRun> runs)
+    {
+        foreach (var run in runs)
+        {
+            if (string.IsNullOrEmpty(run.Text)) continue;
+
+            if (!run.Bold && !run.Italic)
+            {
+                para.AddText(run.Text);
+            }
+            else
+            {
+                var format = run.Bold && run.Italic ? TextFormat.Bold | TextFormat.Italic
+                    : run.Bold ? TextFormat.Bold
+                    : TextFormat.Italic;
+                para.AddFormattedText(run.Text, format);
+            }
+        }
+    }
+
+    private static void AddListItems(
+        Section section, List<ListItem> items, bool bullet)
+    {
+        if (items is null || items.Count == 0) return;
+
+        for (var i = 0; i < items.Count; i++)
+        {
+            var item = items[i];
+            var para = section.AddParagraph();
+            para.Style = "BulletItem";
+
+            var prefix = bullet ? "\u2022  " : $"{i + 1}.  ";
+            para.AddText(prefix);
+            AppendRuns(para, item.Runs);
+        }
+    }
+
+    private static void AddBlockQuote(Section section, List<TextRun> runs)
+    {
+        if (runs is null || runs.Count == 0) return;
+
+        var para = section.AddParagraph();
+        para.Style = "BlockQuote";
+        AppendRuns(para, runs);
+    }
+
+    private static void AddInlineImage(Section section, ImageData imageData)
+    {
+        var source = imageData.Source!;
+
+        // Size the image proportionally
+        var naturalWidth = (double)source.Width;
+        var naturalHeight = (double)source.Height;
+
+        // Scale: use natural size up to max 60% of usable width, minimum 30%
+        var maxWidth = UsableWidthPt * 0.60;
+        var minWidth = UsableWidthPt * 0.30;
+        var targetWidth = Math.Clamp(naturalWidth, minWidth, maxWidth);
+
+        var scaledHeight = (targetWidth / naturalWidth) * naturalHeight;
+        // Cap height to avoid overflowing a page
+        if (scaledHeight > 500)
+        {
+            scaledHeight = 500;
+            targetWidth = (scaledHeight / naturalHeight) * naturalWidth;
+        }
+
+        var img = section.AddImage(source);
+        img.LockAspectRatio = true;
+        img.Width = Unit.FromPoint(targetWidth);
+        img.Height = Unit.FromPoint(scaledHeight);
+
+        var caption = string.IsNullOrWhiteSpace(imageData.Caption)
+            ? $"(no caption — {imageData.FileName})"
+            : imageData.Caption;
+        section.AddParagraph(caption, "Caption");
+    }
+
+    // ── PDF bookmarks ────────────────────────────────────────────────────
+
+    private static void AddBookmarks(
+        PdfDocument pdfDocument, List<ArticleElement> elements)
+    {
+        PdfOutline currentH1 = null;
+        foreach (var el in elements)
+        {
+            if (el.Type == ElementType.Heading1)
+            {
+                currentH1 = pdfDocument.Outlines.Add(el.Text, pdfDocument.Pages[0]);
+            }
+            else if (el.Type == ElementType.Heading2 && currentH1 is not null)
+            {
+                currentH1.Outlines.Add(el.Text, pdfDocument.Pages[0]);
+            }
+        }
+    }
+
+    // ── HTML parsing ─────────────────────────────────────────────────────
+
+    private static List<ArticleElement> ParseArticleElements(
+        IDocument document, Action<string> log)
     {
         var elements = new List<ArticleElement>();
-
-        var parser = new HtmlParser();
-        var document = parser.ParseDocument(html);
-
-        // Find the main article content container
         var parserOutput = document.QuerySelector(".mw-parser-output");
         if (parserOutput is null)
             return elements;
 
-        // Section names where we stop collecting content
-        var stopSections = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        {
-            "References", "See also", "External links", "Notes", "Further reading", "Bibliography"
-        };
-
-        // Iterate over direct child elements looking for h2, h3, and p tags
         foreach (var child in parserOutput.Children)
         {
             var tag = child.TagName.ToUpperInvariant();
 
+            // Stop at non-prose sections
             if (tag is "H2" or "H3")
             {
-                // Remove [edit] link spans before extracting text
-                var editSection = child.QuerySelector(".mw-editsection");
-                editSection?.Remove();
-
+                child.QuerySelector(".mw-editsection")?.Remove();
                 var headingText = child.TextContent.Trim();
 
-                // Stop if we've reached a non-prose section
-                if (stopSections.Contains(headingText))
+                if (StopSections.Contains(headingText))
                     break;
-
                 if (headingText.Length < 2)
                     continue;
 
-                var type = tag == "H2" ? ArticleElementType.Heading1 : ArticleElementType.Heading2;
+                var type = tag == "H2" ? ElementType.Heading1 : ElementType.Heading2;
                 elements.Add(new ArticleElement { Type = type, Text = headingText });
             }
             else if (tag == "P")
             {
-                // Remove reference superscripts (e.g. [1], [2]) before extracting text
+                // Remove reference superscripts before extracting
                 foreach (var sup in child.QuerySelectorAll("sup.reference").ToList())
                     sup.Remove();
 
-                var text = child.TextContent.Trim();
-
-                if (string.IsNullOrWhiteSpace(text))
+                var runs = ExtractTextRuns(child);
+                if (runs.Count == 0 || runs.All(r => string.IsNullOrWhiteSpace(r.Text)))
                     continue;
 
-                elements.Add(new ArticleElement { Type = ArticleElementType.Paragraph, Text = text });
+                elements.Add(new ArticleElement { Type = ElementType.Paragraph, Runs = runs });
+            }
+            else if (tag is "UL" or "OL")
+            {
+                var listItems = ParseListItems(child);
+                if (listItems.Count == 0)
+                    continue;
+
+                var type = tag == "UL" ? ElementType.BulletList : ElementType.NumberedList;
+                elements.Add(new ArticleElement { Type = type, ListItems = listItems });
+            }
+            else if (tag == "BLOCKQUOTE")
+            {
+                foreach (var sup in child.QuerySelectorAll("sup.reference").ToList())
+                    sup.Remove();
+
+                var runs = ExtractTextRuns(child);
+                if (runs.Count > 0 && runs.Any(r => !string.IsNullOrWhiteSpace(r.Text)))
+                    elements.Add(new ArticleElement { Type = ElementType.BlockQuote, Runs = runs });
+            }
+            else if (tag is "FIGURE" || (tag == "DIV" && child.ClassList.Contains("thumb")))
+            {
+                var imageInfo = ParseSingleImage(child, log);
+                if (imageInfo is not null)
+                    elements.Add(new ArticleElement { Type = ElementType.Image, ImageData = imageInfo });
             }
         }
 
         return elements;
     }
+
+    private static List<TextRun> ExtractTextRuns(
+        INode node, bool bold = false, bool italic = false)
+    {
+        var runs = new List<TextRun>();
+
+        foreach (var child in node.ChildNodes)
+        {
+            if (child is IText textNode)
+            {
+                var text = textNode.Data;
+                if (!string.IsNullOrEmpty(text))
+                    runs.Add(new TextRun(text, bold, italic));
+            }
+            else if (child is IElement element)
+            {
+                var elTag = element.TagName.ToUpperInvariant();
+
+                // Skip hidden elements, edit links, reference markers
+                if (elTag == "SUP" && element.ClassList.Contains("reference"))
+                    continue;
+                if (element.ClassList.Contains("mw-editsection"))
+                    continue;
+                if (elTag is "STYLE" or "SCRIPT")
+                    continue;
+
+                var newBold = bold || elTag is "B" or "STRONG";
+                var newItalic = italic || elTag is "I" or "EM";
+
+                runs.AddRange(ExtractTextRuns(element, newBold, newItalic));
+            }
+        }
+
+        return runs;
+    }
+
+    private static List<ListItem> ParseListItems(IElement listElement)
+    {
+        var items = new List<ListItem>();
+
+        foreach (var li in listElement.Children.Where(c => c.TagName.ToUpperInvariant() == "LI"))
+        {
+            // Remove reference superscripts
+            foreach (var sup in li.QuerySelectorAll("sup.reference").ToList())
+                sup.Remove();
+
+            var runs = ExtractTextRuns(li);
+            if (runs.Count > 0 && runs.Any(r => !string.IsNullOrWhiteSpace(r.Text)))
+                items.Add(new ListItem { Runs = runs });
+        }
+
+        return items;
+    }
+
+    private static ImageData ParseSingleImage(IElement figure, Action<string> log)
+    {
+        // Skip nested figures
+        if (figure.ParentElement?.Closest("figure, div.thumb") is { } parent
+            && parent.QuerySelector(".mw-parser-output") is null)
+            return null;
+
+        var imgElement = figure.QuerySelector("img");
+        if (imgElement is null)
+            return null;
+
+        var src = imgElement.GetAttribute("src") ?? imgElement.GetAttribute("data-src");
+        if (string.IsNullOrWhiteSpace(src))
+            return null;
+
+        // Skip tiny icons
+        var widthAttr = imgElement.GetAttribute("width");
+        if (int.TryParse(widthAttr, out var imgWidth) && imgWidth < 100)
+            return null;
+
+        if (src.StartsWith("//"))
+            src = "https:" + src;
+        else if (src.StartsWith("/"))
+            src = "https://en.wikipedia.org" + src;
+
+        var urlPath = src.Split('?')[0];
+        var ext = Path.GetExtension(urlPath);
+        if (!SupportedImageExtensions.Contains(ext))
+            return null;
+
+        var captionElement = figure.QuerySelector("figcaption")
+            ?? figure.QuerySelector(".thumbcaption");
+        captionElement?.QuerySelector(".magnify")?.Remove();
+        var caption = captionElement?.TextContent.Trim() ?? "";
+
+        var fileName = Path.GetFileName(urlPath);
+
+        log($"  Image: {fileName} — {(string.IsNullOrWhiteSpace(caption) ? "(no caption)" : caption)}");
+
+        return new ImageData { Url = src, Caption = caption, FileName = fileName };
+    }
+
+    // ── Image downloading ────────────────────────────────────────────────
+
+    private static async Task DownloadImagesAsync(
+        List<ArticleElement> elements, HttpClient httpClient, Action<string> log)
+    {
+        var imageElements = elements.Where(e => e.Type == ElementType.Image && e.ImageData is not null).ToList();
+        if (imageElements.Count == 0) return;
+
+        log($"Downloading {imageElements.Count} images (with {ImageDownloadDelayMs}ms delay between requests)...");
+
+        foreach (var element in imageElements)
+        {
+            var img = element.ImageData!;
+
+            // Rate-limit to avoid 429 from Wikimedia
+            await Task.Delay(ImageDownloadDelayMs);
+
+            byte[] imageBytes;
+            try
+            {
+                imageBytes = await httpClient.GetByteArrayAsync(img.Url);
+            }
+            catch (HttpRequestException ex)
+            {
+                log($"  [DOWNLOAD FAILED] {img.FileName}: {ex.Message}");
+                continue;
+            }
+
+            try
+            {
+                img.Source = ImageSource.FromStream(
+                    img.Url,
+                    () => new MemoryStream(imageBytes));
+                log($"  [OK] {img.FileName} — {img.Source.Width}x{img.Source.Height}");
+            }
+            catch (Exception ex)
+            {
+                log($"  [DECODE FAILED] {img.FileName}: {ex.GetType().Name} - {ex.Message}");
+            }
+        }
+    }
+
+    // ── Utility methods ──────────────────────────────────────────────────
 
     private void SaveDocument(PdfDocument document, string name)
     {
@@ -345,107 +628,40 @@ public class CreatePdfTests
         readBuffer.Should().Equal(pdfSignature);
     }
 
-    private static List<ArticleImage> ParseWikipediaImages(string html, ITestOutputHelper output)
-    {
-        var images = new List<ArticleImage>();
+    // ── Data types ─────────────────────────────────────────────────────
 
-        var parser = new HtmlParser();
-        var document = parser.ParseDocument(html);
-
-        var parserOutput = document.QuerySelector(".mw-parser-output");
-        if (parserOutput is null)
-            return images;
-
-        // Supported raster formats for CodeBrix.Imaging (BMP, JPEG, PNG, WebP, GIF)
-        var supportedExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        {
-            ".bmp", ".jpg", ".jpeg", ".png", ".webp", ".gif"
-        };
-
-        // Wikipedia wraps article images in <figure> elements (or legacy <div class="thumb">)
-        var figures = parserOutput.QuerySelectorAll("figure, div.thumb");
-
-        foreach (var figure in figures)
-        {
-            // Skip nested figures (e.g. a gallery <figure> inside a parent <figure>)
-            if (figure.ParentElement?.Closest("figure, div.thumb") is not null
-                && figure.ParentElement.Closest("figure, div.thumb") != parserOutput)
-                continue;
-
-            // Find the <img> element
-            var imgElement = figure.QuerySelector("img");
-            if (imgElement is null)
-                continue;
-
-            // Get the image URL from src (preferred) or data-src
-            var src = imgElement.GetAttribute("src") ?? imgElement.GetAttribute("data-src");
-            if (string.IsNullOrWhiteSpace(src))
-                continue;
-
-            // Skip tiny icons and inline decorative images
-            var widthAttr = imgElement.GetAttribute("width");
-            if (int.TryParse(widthAttr, out var imgWidth) && imgWidth < 100)
-                continue;
-
-            // Ensure the URL is absolute
-            if (src.StartsWith("//"))
-                src = "https:" + src;
-            else if (src.StartsWith("/"))
-                src = "https://en.wikipedia.org" + src;
-
-            // Filter out unsupported image formats (SVG, WebP, GIF, TIFF, etc.)
-            // Wikipedia thumbnail URLs look like: /thumb/a/ab/File.svg/220px-File.svg.png
-            // so check both the raw path and any extension before query params
-            var urlPath = src.Split('?')[0];
-            var ext = Path.GetExtension(urlPath);
-            if (!supportedExtensions.Contains(ext))
-                continue;
-
-            // Get the caption from <figcaption> or <div class="thumbcaption">
-            var captionElement = figure.QuerySelector("figcaption")
-                ?? figure.QuerySelector(".thumbcaption");
-
-            // Remove the "magnify" clip inside the caption if present
-            captionElement?.QuerySelector(".magnify")?.Remove();
-
-            var caption = captionElement?.TextContent.Trim() ?? "";
-
-            // Extract the file name from the URL for readable output
-            var fileName = Path.GetFileName(urlPath);
-
-            // Predict how the PDF renderer will embed this image based on format
-            var transparencyCapable = ext.ToLowerInvariant() is ".png" or ".webp" or ".gif";
-            var renderMode = transparencyCapable ? "PdfBitmap" : "Jpeg";
-
-            output.WriteLine($"Image [{images.Count + 1}]: {fileName}");
-            output.WriteLine($"  Format: {ext.TrimStart('.').ToUpperInvariant()} | Render mode: {renderMode}");
-            output.WriteLine($"  URL: {src}");
-            output.WriteLine($"  Caption: {(string.IsNullOrWhiteSpace(caption) ? "(none)" : caption)}");
-
-            images.Add(new ArticleImage { Url = src, Caption = caption, FileName = fileName });
-        }
-
-        output.WriteLine($"Total images to include in PDF: {images.Count}");
-        return images;
-    }
-
-    private enum ArticleElementType
+    private enum ElementType
     {
         Heading1,
         Heading2,
-        Paragraph
+        Paragraph,
+        BulletList,
+        NumberedList,
+        Image,
+        BlockQuote
+    }
+
+    private record TextRun(string Text, bool Bold, bool Italic);
+
+    private class ListItem
+    {
+        public List<TextRun> Runs { get; init; } = [];
+    }
+
+    private class ImageData
+    {
+        public string Url { get; init; } = "";
+        public string Caption { get; init; } = "";
+        public string FileName { get; init; } = "";
+        public ImageSource.IImageSource Source { get; set; }
     }
 
     private class ArticleElement
     {
-        public ArticleElementType Type { get; init; }
-        public string Text { get; init; }
-    }
-
-    private class ArticleImage
-    {
-        public string Url { get; init; }
-        public string Caption { get; init; }
-        public string FileName { get; init; }
+        public ElementType Type { get; init; }
+        public string Text { get; init; } = "";
+        public List<TextRun> Runs { get; init; }
+        public List<ListItem> ListItems { get; init; }
+        public ImageData ImageData { get; init; }
     }
 }

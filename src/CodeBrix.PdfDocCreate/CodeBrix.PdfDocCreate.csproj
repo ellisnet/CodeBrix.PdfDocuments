@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk" InitialTargets="SetVersionFromProductVersionInfo">
 
-  <!-- Inline task to read version constants from ProductVersionInfo.cs at build time -->
+  <!-- Inline task to read version constants from PackageVersionInfo.cs at build time -->
   <UsingTask TaskName="ReadVersionFromSource" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
     <ParameterGroup>
       <SourceFilePath ParameterType="System.String" Required="true" />
@@ -19,13 +19,13 @@
   </UsingTask>
 
   <Target Name="SetVersionFromProductVersionInfo">
-    <ReadVersionFromSource SourceFilePath="$(MSBuildProjectDirectory)\ProductVersionInfo.cs">
+    <ReadVersionFromSource SourceFilePath="$(MSBuildProjectDirectory)\..\Shared\PackageVersionInfo.cs">
       <Output TaskParameter="VersionResult" PropertyName="Version" />
       <Output TaskParameter="VersionResult" PropertyName="PackageVersion" />
       <Output TaskParameter="VersionResult" PropertyName="AssemblyVersion" />
       <Output TaskParameter="VersionResult" PropertyName="FileVersion" />
     </ReadVersionFromSource>
-    <Message Importance="high" Text="Version read from ProductVersionInfo.cs: $(Version)" />
+    <Message Importance="high" Text="Version read from PackageVersionInfo.cs: $(Version)" />
   </Target>
 
   <PropertyGroup>
@@ -33,7 +33,7 @@
 
     <!-- NuGet Package Properties -->
     <PackageId>CodeBrix.PdfDocCreate.MitLicenseForever</PackageId>
-    <!--<Version>value generated via VersionResult from ProductVersionInfo.cs above</Version>-->
+    <!--<Version>value generated via VersionResult from PackageVersionInfo.cs above</Version>-->
     <Authors>Jeremy Ellis</Authors>
     <Product>CodeBrix.PdfDocCreate</Product>
     <Title>CodeBrix.PdfDocCreate</Title>
@@ -51,8 +51,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="..\..\icon-codebrix-128.png" Pack="true" PackagePath="" />
-    <None Include="..\..\README.md" Pack="true" PackagePath="" />
+    <Compile Include="..\Shared\PackageVersionInfo.cs" Link="PackageVersionInfo.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -62,6 +61,11 @@
       project's PackageId (CodeBrix.PdfDocuments.MitLicenseForever) and PackageVersion.
     -->
     <ProjectReference Include="..\CodeBrix.PdfDocuments\CodeBrix.PdfDocuments.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\icon-codebrix-128.png" Pack="true" PackagePath="" />
+    <None Include="..\..\README.md" Pack="true" PackagePath="" />
   </ItemGroup>
 
 </Project>

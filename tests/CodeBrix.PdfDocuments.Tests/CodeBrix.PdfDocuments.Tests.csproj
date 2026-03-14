@@ -29,12 +29,12 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="xunit.v3" Version="3.2.2" />
-    <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="14.10.4" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\CodeBrix.PdfDocCreate\CodeBrix.PdfDocCreate.csproj" />
     <ProjectReference Include="..\..\src\CodeBrix.PdfDocuments\CodeBrix.PdfDocuments.csproj" />
+    <ProjectReference Include="..\..\src\CodeBrix.PdfRasterizer\CodeBrix.PdfRasterizer.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -5,12 +5,19 @@ Create and process PDF documents using .NET, without the need of interop.
 CodeBrix.PdfDocuments is a .NET library for creating, reading, merging, and manipulating PDF documents.
 CodeBrix.PdfDocCreate is a companion library that provides a document object model for building
 richly formatted PDF documents with styled text, tables, charts, and images.
+CodeBrix.PdfRasterizer is a companion library that renders PDF pages to images (PNG, JPEG, BMP, GIF,
+TIFF) using the PDFium native rendering engine, with support for thumbnails, page information, and
+cross-platform operation.
 
 CodeBrix.PdfDocuments has dependencies on the CodeBrix.Imaging package for image and font handling,
-and the CodeBrix.Compression package for data compression.
+and the CodeBrix.Compression package for data compression. CodeBrix.PdfRasterizer has dependencies
+on CodeBrix.PdfDocuments and the CodeBrix.Imaging package, and bundles pre-built PDFium native
+binaries for Windows, macOS, and Linux.
 
-CodeBrix.PdfDocuments and CodeBrix.PdfDocCreate are provided as .NET 10 libraries and associated
-`CodeBrix.PdfDocuments.MitLicenseForever` and `CodeBrix.PdfDocCreate.MitLicenseForever` NuGet packages.
+CodeBrix.PdfDocuments, CodeBrix.PdfDocCreate, and CodeBrix.PdfRasterizer are provided as .NET 10
+libraries and associated `CodeBrix.PdfDocuments.MitLicenseForever`,
+`CodeBrix.PdfDocCreate.MitLicenseForever`, and `CodeBrix.PdfRasterizer.MitLicenseForever` NuGet
+packages.
 
 CodeBrix.PdfDocuments supports applications and assemblies that target Microsoft .NET version 10.0 and later.
 Microsoft .NET version 10.0 is a Long-Term Supported (LTS) version of .NET, and was released on Nov 11, 2025;
@@ -43,6 +50,23 @@ MigraDocCore libraries version 1.3.67 - see below for licensing details.
 * Charts
 * Page headers and footers
 * Paragraph alignment and spacing
+
+## CodeBrix.PdfRasterizer supports:
+
+* Rasterizing PDF pages to in-memory images or image files
+* Rasterizing a single page or all pages at once
+* Output in multiple image formats: PNG, JPEG, BMP, GIF, TIFF
+* Configurable rendering resolution (DPI)
+* Thumbnail generation with configurable maximum dimensions
+* Page information: page count and page dimensions (points, inches, pixels)
+* Encrypted/password-protected PDF support
+* Selective page rasterization (specific page numbers)
+* Configurable background color
+* Custom file name generation for output files
+* Form field rendering (fillable PDF forms)
+* CancellationToken support for async operations
+* Accepts PDF input from file paths, byte arrays, streams, or PdfDocument objects
+* Cross-platform: Windows (x64, x86), macOS (x64, ARM64), Linux (x64, ARM64, ARM)
 
 ## Sample Code
 
@@ -154,6 +178,105 @@ pdfRenderer.RenderDocument();
 pdfRenderer.PdfDocument.Save("SalesReport.pdf");
 ```
 
+### Rasterize PDF Pages to Image Files
+
+```csharp
+using CodeBrix.PdfRasterizer;
+
+// Create a rasterizer instance
+using var rasterizer = new PageRasterizer();
+
+// Configure output settings
+rasterizer.OutputDirectory = @"C:\Output\Images";
+rasterizer.Dpi = 300;
+
+// Rasterize all pages of a PDF to PNG files
+await rasterizer.RasterizeToImageFiles("report.pdf");
+```
+
+### Rasterize a Single PDF Page to an In-Memory Image
+
+```csharp
+using CodeBrix.Imaging;
+using CodeBrix.Imaging.Formats.Jpeg;
+using CodeBrix.PdfRasterizer;
+
+using var rasterizer = new PageRasterizer();
+
+// Rasterize page 1 as a JPEG image
+using var image = await rasterizer.RasterizeToImage(
+    "report.pdf",
+    pageNumber: 1,
+    desiredImageFormat: JpegFormat.Instance);
+
+// Save the image to a file
+await image.SaveAsync("page1.jpg");
+
+// Or access image properties
+Console.WriteLine($"Image size: {image.Width} x {image.Height}");
+```
+
+### Generate Thumbnails
+
+```csharp
+using CodeBrix.Imaging;
+using CodeBrix.PdfRasterizer;
+
+using var rasterizer = new PageRasterizer();
+
+// Generate thumbnails with custom max dimensions (150x200 pixels)
+var maxDimensions = new ThumbnailMaxDimensions(150, 200);
+IList<Image> thumbnails = await rasterizer.RasterizeToThumbnails(
+    "report.pdf",
+    maxDimensions: maxDimensions);
+
+foreach (var thumbnail in thumbnails)
+{
+    Console.WriteLine($"Thumbnail size: {thumbnail.Width} x {thumbnail.Height}");
+    thumbnail.Dispose();
+}
+```
+
+### Get PDF Page Information
+
+```csharp
+using CodeBrix.PdfRasterizer;
+
+using var rasterizer = new PageRasterizer();
+
+// Get the number of pages
+int pageCount = await rasterizer.GetPageCount("report.pdf");
+Console.WriteLine($"Page count: {pageCount}");
+
+// Get dimensions of a specific page
+PdfPageDimensions dims = await rasterizer.GetPageDimensions("report.pdf", pageNumber: 1);
+Console.WriteLine($"Page size: {dims.WidthInInches:F1}\" x {dims.HeightInInches:F1}\"");
+Console.WriteLine($"At 300 DPI: {dims.GetWidthInPixels(300)} x {dims.GetHeightInPixels(300)} pixels");
+```
+
+### Rasterize Pages from a PdfDocument Object
+
+```csharp
+using CodeBrix.Imaging;
+using CodeBrix.PdfDocuments.Pdf;
+using CodeBrix.PdfRasterizer;
+
+// Create a PDF document programmatically
+var document = new PdfDocument();
+var page = document.AddPage();
+// ... draw content on the page ...
+
+// Rasterize the in-memory document directly
+using var rasterizer = new PageRasterizer();
+IList<Image> images = await rasterizer.RasterizeToImages(document);
+
+foreach (var image in images)
+{
+    // Process the image...
+    image.Dispose();
+}
+```
+
 Note that significant additional sample code is available in the `CodeBrix.PdfDocuments.Tests` project.
 
 ## License
@@ -166,3 +289,9 @@ provisions of the open source license of PdfSharpCore and MigraDocCore (code) - 
 all modified, adapted and derived code within the CodeBrix.PdfDocuments/CodeBrix.PdfDocCreate 
 libraries freely available as open source, under the same license as the PdfSharpCore and 
 MigraDocCore code license.
+
+CodeBrix.PdfRasterizer contains P/Invoke bindings and rendering logic derived from
+[Docnet.Core](https://github.com/GowenGit/docnet) (MIT License, copyright 2018 Modestas
+Petravicius). Pre-built PDFium native binaries are bundled under a BSD 3-Clause license
+(copyright 2014 The PDFium Authors). See THIRD-PARTY-NOTICES.txt in the root of the 
+repository for full license details.
