@@ -66,7 +66,7 @@ MigraDocCore libraries version 1.3.67 - see below for licensing details.
 * Form field rendering (fillable PDF forms)
 * CancellationToken support for async operations
 * Accepts PDF input from file paths, byte arrays, streams, or PdfDocument objects
-* Cross-platform: Windows (x64, x86, ARM64), macOS (x64, ARM64), Linux (x64, ARM64, ARM), Android (ARM64)
+* Cross-platform: Windows (x64, x86, ARM64), macOS (x64, ARM64), Linux (x64, ARM64, ARM, RISC-V 64), Android (ARM64)
 
 ## Sample Code
 

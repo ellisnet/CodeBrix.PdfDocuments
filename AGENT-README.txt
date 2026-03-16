@@ -72,9 +72,9 @@ NuGet Package: CodeBrix.PdfRasterizer.MitLicenseForever
 Dependencies:
   - CodeBrix.PdfDocuments.MitLicenseForever
   - CodeBrix.Imaging.ApacheLicenseForever (>= 1.0.73)
-Bundled Native Libraries: PDFium binaries for 9 platform RIDs
+Bundled Native Libraries: PDFium binaries for 10 platform RIDs
   (win-x64, win-x86, win-arm64, osx-x64, osx-arm64, linux-x64, linux-arm64,
-   linux-arm, android-arm64)
+   linux-arm, linux-riscv64, android-arm64)
 
     dotnet add package CodeBrix.PdfRasterizer.MitLicenseForever
 
@@ -97,6 +97,7 @@ SUPPORTED PLATFORMS (CodeBrix.PdfRasterizer only):
     - Linux x64        (linux-x64)
     - Linux ARM64      (linux-arm64)
     - Linux ARM        (linux-arm)
+    - Linux RISC-V 64  (linux-riscv64)
     - Android ARM64    (android-arm64)
 
   UNSUPPORTED PLATFORMS: CodeBrix.PdfRasterizer does NOT work on iOS,

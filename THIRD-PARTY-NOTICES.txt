@@ -214,7 +214,7 @@ handling is provided by the CodeBrix.Imaging and CodeBrix.Compression packages.
    package under runtimes/{rid}/native/ for the following platforms:
 
      win-x64, win-x86, win-arm64, linux, linux-arm, linux-arm64,
-     osx-x64, osx-arm64, android-arm64
+     linux-riscv64, osx-x64, osx-arm64, android-arm64
 
    Each native binary directory includes a LICENSE file with the full PDFium
    license text.
@@ -255,10 +255,17 @@ handling is provided by the CodeBrix.Imaging and CodeBrix.Compression packages.
 7. pdfium-binaries (pre-compiled PDFium builds by Benoit Blanchon)
    https://github.com/bblanchon/pdfium-binaries
 
-   The PDFium native binaries for the win-arm64 and android-arm64 platforms
-   were obtained from the bblanchon/pdfium-binaries project, which provides
-   pre-compiled PDFium builds distributed as NuGet packages
-   (bblanchon.PDFium.Win32 and bblanchon.PDFium.Android).
+   The PDFium native binaries for the win-arm64, android-arm64, and
+   linux-riscv64 platforms were obtained from the bblanchon/pdfium-binaries
+   project, which provides pre-compiled PDFium builds distributed as NuGet
+   packages (bblanchon.PDFium.Win32 and bblanchon.PDFium.Android) and via
+   the pypdfium2 Python package (see entry #8 below).
+
+   The linux-riscv64 binary was extracted from the pypdfium2 Python package
+   (version 5.6.0, manylinux_2_38_riscv64), which uses the pdfium-binaries
+   build infrastructure to compile PDFium from source. That binary statically
+   links several third-party libraries; see runtimes/linux-riscv64/native/LICENSE
+   for the complete list of bundled components and their licenses.
 
    The bblanchon packaging/build scripts are licensed under the MIT License.
    The underlying PDFium library itself remains under the BSD 3-Clause license
@@ -288,6 +295,30 @@ handling is provided by the CodeBrix.Imaging and CodeBrix.Compression packages.
    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
+   ---------------------------------------------------------------------------
+
+================================================================================
+
+8. pypdfium2
+   https://github.com/pypdfium2-team/pypdfium2
+
+   pypdfium2 is a Python binding and binary distribution of PDFium that
+   uses the pdfium-binaries build infrastructure (see entry #7 above) to
+   compile PDFium from source for a wide range of platforms, including
+   Linux RISC-V 64-bit.
+
+   The linux-riscv64 PDFium native binary bundled in CodeBrix.PdfRasterizer
+   was extracted from the pypdfium2 Python package (version 5.6.0,
+   manylinux_2_38_riscv64 wheel).
+
+   License: Apache-2.0 OR BSD-3-Clause
+
+   ---------------------------------------------------------------------------
+   Copyright (c) pypdfium2-team
+
+   Licensed under the Apache License, Version 2.0 or the BSD 3-Clause
+   License, at your option. See https://github.com/pypdfium2-team/pypdfium2
+   for the full license texts.
    ---------------------------------------------------------------------------
 
 ================================================================================
