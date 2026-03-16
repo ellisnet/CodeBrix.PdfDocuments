@@ -72,8 +72,9 @@ NuGet Package: CodeBrix.PdfRasterizer.MitLicenseForever
 Dependencies:
   - CodeBrix.PdfDocuments.MitLicenseForever
   - CodeBrix.Imaging.ApacheLicenseForever (>= 1.0.73)
-Bundled Native Libraries: PDFium binaries for 7 platform RIDs
-  (win-x64, win-x86, osx-x64, osx-arm64, linux-x64, linux-arm64, linux-arm)
+Bundled Native Libraries: PDFium binaries for 9 platform RIDs
+  (win-x64, win-x86, win-arm64, osx-x64, osx-arm64, linux-x64, linux-arm64,
+   linux-arm, android-arm64)
 
     dotnet add package CodeBrix.PdfRasterizer.MitLicenseForever
 
@@ -90,15 +91,16 @@ SUPPORTED PLATFORMS (CodeBrix.PdfRasterizer only):
   The NuGet package includes pre-built PDFium native binaries for:
     - Windows x64      (win-x64)
     - Windows x86      (win-x86)
-    - Windows ARM64    (win-arm64 — uses win-x64 via emulation)
+    - Windows ARM64    (win-arm64)
     - macOS x64        (osx-x64)
     - macOS ARM64      (osx-arm64, Apple Silicon)
     - Linux x64        (linux-x64)
     - Linux ARM64      (linux-arm64)
     - Linux ARM        (linux-arm)
+    - Android ARM64    (android-arm64)
 
   UNSUPPORTED PLATFORMS: CodeBrix.PdfRasterizer does NOT work on iOS,
-  Android, WebAssembly (Blazor WASM), or any other platform not listed
+  WebAssembly (Blazor WASM), or any other platform not listed
   above. There are no PDFium native binaries for those targets. Attempting
   to construct a PageRasterizer on an unsupported platform will fail at
   runtime when the native library cannot be loaded.

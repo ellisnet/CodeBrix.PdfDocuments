@@ -12,7 +12,7 @@ cross-platform operation.
 CodeBrix.PdfDocuments has dependencies on the CodeBrix.Imaging package for image and font handling,
 and the CodeBrix.Compression package for data compression. CodeBrix.PdfRasterizer has dependencies
 on CodeBrix.PdfDocuments and the CodeBrix.Imaging package, and bundles pre-built PDFium native
-binaries for Windows, macOS, and Linux.
+binaries for Windows, macOS, Linux, and Android.
 
 CodeBrix.PdfDocuments, CodeBrix.PdfDocCreate, and CodeBrix.PdfRasterizer are provided as .NET 10
 libraries and associated `CodeBrix.PdfDocuments.MitLicenseForever`,
@@ -66,7 +66,7 @@ MigraDocCore libraries version 1.3.67 - see below for licensing details.
 * Form field rendering (fillable PDF forms)
 * CancellationToken support for async operations
 * Accepts PDF input from file paths, byte arrays, streams, or PdfDocument objects
-* Cross-platform: Windows (x64, x86), macOS (x64, ARM64), Linux (x64, ARM64, ARM)
+* Cross-platform: Windows (x64, x86, ARM64), macOS (x64, ARM64), Linux (x64, ARM64, ARM), Android (ARM64)
 
 ## Sample Code
 

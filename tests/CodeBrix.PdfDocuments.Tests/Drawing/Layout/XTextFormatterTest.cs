@@ -6,6 +6,7 @@ using CodeBrix.PdfDocuments.Pdf;
 using CodeBrix.PdfDocuments.Tests.Helpers;
 using SilverAssertions;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -193,14 +194,28 @@ public class XTextFormatterTest
     //These BMP and JPG test case files generate just fine on Linux and macOS, but
     //  they are imperceptibly different from how they are generated on Windows; so
     //  the test fails because they are not exact (like the PNG test case files are).
-    [InlineData("test-image-01.bmp", CaptionPlacement.Above)]
-    [InlineData("test-image-01.bmp", CaptionPlacement.Below)]
-    [InlineData("test-image-01.jpg", CaptionPlacement.Below)]
-    [InlineData("test-image-01.jpg", CaptionPlacement.Above)]
+    [InlineData("test-image-01.bmp", CaptionPlacement.Above,
+        22)]
+
+    [InlineData("test-image-01.bmp", CaptionPlacement.Below,
+        22)]
+
+    [InlineData("test-image-01.jpg", CaptionPlacement.Below,
+        22)]
+
+    [InlineData("test-image-01.jpg", CaptionPlacement.Above,
+        22)]
+
 //#endif
-    [InlineData("test-image-01.png", CaptionPlacement.Above)]
-    [InlineData("test-image-01.png", CaptionPlacement.Below)]
-    public async Task DrawImageWithTextCaption(string sampleImageFilename, CaptionPlacement captionPlacement)
+    [InlineData("test-image-01.png", CaptionPlacement.Above,
+        22)]
+
+    [InlineData("test-image-01.png", CaptionPlacement.Below,
+        22)]
+
+    public async Task DrawImageWithTextCaption(string sampleImageFilename, 
+        CaptionPlacement captionPlacement,
+        int windowsArm64DifferenceTolerance)
     {
         var font = new XFont(RobotoFamilyName, 8);
         var captionText = "Plate 1A: A beautiful scenery vista";
@@ -267,6 +282,18 @@ public class XTextFormatterTest
 
         // Compare with reference image
         var diffResult = await DiffPage(_document, filePrefix, 1);
-        diffResult.DiffValue.Should().Be(0);
+
+        //On Windows-on-ARM64, the rasterized page with image is *slightly* different,
+        //  because the included Pdfium library source is different - but it has been
+        //  visually verified to be fine. So we allow a small tolerance for that specific
+        //  platform, but require exact matches on all other platforms (so far).
+        //  Other platforms can have exceptions too, in the future - if we encounter the
+        //  same minor calculated difference.
+        var tolerance = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            && RuntimeInformation.OSArchitecture == Architecture.Arm64
+                ? windowsArm64DifferenceTolerance
+                : 0;
+
+        diffResult.DiffValue.Should().BeLessThanOrEqualTo(tolerance);
     }
 }

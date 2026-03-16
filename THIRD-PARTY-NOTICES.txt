@@ -213,7 +213,8 @@ handling is provided by the CodeBrix.Imaging and CodeBrix.Compression packages.
    Pre-built PDFium native binaries are bundled in the CodeBrix.PdfRasterizer
    package under runtimes/{rid}/native/ for the following platforms:
 
-     win-x64, win-x86, linux, linux-arm, linux-arm64, osx-x64, osx-arm64
+     win-x64, win-x86, win-arm64, linux, linux-arm, linux-arm64,
+     osx-x64, osx-arm64, android-arm64
 
    Each native binary directory includes a LICENSE file with the full PDFium
    license text.
@@ -247,6 +248,46 @@ handling is provided by the CodeBrix.Imaging and CodeBrix.Compression packages.
    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+   ---------------------------------------------------------------------------
+
+================================================================================
+
+7. pdfium-binaries (pre-compiled PDFium builds by Benoit Blanchon)
+   https://github.com/bblanchon/pdfium-binaries
+
+   The PDFium native binaries for the win-arm64 and android-arm64 platforms
+   were obtained from the bblanchon/pdfium-binaries project, which provides
+   pre-compiled PDFium builds distributed as NuGet packages
+   (bblanchon.PDFium.Win32 and bblanchon.PDFium.Android).
+
+   The bblanchon packaging/build scripts are licensed under the MIT License.
+   The underlying PDFium library itself remains under the BSD 3-Clause license
+   (see entry #6 above).
+
+   License: MIT (packaging)
+
+   ---------------------------------------------------------------------------
+   MIT License
+
+   Copyright 2014-2025 Benoit Blanchon
+
+   Permission is hereby granted, free of charge, to any person obtaining a
+   copy of this software and associated documentation files (the "Software"),
+   to deal in the Software without restriction, including without limitation
+   the rights to use, copy, modify, merge, publish, distribute, sublicense,
+   and/or sell copies of the Software, and to permit persons to whom the
+   Software is furnished to do so, subject to the following conditions:
+
+   The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+   DEALINGS IN THE SOFTWARE.
    ---------------------------------------------------------------------------
 
 ================================================================================

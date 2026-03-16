@@ -117,12 +117,20 @@ public sealed partial class PageRasterizer : IDisposable
                 rid = RuntimeInformation.OSArchitecture == Architecture.Arm64 ? "osx-arm64" : "osx-x64";
                 fileName = "pdfium.dylib";
             }
+            else if (OperatingSystem.IsAndroid())
+            {
+                rid = RuntimeInformation.OSArchitecture == Architecture.Arm64
+                    ? "android-arm64"
+                    : $"android-{RuntimeInformation.OSArchitecture.ToString().ToLowerInvariant()}";
+                fileName = "pdfium.so";
+            }
             else
             {
                 rid = RuntimeInformation.OSArchitecture switch
                 {
                     Architecture.Arm64 => "linux-arm64",
                     Architecture.Arm => "linux-arm",
+                    Architecture.RiscV64 => "linux-riscv64",
                     _ => "linux-x64"
                 };
                 fileName = "pdfium.so";

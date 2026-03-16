@@ -38,7 +38,7 @@
     <Authors>Jeremy Ellis</Authors>
     <Product>CodeBrix.PdfRasterizer</Product>
     <Title>CodeBrix.PdfRasterizer</Title>
-    <Description>CodeBrix.PdfRasterizer is an Open Source .NET 10 (and higher) library that renders PDF pages to images (PNG, JPEG, BMP, GIF, TIFF) using the PDFium native rendering engine, with support for thumbnails, page information, and cross-platform operation (Windows, macOS, Linux).</Description>
+    <Description>CodeBrix.PdfRasterizer is an Open Source .NET 10 (and higher) library that renders PDF pages to images (PNG, JPEG, BMP, GIF, TIFF) using the PDFium native rendering engine, with support for thumbnails, page information, and cross-platform operation (Windows, macOS, Linux, Android).</Description>
     <PackageProjectUrl>https://github.com/ellisnet/CodeBrix.PdfDocuments</PackageProjectUrl>
     <RepositoryUrl>https://github.com/ellisnet/CodeBrix.PdfDocuments</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
@@ -72,14 +72,20 @@
     <None Include="runtimes\linux-arm64\native\LICENSE" Pack="true" PackagePath="runtimes\linux-arm64\native" Link="runtimes\linux-arm64\native\LICENSE" CopyToOutputDirectory="PreserveNewest" />
     <None Include="runtimes\linux-arm\native\pdfium.so" Pack="true" PackagePath="runtimes\linux-arm\native" Link="runtimes\linux-arm\native\pdfium.so" CopyToOutputDirectory="PreserveNewest" />
     <None Include="runtimes\linux-arm\native\LICENSE" Pack="true" PackagePath="runtimes\linux-arm\native" Link="runtimes\linux-arm\native\LICENSE" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="runtimes\linux-riscv64\native\pdfium.so" Pack="true" PackagePath="runtimes\linux-riscv64\native" Link="runtimes\linux-riscv64\native\pdfium.so" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="runtimes\linux-riscv64\native\LICENSE" Pack="true" PackagePath="runtimes\linux-riscv64\native" Link="runtimes\linux-riscv64\native\LICENSE" CopyToOutputDirectory="PreserveNewest" />
     <None Include="runtimes\osx-x64\native\pdfium.dylib" Pack="true" PackagePath="runtimes\osx-x64\native" Link="runtimes\osx-x64\native\pdfium.dylib" CopyToOutputDirectory="PreserveNewest" />
     <None Include="runtimes\osx-x64\native\LICENSE" Pack="true" PackagePath="runtimes\osx-x64\native" Link="runtimes\osx-x64\native\LICENSE" CopyToOutputDirectory="PreserveNewest" />
     <None Include="runtimes\osx-arm64\native\pdfium.dylib" Pack="true" PackagePath="runtimes\osx-arm64\native" Link="runtimes\osx-arm64\native\pdfium.dylib" CopyToOutputDirectory="PreserveNewest" />
     <None Include="runtimes\osx-arm64\native\LICENSE" Pack="true" PackagePath="runtimes\osx-arm64\native" Link="runtimes\osx-arm64\native\LICENSE" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="runtimes\win-arm64\native\pdfium.dll" Pack="true" PackagePath="runtimes\win-arm64\native" Link="runtimes\win-arm64\native\pdfium.dll" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="runtimes\win-arm64\native\LICENSE" Pack="true" PackagePath="runtimes\win-arm64\native" Link="runtimes\win-arm64\native\LICENSE" CopyToOutputDirectory="PreserveNewest" />
     <None Include="runtimes\win-x64\native\pdfium.dll" Pack="true" PackagePath="runtimes\win-x64\native" Link="runtimes\win-x64\native\pdfium.dll" CopyToOutputDirectory="PreserveNewest" />
     <None Include="runtimes\win-x64\native\LICENSE" Pack="true" PackagePath="runtimes\win-x64\native" Link="runtimes\win-x64\native\LICENSE" CopyToOutputDirectory="PreserveNewest" />
     <None Include="runtimes\win-x86\native\pdfium.dll" Pack="true" PackagePath="runtimes\win-x86\native" Link="runtimes\win-x86\native\pdfium.dll" CopyToOutputDirectory="PreserveNewest" />
     <None Include="runtimes\win-x86\native\LICENSE" Pack="true" PackagePath="runtimes\win-x86\native" Link="runtimes\win-x86\native\LICENSE" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="runtimes\android-arm64\native\pdfium.so" Pack="true" PackagePath="runtimes\android-arm64\native" Link="runtimes\android-arm64\native\pdfium.so" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="runtimes\android-arm64\native\LICENSE" Pack="true" PackagePath="runtimes\android-arm64\native" Link="runtimes\android-arm64\native\LICENSE" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CodeBrix.Imaging.ApacheLicenseForever" Version="1.0.73" />
