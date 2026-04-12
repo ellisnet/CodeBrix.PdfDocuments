@@ -14,31 +14,29 @@ namespace CodeBrix.PdfDocuments.Utils; //Was previously: namespace PdfSharpCore.
 
 public class ImagingImageSource<TPixel> : ImageSource where TPixel : unmanaged, IPixel<TPixel>
 {
-    public static IImageSource FromImagingImage(Image<TPixel> image, IImageFormat imgFormat, int? quality = 75)
+    public static IImageSource FromImagingImage(Image<TPixel> image, IImageFormat imgFormat, int? quality = DefaultQuality)
     {
-        var _path = "*" + Guid.NewGuid().ToString("B");
-        return new ImagingImageSourceImpl<TPixel>(_path, image, (int)quality, SupportsTransparency(imgFormat));
+        var path = "*" + Guid.NewGuid().ToString("B");
+        return new ImagingImageSourceImpl<TPixel>(path, image, quality, SupportsTransparency(imgFormat));
     }
 
-    protected override IImageSource FromBinaryImpl(string name, Func<byte[]> imageSource, int? quality = 75)
+    protected override IImageSource FromBinaryImpl(string name, Func<byte[]> imageSource, int? quality = DefaultQuality)
     {
         var image = Image.Load<TPixel>(imageSource.Invoke(), out IImageFormat imgFormat);
-        return new ImagingImageSourceImpl<TPixel>(name, image, (int)quality, SupportsTransparency(imgFormat));
+        return new ImagingImageSourceImpl<TPixel>(name, image, quality, SupportsTransparency(imgFormat));
     }
 
-    protected override IImageSource FromFileImpl(string path, int? quality = 75)
+    protected override IImageSource FromFileImpl(string path, int? quality = DefaultQuality)
     {
         var image = Image.Load<TPixel>(path, out IImageFormat imgFormat);
-        return new ImagingImageSourceImpl<TPixel>(path, image, (int) quality, SupportsTransparency(imgFormat));
+        return new ImagingImageSourceImpl<TPixel>(path, image, quality, SupportsTransparency(imgFormat));
     }
 
-    protected override IImageSource FromStreamImpl(string name, Func<Stream> imageStream, int? quality = 75)
+    protected override IImageSource FromStreamImpl(string name, Func<Stream> imageStream, int? quality = DefaultQuality)
     {
-        using (var stream = imageStream.Invoke())
-        {
-            var image = Image.Load<TPixel>(stream, out IImageFormat imgFormat);
-            return new ImagingImageSourceImpl<TPixel>(name, image, (int)quality, SupportsTransparency(imgFormat));
-        }
+        using var stream = imageStream.Invoke();
+        var image = Image.Load<TPixel>(stream, out IImageFormat imgFormat);
+        return new ImagingImageSourceImpl<TPixel>(name, image, quality, SupportsTransparency(imgFormat));
     }
 
     private static bool SupportsTransparency(IImageFormat format)
@@ -46,35 +44,31 @@ public class ImagingImageSource<TPixel> : ImageSource where TPixel : unmanaged, 
 
     private class ImagingImageSourceImpl<TPixel2> : IImageSource where TPixel2 : unmanaged, IPixel<TPixel2>
     {
+        // ReSharper disable once InconsistentNaming
+        // ReSharper disable once StaticMemberInGenericType
+        private static readonly BmpEncoder _pdfBitmapEncoder = new() { BitsPerPixel = BmpBitsPerPixel.Pixel32 };
+
         private Image<TPixel2> Image { get; }
-        private readonly int _quality;
+        private readonly JpegEncoder _jpegEncoder;
 
         public int Width => Image.Width;
         public int Height => Image.Height;
         public string Name { get; }
+        // ReSharper disable once AutoPropertyCanBeMadeGetOnly.Local
         public bool Transparent { get; internal set; }
 
-        public ImagingImageSourceImpl(string name, Image<TPixel2> image, int quality, bool isTransparent)
+        public ImagingImageSourceImpl(string name, Image<TPixel2> image, int? quality, bool isTransparent)
         {
             Name = name;
             Image = image;
-            _quality = quality;
+            _jpegEncoder = new JpegEncoder { Quality = quality };
             Transparent = isTransparent;
         }
 
-        public void SaveAsJpeg(MemoryStream ms)
-        {
-            Image.SaveAsJpeg(ms, new JpegEncoder() { Quality = this._quality });
-        }
+        public void SaveAsJpeg(MemoryStream ms) => Image.SaveAsJpeg(ms, _jpegEncoder);
 
-        public void Dispose()
-        {
-            Image.Dispose();
-        }
-        public void SaveAsPdfBitmap(MemoryStream ms)
-        {
-            BmpEncoder bmp = new BmpEncoder { BitsPerPixel = BmpBitsPerPixel.Pixel32 };
-            Image.Save(ms, bmp);
-        }
+        public void Dispose() => Image.Dispose();
+
+        public void SaveAsPdfBitmap(MemoryStream ms) => Image.Save(ms, _pdfBitmapEncoder);
     }
 }

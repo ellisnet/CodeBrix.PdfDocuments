@@ -11,7 +11,6 @@ using CodeBrix.PdfDocuments.Utils;
 using SilverAssertions;
 using System;
 using System.IO;
-using System.Reflection;
 using Xunit;
 
 namespace CodeBrix.PdfDocuments.Tests.Utils;

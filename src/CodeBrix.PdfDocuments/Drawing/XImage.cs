@@ -76,31 +76,31 @@ public class XImage : IDisposable
     { }
 
     // Useful stuff here: http://stackoverflow.com/questions/350027/setting-wpf-image-source-in-code
-    XImage(string path)
+    private XImage(string path)
     {
         if (ImageSource.ImageSourceImpl == null) ImageSource.ImageSourceImpl = new ImagingImageSource<Rgba32>();
         _source = ImageSource.FromFile(path);
         Initialize();
     }
 
-    XImage(IImageSource imageSource)
+    private XImage(IImageSource imageSource)
     {
         _source = imageSource;
         _path = _source.Name;
         Initialize();
     }
 
-    XImage(Func<Stream> stream)
+    private XImage(Func<Stream> stream)
     {
         // Create a dummy unique path.
         _path = "*" + Guid.NewGuid().ToString("B");
-        if (ImageSource.ImageSourceImpl == null) 
-            ImageSource.ImageSourceImpl = new ImagingImageSource<Rgba32>();
+        ImageSource.ImageSourceImpl ??= new ImagingImageSource<Rgba32>();
         _source = ImageSource.FromStream(_path, stream);
         Initialize();
     }
 
-    XImage(Func<byte[]> data)
+    // ReSharper disable once UnusedMember.Local
+    private XImage(Func<byte[]> data)
     {
         // Create a dummy unique path.
         _path = "*" + Guid.NewGuid().ToString("B");
@@ -176,7 +176,8 @@ public class XImage : IDisposable
         get { return _xImageState; }
         set { _xImageState = value; }
     }
-    XImageState _xImageState;
+
+    private XImageState _xImageState;
 
     internal void Initialize()
     {
@@ -220,7 +221,8 @@ public class XImage : IDisposable
         if (!_disposed)
             _disposed = true;
     }
-    bool _disposed;
+
+    private bool _disposed;
 
     /// <summary>
     /// Gets the width of the image in point.
@@ -304,7 +306,8 @@ public class XImage : IDisposable
         get { return _interpolate; }
         set { _interpolate = value; }
     }
-    bool _interpolate = true;
+
+    private bool _interpolate = true;
 
     /// <summary>
     /// Gets the format of the image.
@@ -313,7 +316,8 @@ public class XImage : IDisposable
     {
         get { return _format; }
     }
-    XImageFormat _format;
+
+    private XImageFormat _format;
 
     internal void AssociateWithGraphics(XGraphics gfx)
     {
@@ -343,7 +347,8 @@ public class XImage : IDisposable
         get { return _associatedGraphics; }
         set { _associatedGraphics = value; }
     }
-    XGraphics _associatedGraphics;
+
+    private XGraphics _associatedGraphics;
 
     /// <summary>
     /// If path starts with '*' the image is created from a stream and the path is a GUID.

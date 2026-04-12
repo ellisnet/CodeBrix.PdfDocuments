@@ -32,7 +32,6 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using CodeBrix.PdfDocuments.Drawing;
-using CodeBrix.PdfDocuments.Drawing.Internal;
 using CodeBrix.PdfDocuments.Pdf.Filters;
 
 namespace CodeBrix.PdfDocuments.Pdf.Advanced; //Was previously: namespace PdfSharpCore.Pdf.Advanced;
