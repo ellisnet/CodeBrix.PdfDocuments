@@ -11,7 +11,7 @@ public abstract class ImageSource
     /// <value>The image source impl.</value>
     public static ImageSource ImageSourceImpl { get; set; }
 
-    public interface IImageSource
+    public interface IImageSource : IDisposable
     {
         int Width { get; }
         int Height { get; }
