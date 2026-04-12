@@ -45,21 +45,17 @@ There are THREE NuGet packages. Install one or more depending on your needs:
 --- Package 1: CodeBrix.PdfDocuments (low-level) ---
 
 NuGet Package: CodeBrix.PdfDocuments.MitLicenseForever
-Latest Version: 1.0.49 (as of Feb 2026)
-Package Size: ~271 KB
 Dependencies:
-  - CodeBrix.Compression.MitLicenseForever (>= 1.0.48)
-  - CodeBrix.Imaging.ApacheLicenseForever (>= 1.0.48)
+  - CodeBrix.Compression.MitLicenseForever
+  - CodeBrix.Imaging.ApacheLicenseForever
 
     dotnet add package CodeBrix.PdfDocuments.MitLicenseForever
 
 --- Package 2: CodeBrix.PdfDocCreate (high-level, includes PdfDocuments) ---
 
 NuGet Package: CodeBrix.PdfDocCreate.MitLicenseForever
-Latest Version: 1.0.49 (as of Feb 2026)
-Package Size: ~156 KB
 Dependencies:
-  - CodeBrix.PdfDocuments.MitLicenseForever (>= 1.0.49)
+  - CodeBrix.PdfDocuments.MitLicenseForever
 
     dotnet add package CodeBrix.PdfDocCreate.MitLicenseForever
 
@@ -71,10 +67,9 @@ CodeBrix.PdfDocuments, CodeBrix.Imaging, and CodeBrix.Compression.
 NuGet Package: CodeBrix.PdfRasterizer.MitLicenseForever
 Dependencies:
   - CodeBrix.PdfDocuments.MitLicenseForever
-  - CodeBrix.Imaging.ApacheLicenseForever (>= 1.0.73)
-Bundled Native Libraries: PDFium binaries for 10 platform RIDs
-  (win-x64, win-x86, win-arm64, osx-x64, osx-arm64, linux-x64, linux-arm64,
-   linux-arm, linux-riscv64, android-arm64)
+  - CodeBrix.Imaging.ApacheLicenseForever
+Bundled Native Libraries: PDFium binaries for multiple platform RIDs
+  (see SUPPORTED PLATFORMS below for the full list)
 
     dotnet add package CodeBrix.PdfRasterizer.MitLicenseForever
 
@@ -109,16 +104,16 @@ SUPPORTED PLATFORMS (CodeBrix.PdfRasterizer only):
   CodeBrix.PdfDocuments and CodeBrix.PdfDocCreate are pure managed .NET
   and have no platform restrictions beyond .NET 10.0+.
 
-Or in a .csproj file:
+Or in a .csproj file (NuGet will resolve the latest version):
 
     <!-- For low-level PDF drawing only -->
-    <PackageReference Include="CodeBrix.PdfDocuments.MitLicenseForever" Version="1.0.49" />
+    <PackageReference Include="CodeBrix.PdfDocuments.MitLicenseForever" />
 
     <!-- For high-level document model (includes PdfDocuments) -->
-    <PackageReference Include="CodeBrix.PdfDocCreate.MitLicenseForever" Version="1.0.49" />
+    <PackageReference Include="CodeBrix.PdfDocCreate.MitLicenseForever" />
 
     <!-- For PDF-to-image rasterization -->
-    <PackageReference Include="CodeBrix.PdfRasterizer.MitLicenseForever" Version="1.0.49" />
+    <PackageReference Include="CodeBrix.PdfRasterizer.MitLicenseForever" />
 
 WHEN TO USE WHICH:
   - Use CodeBrix.PdfDocuments alone when you need fine-grained control over
@@ -584,9 +579,10 @@ CodeBrix.PdfDocuments (for PdfDocument input support) and CodeBrix.Imaging
 IMPORTANT: The PDFium native binaries are bundled inside the NuGet package.
 You do NOT need to install PDFium separately. The correct native library
 for your platform is automatically copied to the build output directory.
-PDFium binaries are included for Windows (x64, x86), macOS (x64, ARM64),
-and Linux (x64, ARM64, ARM). No other platforms are supported — the library
-will fail at runtime on iOS, Android, WebAssembly, or any unlisted target.
+PDFium binaries are included for Windows (x64, x86, ARM64), macOS (x64,
+ARM64), Linux (x64, ARM64, ARM, RISC-V 64), and Android (ARM64). The
+library will fail at runtime on unsupported platforms such as iOS or
+WebAssembly where no PDFium binary is bundled.
 
 The main class is PageRasterizer (sealed, IDisposable). Create an instance,
 configure properties, call rasterize methods, then dispose.
@@ -1343,10 +1339,10 @@ COMMON PITFALLS TO AVOID
 14. DO NOT confuse the NuGet package name (CodeBrix.PdfRasterizer.
     MitLicenseForever) with the namespace (CodeBrix.PdfRasterizer).
 
-15. DO NOT use CodeBrix.PdfRasterizer on iOS, Android, or WebAssembly.
-    PDFium native binaries are only bundled for desktop/server platforms
-    (Windows, macOS, Linux). The library will fail at runtime on any
-    platform without a bundled PDFium binary.
+15. DO NOT use CodeBrix.PdfRasterizer on iOS or WebAssembly.
+    PDFium native binaries are bundled for Windows, macOS, Linux, and
+    Android only. The library will fail at runtime on any platform
+    without a bundled PDFium binary.
 
 16. DO NOT try to install PDFium separately for CodeBrix.PdfRasterizer.
     The native binaries are bundled inside the NuGet package and are

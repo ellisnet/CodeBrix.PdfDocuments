@@ -1,6 +1,6 @@
-﻿using AngleSharp.Dom;
-using AngleSharp.Html.Parser;
-using CodeBrix.Imaging.PixelFormats;
+﻿using CodeBrix.Imaging.PixelFormats;
+using CodeBrix.MarkupParse.Dom;
+using CodeBrix.MarkupParse.Html.Parser;
 using CodeBrix.PdfDocCreate.DocumentObjectModel;
 using CodeBrix.PdfDocCreate.Rendering;
 using CodeBrix.PdfDocuments.Drawing;
@@ -17,7 +17,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
-
 using PdfCreateDocument = CodeBrix.PdfDocCreate.DocumentObjectModel.Document;
 
 namespace CodeBrix.PdfDocuments.Tests.DocumentObjectModel;
@@ -584,7 +583,7 @@ public class CreatePdfTests
     {
         var outFilePath = GetOutFilePath(name);
         var dir = Path.GetDirectoryName(outFilePath);
-        if (!Directory.Exists(dir))
+        if (dir != null && (!Directory.Exists(dir)))
         {
             Directory.CreateDirectory(dir);
         }
