@@ -1159,7 +1159,7 @@ Do NOT attempt to use these libraries for the following:
   - PDF/A compliance validation
   - Editing existing PDF text content (can add new content to existing pages)
   - Converting HTML to PDF directly
-  - Reading/writing Word (.docx) files (use FreePPlus for Excel)
+  - Reading/writing Word (.docx) or Excel (.xlsx) files
   - Creating PDF portfolios
 
 CodeBrix.PdfDocuments IS for: creating new PDF documents, drawing

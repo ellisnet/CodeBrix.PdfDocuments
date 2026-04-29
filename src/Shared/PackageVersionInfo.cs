@@ -5,7 +5,7 @@ internal static class PackageVersionInfo
     // Build = days since 2026-01-01  -  change values ONLY here
     public const string VersionMajor = "1"; // Also used for NuGet Version.
     public const string VersionMinor = "0"; // Also used for NuGet Version.
-    public const string VersionBuild = "106"; // Also used for NuGet Version.
+    public const string VersionBuild = "117"; // Also used for NuGet Version.
     public const string VersionPatch = "0"; // NOT used for NuGet Version.
 
     /// <summary>
