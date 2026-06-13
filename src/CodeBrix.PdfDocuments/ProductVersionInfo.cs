@@ -27,7 +27,8 @@
 // DEALINGS IN THE SOFTWARE.
 #endregion
 
-using CodeBrix.PdfDocuments.Shared;
+using System;
+using System.Reflection;
 
 namespace CodeBrix.PdfDocuments; //Was previously: namespace PdfSharpCore;
 
@@ -49,22 +50,22 @@ public static class ProductVersionInfo
     /// <summary>
     /// The PDF producer information string.
     /// </summary>
-    public const string Producer = Title + " " + VersionMajor + "." + VersionMinor + "." + VersionBuild + Technology + " (" + Url + ")";
+    public static string Producer => Title + " " + VersionMajor + "." + VersionMinor + "." + VersionBuild + Technology + " (" + Url + ")";
 
     /// <summary>
     /// The PDF producer information string including VersionPatch.
     /// </summary>
-    public const string Producer2 = Title + " " + VersionMajor + "." + VersionMinor + "." + VersionBuild + "." + VersionPatch + Technology + " (" + Url + ")";
+    public static string Producer2 => Title + " " + VersionMajor + "." + VersionMinor + "." + VersionBuild + "." + VersionPatch + Technology + " (" + Url + ")";
 
     /// <summary>
     /// The full version number.
     /// </summary>
-    public const string Version = VersionMajor + "." + VersionMinor + "." + VersionBuild + "." + VersionPatch;
+    public static string Version => VersionMajor + "." + VersionMinor + "." + VersionBuild + "." + VersionPatch;
 
     /// <summary>
     /// The full version string.
     /// </summary>
-    public const string Version2 = VersionMajor + "." + VersionMinor + "." + VersionBuild + "." + VersionPatch + Technology;
+    public static string Version2 => VersionMajor + "." + VersionMinor + "." + VersionBuild + "." + VersionPatch + Technology;
 
     /// <summary>
     /// The home page of this product.
@@ -101,25 +102,27 @@ public static class ProductVersionInfo
     /// </summary>
     public const string Culture = "";
 
+    private static Version AssemblyVersion { get; } = Assembly.GetExecutingAssembly().GetName().Version;
+
     /// <summary>
     /// The major version number of the product.
     /// </summary>
-    public const string VersionMajor = PackageVersionInfo.VersionMajor;
+    public static string VersionMajor => AssemblyVersion.Major.ToString();
 
     /// <summary>
     /// The minor version number of the product.
     /// </summary>
-    public const string VersionMinor = PackageVersionInfo.VersionMinor;
+    public static string VersionMinor => AssemblyVersion.Minor.ToString();
 
     /// <summary>
     /// The build number of the product.
     /// </summary>
-    public const string VersionBuild = PackageVersionInfo.VersionBuild;
+    public static string VersionBuild => AssemblyVersion.Build.ToString();
 
     /// <summary>
     /// The patch number of the product.
     /// </summary>
-    public const string VersionPatch = PackageVersionInfo.VersionPatch;
+    public static string VersionPatch => AssemblyVersion.Revision.ToString();
 
     /// <summary>
     /// The Version Prerelease String for NuGet.
@@ -138,7 +141,8 @@ public static class ProductVersionInfo
     /// <summary>
     /// E.g. "2005-01-01", for use in NuGet Script.
     /// </summary>
-    public const string VersionReferenceDate = PackageVersionInfo.VersionReferenceDate;
+    public static string VersionReferenceDate => new DateOnly((2026 + AssemblyVersion.Minor), 1, 1)
+        .AddDays((AssemblyVersion.Build > 0) ? (AssemblyVersion.Build - 1) : 0).ToString("O");
 
     /// <summary>
     /// Use _ instead of blanks and special characters. Can be complemented with a suffix in the NuGet Script.

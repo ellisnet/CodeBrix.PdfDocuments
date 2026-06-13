@@ -1,7 +1,6 @@
 using CodeBrix.PdfDocuments.Drawing;
 using CodeBrix.PdfDocuments.Pdf;
 using CodeBrix.PdfDocuments.Pdf.Content;
-using CodeBrix.PdfDocuments.Pdf.Content.Objects;
 using CodeBrix.PdfDocuments.Pdf.IO;
 using CodeBrix.PdfDocuments.Tests.Helpers;
 using SilverAssertions;
