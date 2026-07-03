@@ -1348,6 +1348,23 @@ COMMON PITFALLS TO AVOID
     The native binaries are bundled inside the NuGet package and are
     automatically copied to the output directory at build time.
 
+17. DO NOT use LineSpacingRule.AtLeast on a PdfDocCreate paragraph whose
+    text is much smaller than its LineSpacing value. This is a subtle layout
+    gotcha. A common case: a tiny image-credit or caption line meant to sit
+    snug beneath an image.
+      With AtLeast, the renderer reserves a full line box of at least the
+    specified LineSpacing height, then places the small text at the BOTTOM
+    of that box. The reserved-but-empty space appears as a large gap ABOVE
+    the text (roughly LineSpacing minus the glyph height), and it also pushes
+    the NEXT paragraph (e.g. the caption below) further down. The result
+    looks like mysterious leading that no SpaceBefore / SpaceAfter value
+    seems to account for.
+      FIX: use LineSpacingRule.Exactly with a LineSpacing close to the font
+    size (e.g. fontSize * 1.1). The line box then fits the glyphs, so the
+    paragraph hugs whatever is directly above it. Reserve AtLeast for body
+    text where you genuinely WANT a guaranteed minimum leading regardless of
+    the content on the line.
+
 ================================================================================
 
 DEEPER LEARNING: TEST FILE CROSS-REFERENCES
