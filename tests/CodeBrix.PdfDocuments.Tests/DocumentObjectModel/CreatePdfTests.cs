@@ -377,11 +377,24 @@ public class CreatePdfTests
         IDocument document, Action<string> log)
     {
         var elements = new List<ArticleElement>();
-        var parserOutput = document.QuerySelector(".mw-parser-output");
+
+        // Some articles expose more than one .mw-parser-output element - e.g. a small wrapper
+        // emitted by a transcluded template (coordinates, short description, hatnotes) plus the
+        // real article body. QuerySelector would return whichever comes first in document order,
+        // which can be the near-empty wrapper. Pick the container that actually holds the prose:
+        // the one with the most paragraph descendants.
+        var parserOutput = document.QuerySelectorAll(".mw-parser-output")
+            .OrderByDescending(e => e.QuerySelectorAll("p").Count())
+            .ThenByDescending(e => e.Children.Count())
+            .FirstOrDefault();
         if (parserOutput is null)
             return elements;
 
-        foreach (var child in parserOutput.Children)
+        // Wikipedia (Parsoid) HTML wraps each article section in a <section> element and each
+        // heading in a <div class="mw-heading">…<h2>…</h2></div>, so the prose is no longer a
+        // direct child of .mw-parser-output. Flatten those wrappers so the block-level handling
+        // below still sees paragraphs, lists, figures, and bare headings in document order.
+        foreach (var child in FlattenContentBlocks(parserOutput))
         {
             var tag = child.TagName.ToUpperInvariant();
 
@@ -438,6 +451,36 @@ public class CreatePdfTests
         }
 
         return elements;
+    }
+
+    // Yields the block-level content elements of a .mw-parser-output container in document order,
+    // unwrapping the two structural wrappers modern Wikipedia (Parsoid) HTML introduces:
+    //   * <section> — each article section; its children are flattened (sections can nest).
+    //   * <div class="mw-heading"> — the wrapper around each <h2>/<h3>/…; the inner heading is
+    //     surfaced so the existing H2/H3 handling keeps working.
+    // Every other element is yielded as-is. Enumeration is lazy, so a StopSections break in the
+    // consumer stops the walk without visiting trailing sections (References, See also, etc.).
+    private static IEnumerable<IElement> FlattenContentBlocks(IElement container)
+    {
+        foreach (var child in container.Children)
+        {
+            var tag = child.TagName.ToUpperInvariant();
+            if (tag == "SECTION")
+            {
+                foreach (var block in FlattenContentBlocks(child))
+                    yield return block;
+            }
+            else if (tag == "DIV" && child.ClassList.Contains("mw-heading"))
+            {
+                var heading = child.QuerySelector("h1, h2, h3, h4, h5, h6");
+                if (heading is not null)
+                    yield return heading;
+            }
+            else
+            {
+                yield return child;
+            }
+        }
     }
 
     private static List<TextRun> ExtractTextRuns(
