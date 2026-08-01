@@ -45,7 +45,7 @@ using System.Reflection;
 namespace CodeBrix.PdfDocCreate.DocumentObjectModel.IO; //Was previously: namespace MigraDocCore.DocumentObjectModel.IO;
 
 /// <summary>
-/// A simple hand-coded parser for MigraDoc DDL.
+/// A simple hand-coded parser for CodeBrix.PdfDocCreate DDL.
 /// </summary>
 internal class DdlParser
 {

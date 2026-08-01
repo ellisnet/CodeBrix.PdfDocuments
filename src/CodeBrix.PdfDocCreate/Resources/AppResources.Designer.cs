@@ -40,7 +40,13 @@ namespace CodeBrix.PdfDocCreate.DocumentObjectModel.Resources { //Was previously
         internal static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("MigraDoc.DocumentObjectModel.MigraDoc.DocumentObjectModel.Resources.AppResources", typeof(AppResources).GetTypeInfo().Assembly);
+                    // NOTE: hand-corrected after the fork; do NOT let a regeneration revert this.
+                    // The resource base name must match the name the .resx is actually embedded
+                    // under (RootNamespace + folder path), which is CodeBrix.PdfDocCreate.Resources.
+                    // With the upstream name every DomSR lookup threw MissingManifestResourceException,
+                    // replacing every localized error message in the library.
+                    // Was previously: "MigraDoc.DocumentObjectModel.MigraDoc.DocumentObjectModel.Resources.AppResources"
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("CodeBrix.PdfDocCreate.Resources.AppResources", typeof(AppResources).GetTypeInfo().Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -494,7 +500,7 @@ namespace CodeBrix.PdfDocCreate.DocumentObjectModel.Resources { //Was previously
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The value must be of type MigraDoc.DocumentObjectModel.Style..
+        ///   Looks up a localized string similar to The value must be of type CodeBrix.PdfDocCreate.DocumentObjectModel.Style..
         /// </summary>
         internal static string StyleExpected {
             get {

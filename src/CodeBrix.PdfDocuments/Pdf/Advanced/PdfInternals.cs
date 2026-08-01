@@ -272,7 +272,14 @@ public class PdfInternals  // TODO: PdfDocumentInternals... PdfPageInterals etc.
     }
 
     /// <summary>
-    /// The name of the custom value key.
+    /// The name of the PDF dictionary key under which custom values are stored.
     /// </summary>
-    public string CustomValueKey = "/PdfSharpCore.CustomValue";
+    /// <remarks>
+    /// This value is written into the PDF file itself. Documents produced before this key was
+    /// renamed stored custom values under a different key, so to read one of those, assign the
+    /// older key name to this field before accessing the custom values.
+    /// </remarks>
+    // The older key name, for documents written by earlier versions or by the upstream library,
+    // was previously: "/PdfSharpCore.CustomValue"
+    public string CustomValueKey = "/CodeBrix.PdfDocuments.CustomValue";
 }

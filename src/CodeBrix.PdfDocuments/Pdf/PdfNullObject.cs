@@ -32,7 +32,7 @@ using CodeBrix.PdfDocuments.Pdf.IO;
 namespace CodeBrix.PdfDocuments.Pdf; //Was previously: namespace PdfSharpCore.Pdf;
 
 /// <summary>
-/// Represents an indirect null value. This type is not used by PDFsharp, but at least
+/// Represents an indirect null value. This type is not used by CodeBrix.PdfDocuments, but at least
 /// one tool from Adobe creates PDF files with a null object.
 /// </summary>
 public sealed class PdfNullObject : PdfObject

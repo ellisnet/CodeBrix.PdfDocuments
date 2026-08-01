@@ -30,12 +30,14 @@
 namespace CodeBrix.PdfDocuments.Pdf; //Was previously: namespace PdfSharpCore.Pdf;
 
 /// <summary>
-/// This class is intended for empira internal use only and may change or drop in future releases.
+/// This class is not part of the supported public API. It may change or be removed in a
+/// future release.
 /// </summary>
 public class PdfCustomValue : PdfDictionary
 {
     /// <summary>
-    /// This function is intended for empira internal use only.
+    /// This member is not part of the supported public API. It may change or be removed in a
+    /// future release.
     /// </summary>
     public PdfCustomValue()
     {
@@ -43,7 +45,8 @@ public class PdfCustomValue : PdfDictionary
     }
 
     /// <summary>
-    /// This function is intended for empira internal use only.
+    /// This member is not part of the supported public API. It may change or be removed in a
+    /// future release.
     /// </summary>
     public PdfCustomValue(byte[] bytes)
     {
@@ -63,12 +66,14 @@ public class PdfCustomValue : PdfDictionary
     }
 
     /// <summary>
-    /// This property is intended for empira internal use only.
+    /// This member is not part of the supported public API. It may change or be removed in a
+    /// future release.
     /// </summary>
     public PdfCustomValueCompressionMode CompressionMode;
 
     /// <summary>
-    /// This property is intended for empira internal use only.
+    /// This member is not part of the supported public API. It may change or be removed in a
+    /// future release.
     /// </summary>
     public byte[] Value
     {

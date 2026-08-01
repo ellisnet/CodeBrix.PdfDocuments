@@ -1,4 +1,4 @@
-#region PDFsharp - A .NET library for processing PDF
+﻿#region PDFsharp - A .NET library for processing PDF
 //
 // Authors:
 //   Stefan Lange
@@ -30,7 +30,7 @@
 namespace CodeBrix.PdfDocuments.Pdf.AcroForms; //Was previously: namespace PdfSharpCore.Pdf.AcroForms;
 
 /// <summary>
-/// Represents a generic field. Used for AcroForm dictionaries unknown to PdfSharpCore.
+/// Represents a generic field. Used for AcroForm dictionaries unknown to CodeBrix.PdfDocuments.
 /// </summary>
 public sealed class PdfGenericField : PdfAcroField
 {

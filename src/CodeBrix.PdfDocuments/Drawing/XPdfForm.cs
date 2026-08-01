@@ -1,4 +1,4 @@
-#region PDFsharp - A .NET library for processing PDF
+﻿#region PDFsharp - A .NET library for processing PDF
 //
 // Authors:
 //   Stefan Lange
@@ -47,7 +47,7 @@ public class XPdfForm : XForm
 {
     /// <summary>
     /// Initializes a new instance of the XPdfForm class from the specified path to an external PDF document.
-    /// Although PDFsharp internally caches XPdfForm objects it is recommended to reuse XPdfForm objects
+    /// Although CodeBrix.PdfDocuments internally caches XPdfForm objects it is recommended to reuse XPdfForm objects
     /// in your code and change the PageNumber property if more than one page is needed form the external
     /// document. Furthermore, because XPdfForm can occupy very much memory, it is recommended to
     /// dispose XPdfForm objects if not needed anymore.
@@ -220,7 +220,7 @@ public class XPdfForm : XForm
     /// <summary>
     /// Gets or sets an image that is used for drawing if the current XGraphics object cannot handle
     /// PDF forms. A place holder is useful for showing a preview of a page on the display, because
-    /// PDFsharp cannot render native PDF objects.
+    /// CodeBrix.PdfDocuments cannot render native PDF objects.
     /// </summary>
     public XImage PlaceHolder
     {

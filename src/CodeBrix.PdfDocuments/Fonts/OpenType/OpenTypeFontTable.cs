@@ -1,4 +1,4 @@
-#region PDFsharp - A .NET library for processing PDF
+﻿#region PDFsharp - A .NET library for processing PDF
 //
 // Authors:
 //   Stefan Lange
@@ -34,7 +34,7 @@ namespace CodeBrix.PdfDocuments.Fonts.OpenType; //Was previously: namespace PdfS
 // TODO: Create a font driver for reading and writing OpenType font files.
 
 /// <summary>
-/// Base class for all OpenType tables used in PdfSharpCore.
+/// Base class for all OpenType tables used in CodeBrix.PdfDocuments.
 /// </summary>
 internal class OpenTypeFontTable : ICloneable
 {

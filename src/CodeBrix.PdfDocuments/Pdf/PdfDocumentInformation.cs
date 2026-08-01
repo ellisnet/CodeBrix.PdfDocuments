@@ -84,7 +84,7 @@ public sealed class PdfDocumentInformation : PdfDictionary
     }
 
     /// <summary>
-    /// Gets or sets the name of the application (for example, MigraDoc) that created the document.
+    /// Gets or sets the name of the application (for example, CodeBrix.PdfDocCreate) that created the document.
     /// </summary>
     public string Creator
     {
@@ -93,7 +93,7 @@ public sealed class PdfDocumentInformation : PdfDictionary
     }
 
     /// <summary>
-    /// Gets the producer application (for example, PDFsharp).
+    /// Gets the producer application (for example, CodeBrix.PdfDocuments).
     /// </summary>
     public string Producer
     {
@@ -153,7 +153,7 @@ public sealed class PdfDocumentInformation : PdfDictionary
 
         /// <summary>
         /// (Optional) If the document was converted to PDF from another format,
-        /// the name of the application (for example, empira MigraDoc) that created the
+        /// the name of the application (for example, CodeBrix.PdfDocCreate) that created the
         /// original document from which it was converted.
         /// </summary>
         [KeyInfo(KeyType.String | KeyType.Optional)]

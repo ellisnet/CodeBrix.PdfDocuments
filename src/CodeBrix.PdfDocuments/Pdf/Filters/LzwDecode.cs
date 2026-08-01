@@ -1,4 +1,4 @@
-#region PDFsharp - A .NET library for processing PDF
+﻿#region PDFsharp - A .NET library for processing PDF
 //
 // Authors:
 //   David Stephensen
@@ -40,11 +40,11 @@ public class LzwDecode : Filter
     // Reference: 3.3.3  LZWDecode and FlateDecode Filters / Page 71
 
     /// <summary>
-    /// Throws a NotImplementedException because the obsolete LZW encoding is not supported by PdfSharpCore.
+    /// Throws a NotImplementedException because the obsolete LZW encoding is not supported by CodeBrix.PdfDocuments.
     /// </summary>
     public override byte[] Encode(byte[] data)
     {
-        throw new NotImplementedException("PDFsharp does not support LZW encoding.");
+        throw new NotImplementedException("CodeBrix.PdfDocuments does not support LZW encoding.");
     }
 
     /// <summary>

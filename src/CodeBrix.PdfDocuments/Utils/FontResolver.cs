@@ -64,7 +64,7 @@ public class FontResolver
             return;
         }
 
-        throw new System.NotImplementedException("FontResolver not implemented for this platform (PdfSharpCore.Utils.FontResolver.cs).");
+        throw new System.NotImplementedException("FontResolver not implemented for this platform (CodeBrix.PdfDocuments.Utils.FontResolver.cs).");
     }
 
 

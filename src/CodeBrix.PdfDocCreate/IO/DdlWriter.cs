@@ -1,4 +1,4 @@
-#region MigraDoc - Creating Documents on the Fly
+﻿#region MigraDoc - Creating Documents on the Fly
 //
 // Authors:
 //   Stefan Lange (mailto:Stefan.Lange@PdfSharpCore.com)
@@ -38,7 +38,7 @@ using CodeBrix.PdfDocCreate.DocumentObjectModel;
 namespace CodeBrix.PdfDocCreate.DocumentObjectModel.IO; //Was previously: namespace MigraDocCore.DocumentObjectModel.IO;
 
 /// <summary>
-/// Represents the MigraDoc DDL writer.
+/// Represents the CodeBrix.PdfDocCreate DDL writer.
 /// </summary>
 public class DdlWriter : IDisposable
 {

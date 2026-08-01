@@ -562,7 +562,7 @@ public abstract class PdfObject : PdfItem
     }
 
     /// <summary>
-    /// Ensure for future versions of PDFsharp not to forget code for a new kind of PdfItem.
+    /// Ensures that a future version does not forget to add handling for a new kind of PdfItem.
     /// </summary>
     /// <param name="item">The item.</param>
     [Conditional("DEBUG")]

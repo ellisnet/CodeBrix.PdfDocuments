@@ -120,7 +120,7 @@ internal class Serializer
     {
         if (this.fWriteStamp)
         {
-            WriteComment("Created by empira MigraDoc Document Object Model");
+            WriteComment("Created by the CodeBrix.PdfDocCreate Document Object Model");
             WriteComment(String.Format("generated file created {0:d} at {0:t}", DateTime.Now));
         }
     }

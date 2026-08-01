@@ -188,7 +188,6 @@ namespace CodeBrix.PdfDocuments.; //Was previously: namespace PdfSharpCore.Pdf.P
         /// <summary>
         /// For reasons only Adobe knows the Reader seams to open and shows the document instead of printing it
         /// when it was not already running.
-        /// If you use PDFsharp and have any suggestions to circumvent this function, please let us know.
         /// </summary>
         void DoSomeVeryDirtyHacksToMakeItWork()
         {

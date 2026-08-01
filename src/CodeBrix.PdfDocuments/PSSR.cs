@@ -181,7 +181,7 @@ static class PSSR
 
     public static string InvalidVersionNumber => "Invalid version number. Valid values are 12, 13, and 14.";
 
-    public static string CannotHandleXRefStreams => "Cannot handle cross-reference streams. The current implementation of PDFsharp cannot handle this PDF feature introduced with Acrobat 6.";
+    public static string CannotHandleXRefStreams => "Cannot handle cross-reference streams. The current implementation of CodeBrix.PdfDocuments cannot handle this PDF feature introduced with Acrobat 6.";
 
     public static string PasswordRequired => "A password is required to open the PDF document.";
 
@@ -288,11 +288,18 @@ static class PSSR
                             // Force the English language.
                             System.Threading.Thread.CurrentThread.CurrentUICulture = System.Globalization.CultureInfo.InvariantCulture;
 #endif
+                        // The resource base name must match the name the .resx is actually embedded
+                        // under (RootNamespace + folder path), which is
+                        // CodeBrix.PdfDocuments.Resources.Messages. With the upstream name every
+                        // lookup threw MissingManifestResourceException, so every message routed
+                        // through GetString - including the one reported when an encrypted PDF is
+                        // opened without a password - was replaced by a resource-loading error.
+                        // Was previously: "PdfSharpCore.Resources.Messages"
 #if !NETFX_CORE && !UWP && !PORTABLE
-                        _resmngr = new ResourceManager("PdfSharpCore.Resources.Messages",
+                        _resmngr = new ResourceManager("CodeBrix.PdfDocuments.Resources.Messages",
                             Assembly.GetExecutingAssembly());
 #else
-                            _resmngr = new ResourceManager("PdfSharpCore.Resources.Messages",
+                            _resmngr = new ResourceManager("CodeBrix.PdfDocuments.Resources.Messages",
                                 typeof(PSSR).GetTypeInfo().Assembly);
 #endif
                     }

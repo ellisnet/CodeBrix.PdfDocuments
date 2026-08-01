@@ -32,7 +32,8 @@ using System;
 namespace CodeBrix.PdfDocuments.Pdf; //Was previously: namespace PdfSharpCore.Pdf;
 
 /// <summary>
-/// This class is intended for empira internal use only and may change or drop in future releases.
+/// This class is not part of the supported public API. It may change or be removed in a
+/// future release.
 /// </summary>
 public class PdfCustomValues : PdfDictionary
 {
@@ -48,7 +49,8 @@ public class PdfCustomValues : PdfDictionary
     { }
 
     /// <summary>
-    /// This function is intended for empira internal use only.
+    /// This member is not part of the supported public API. It may change or be removed in a
+    /// future release.
     /// </summary>
     public PdfCustomValueCompressionMode CompressionMode
     {
@@ -56,7 +58,8 @@ public class PdfCustomValues : PdfDictionary
     }
 
     /// <summary>
-    /// This function is intended for empira internal use only.
+    /// This member is not part of the supported public API. It may change or be removed in a
+    /// future release.
     /// </summary>
     public bool Contains(string key)
     {
@@ -64,7 +67,8 @@ public class PdfCustomValues : PdfDictionary
     }
 
     /// <summary>
-    /// This function is intended for empira internal use only.
+    /// This member is not part of the supported public API. It may change or be removed in a
+    /// future release.
     /// </summary>
     public PdfCustomValue this[string key]
     {
@@ -122,7 +126,8 @@ public class PdfCustomValues : PdfDictionary
     }
 
     /// <summary>
-    /// This function is intended for empira internal use only.
+    /// This member is not part of the supported public API. It may change or be removed in a
+    /// future release.
     /// </summary>
     public static void ClearAllCustomValues(PdfDocument document)
     {
@@ -131,7 +136,8 @@ public class PdfCustomValues : PdfDictionary
             page.CustomValues = null;
     }
 
-    //public static string Key = "/PdfSharpCore.CustomValue";
+    // The key now lives on PdfInternals.CustomValueKey.
+    // Was previously: public static string Key = "/PdfSharpCore.CustomValue";
 
     internal static PdfCustomValues Get(DictionaryElements elem)
     {

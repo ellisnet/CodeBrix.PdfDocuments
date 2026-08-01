@@ -1,4 +1,4 @@
-#region PDFsharp - A .NET library for processing PDF
+﻿#region PDFsharp - A .NET library for processing PDF
 //
 // Authors:
 //   Stefan Lange
@@ -62,7 +62,7 @@ internal static class DiagnosticsHelper
 
     /// <summary>
     /// Indirectly throws NotImplementedException.
-    /// Required because PDFsharp Release builds tread warnings as errors and
+    /// Required because CodeBrix.PdfDocuments Release builds tread warnings as errors and
     /// throwing NotImplementedException may lead to unreachable code which
     /// crashes the build.
     /// </summary>
@@ -116,7 +116,7 @@ public static class DebugBreak
 }
 
 /// <summary>
-/// Internal stuff for development of PdfSharpCore.
+/// Internal stuff for development of CodeBrix.PdfDocuments.
 /// </summary>
 public static class FontsDevHelper
 {

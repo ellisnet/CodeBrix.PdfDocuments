@@ -1,4 +1,4 @@
-#region MigraDoc - Creating Documents on the Fly
+﻿#region MigraDoc - Creating Documents on the Fly
 //
 // Authors:
 //   Klaus Potzesny (mailto:Klaus.Potzesny@PdfSharpCore.com)
@@ -39,7 +39,7 @@ using System.Reflection;
 namespace CodeBrix.PdfDocCreate.Rendering; //Was previously: namespace MigraDocCore.Rendering;
 
 /// <summary>
-/// Provides the functionality to convert a MigraDoc document into PDF.
+/// Provides the functionality to convert a CodeBrix.PdfDocCreate document into PDF.
 /// </summary>
 public class PdfDocumentRenderer
 {
@@ -80,7 +80,7 @@ public class PdfDocumentRenderer
     string language = String.Empty;
 
     /// <summary>
-    /// Set the MigraDoc document to be rendered by this printer.
+    /// Set the CodeBrix.PdfDocCreate document to be rendered by this printer.
     /// </summary>
     public Document Document
     {
@@ -281,7 +281,7 @@ public class PdfDocumentRenderer
     PdfDocument CreatePdfDocument()
     {
         PdfDocument document = new PdfDocument();
-        document.Info.Creator = "MigraDoc " + typeof(PdfDocumentRenderer).GetTypeInfo().Assembly.GetName().Version;
+        document.Info.Creator = "CodeBrix.PdfDocCreate " + typeof(PdfDocumentRenderer).GetTypeInfo().Assembly.GetName().Version;
         if (this.language != null && this.language.Length != 0)
             document.Language = this.language;
         return document;

@@ -1,4 +1,4 @@
-#region MigraDoc - Creating Documents on the Fly
+﻿#region MigraDoc - Creating Documents on the Fly
 //
 // Authors:
 //   Stefan Lange (mailto:Stefan.Lange@PdfSharpCore.com)
@@ -40,7 +40,7 @@ using CodeBrix.PdfDocCreate.DocumentObjectModel.Visitors;
 namespace CodeBrix.PdfDocCreate.DocumentObjectModel; //Was previously: namespace MigraDocCore.DocumentObjectModel;
 
 /// <summary>
-/// Base class of all collections of the MigraDoc Document Object Model.
+/// Base class of all collections of the CodeBrix.PdfDocCreate Document Object Model.
 /// </summary>
 public abstract class DocumentObjectCollection : DocumentObject, IList, IVisitable
 {

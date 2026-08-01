@@ -1,4 +1,4 @@
-#region MigraDoc - Creating Documents on the Fly
+﻿#region MigraDoc - Creating Documents on the Fly
 //
 // Authors:
 //   Klaus Potzesny (mailto:Klaus.Potzesny@PdfSharpCore.com)
@@ -51,7 +51,7 @@ public class DocumentRenderer
     /// <summary>
     /// Initializes a new instance of the DocumentRenderer class.
     /// </summary>
-    /// <param name="document">The migradoc document to render.</param>
+    /// <param name="document">The CodeBrix.PdfDocCreate document to render.</param>
     public DocumentRenderer(Document document)
     {
         this.document = document;
@@ -117,7 +117,7 @@ public class DocumentRenderer
     internal FormattedDocument formattedDocument;
 
     /// <summary>
-    /// Renders a MigraDoc document to the specified graphics object.
+    /// Renders a CodeBrix.PdfDocCreate document to the specified graphics object.
     /// </summary>
     public void RenderPage(XGraphics gfx, int page)
     {
@@ -125,7 +125,7 @@ public class DocumentRenderer
     }
 
     /// <summary>
-    /// Renders a MigraDoc document to the specified graphics object.
+    /// Renders a CodeBrix.PdfDocCreate document to the specified graphics object.
     /// </summary>
     public void RenderPage(XGraphics gfx, int page, PageRenderOptions options)
     {

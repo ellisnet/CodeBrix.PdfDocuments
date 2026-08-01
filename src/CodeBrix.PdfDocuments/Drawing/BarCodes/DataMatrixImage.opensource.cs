@@ -42,10 +42,9 @@ namespace CodeBrix.PdfDocuments.Drawing.BarCodes; //Was previously: namespace Pd
 
 /// <summary>
 /// Creates the XImage object for a DataMatrix.
-/// Important note for OpenSource version of PDFsharp:
-///   The generated image object only contains random data.
-///   If you need the correct implementation as defined in the ISO/IEC 16022:2000 specification,
-///   please contact empira Software GmbH via www.PdfSharp.com.
+/// IMPORTANT: the generated image contains only RANDOM DATA. This is not a conforming
+///   DataMatrix as defined in the ISO/IEC 16022:2000 specification, and it will not scan.
+///   Do not use it where a readable barcode is required.
 /// </summary>
 internal class DataMatrixImage
 {

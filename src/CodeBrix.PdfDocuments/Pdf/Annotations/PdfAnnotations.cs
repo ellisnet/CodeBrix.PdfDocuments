@@ -1,4 +1,4 @@
-#region PDFsharp - A .NET library for processing PDF
+﻿#region PDFsharp - A .NET library for processing PDF
 //
 // Authors:
 //   Stefan Lange
@@ -98,7 +98,7 @@ public sealed class PdfAnnotations : PdfArray
     }
 
     /// <summary>
-    /// Gets the <see cref="PdfSharpCore.Pdf.Annotations.PdfAnnotation"/> at the specified index.
+    /// Gets the <see cref="CodeBrix.PdfDocuments.Pdf.Annotations.PdfAnnotation"/> at the specified index.
     /// </summary>
     public PdfAnnotation this[int index]
     {

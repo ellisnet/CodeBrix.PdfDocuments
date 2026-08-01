@@ -1,4 +1,4 @@
-#region PDFsharp - A .NET library for processing PDF
+﻿#region PDFsharp - A .NET library for processing PDF
 //
 // Authors:
 //   Stefan Lange
@@ -36,7 +36,7 @@ using CodeBrix.PdfDocuments.Pdf.IO;
 namespace CodeBrix.PdfDocuments.Pdf.Advanced; //Was previously: namespace PdfSharpCore.Pdf.Advanced;
 
 /// <summary>
-/// Represents the content of a page. PDFsharp supports only one content stream per page.
+/// Represents the content of a page. CodeBrix.PdfDocuments supports only one content stream per page.
 /// If an imported page has an array of content streams, the streams are concatenated to
 /// one single stream.
 /// </summary>

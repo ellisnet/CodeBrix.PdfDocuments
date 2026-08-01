@@ -1531,7 +1531,7 @@ internal class XGraphicsPdfRenderer : IXGraphicsRenderer
     }
 
     /// <summary>
-    /// PDFsharp uses the Td operator to set the text position. Td just sets the offset of the text matrix
+    /// CodeBrix.PdfDocuments uses the Td operator to set the text position. Td just sets the offset of the text matrix
     /// and produces lesser code as Tm.
     /// </summary>
     /// <param name="pos">The absolute text position.</param>

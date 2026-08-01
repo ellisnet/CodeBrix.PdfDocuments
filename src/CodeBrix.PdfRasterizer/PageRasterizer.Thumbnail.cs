@@ -198,7 +198,7 @@ public sealed partial class PageRasterizer
         if (!Directory.Exists(effectiveDirectory)) { Directory.CreateDirectory(effectiveDirectory); }
 
         var imageFormat = desiredImageFormat ?? RasterizedImageFormat;
-        var fileExtension = imageFormat.DefaultFileExtension;
+        var fileExtension = NormalizeFileExtension(imageFormat);
 
         var images = await RasterizeToImages(pdfBytes, dpi, password, desiredImageFormat, pageNumbers, renderFlags, cancellationToken);
 
@@ -213,7 +213,7 @@ public sealed partial class PageRasterizer
                 using var image = images[i];
                 ResizeToThumbnail(image, effectiveMaxDimensions);
 
-                var fileName = $"{FileNameGenerator(pageNumber)}.{fileExtension}";
+                var fileName = $"{FileNameGenerator(pageNumber)}{fileExtension}";
                 var pagePath = Path.Combine(effectiveDirectory, fileName);
 
                 if (!AllowOverwriteFiles && File.Exists(pagePath))

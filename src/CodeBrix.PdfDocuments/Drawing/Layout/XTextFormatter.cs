@@ -37,8 +37,9 @@ namespace CodeBrix.PdfDocuments.Drawing.Layout; //Was previously: namespace PdfS
 
 /// <summary>
 /// Represents a very simple text formatter.
-/// If this class does not satisfy your needs on formatting paragraphs I recommend to take a look
-/// at MigraDoc Foundation. Alternatively you should copy this class in your own source code and modify it.
+/// If this class does not satisfy your needs on formatting paragraphs, take a look at
+/// CodeBrix.PdfDocCreate, which provides a full document object model with automatic layout.
+/// Alternatively you should copy this class into your own source code and modify it.
 /// </summary>
 public class XTextFormatter
 {

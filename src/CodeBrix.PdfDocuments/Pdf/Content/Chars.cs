@@ -32,7 +32,7 @@
 namespace CodeBrix.PdfDocuments.Pdf.Content; //Was previously: namespace PdfSharpCore.Pdf.Content;
 
 /// <summary>
-/// Character table by name. Same as PdfSharpCore.Pdf.IO.Chars. Not yet clear if necessary.
+/// Character table by name. Same as CodeBrix.PdfDocuments.Pdf.IO.Chars. Not yet clear if necessary.
 /// </summary>
 internal static class Chars
 {

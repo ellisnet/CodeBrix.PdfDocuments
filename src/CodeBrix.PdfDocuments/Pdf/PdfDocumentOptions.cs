@@ -1,4 +1,4 @@
-#region PDFsharp - A .NET library for processing PDF
+﻿#region PDFsharp - A .NET library for processing PDF
 //
 // Authors:
 //   Stefan Lange
@@ -88,8 +88,8 @@ public sealed class PdfDocumentOptions
 
     /// <summary>
     /// Gets or sets a value indicating whether to compress bilevel images using CCITT compression.
-    /// With true, PDFsharp will try FlateDecode CCITT and will use the smallest one or a combination of both.
-    /// With false, PDFsharp will always use FlateDecode only - files may be a few bytes larger, but file creation is faster.
+    /// With true, CodeBrix.PdfDocuments will try FlateDecode CCITT and will use the smallest one or a combination of both.
+    /// With false, CodeBrix.PdfDocuments will always use FlateDecode only - files may be a few bytes larger, but file creation is faster.
     /// </summary>
     public bool EnableCcittCompressionForBilevelImages
     {

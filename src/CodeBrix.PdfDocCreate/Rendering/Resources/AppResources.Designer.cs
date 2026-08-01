@@ -40,7 +40,14 @@ namespace CodeBrix.PdfDocCreate.Rendering.Resources { //Was previously: namespac
         internal static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("MigraDocCore.Rendering.MigraDoc.Rendering.Resources.AppResources", typeof(AppResources).GetTypeInfo().Assembly);
+                    // NOTE: hand-corrected after the fork; do NOT let a regeneration revert this.
+                    // The resource base name must match the name the .resx is actually embedded
+                    // under (RootNamespace + folder path), which is
+                    // CodeBrix.PdfDocCreate.Rendering.Resources.
+                    // With the upstream name every lookup threw MissingManifestResourceException,
+                    // replacing every localized error message from the rendering layer.
+                    // Was previously: "MigraDocCore.Rendering.MigraDoc.Rendering.Resources.AppResources"
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("CodeBrix.PdfDocCreate.Rendering.Resources.AppResources", typeof(AppResources).GetTypeInfo().Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;

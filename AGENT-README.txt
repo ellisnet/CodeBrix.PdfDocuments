@@ -33,6 +33,19 @@ However, ALL namespaces use "CodeBrix.PdfDocuments", "CodeBrix.PdfDocCreate",
 and "CodeBrix.PdfRasterizer" instead of "PdfSharp"/"MigraDoc". Do NOT mix
 the libraries.
 
+PACKAGE-TO-NAMESPACE MAP (read this before writing any using directive - the
+package name and the namespace are NOT the same, and this is the single most
+common mistake):
+
+  NuGet package                              Namespace root
+  -----------------------------------------  ----------------------------
+  CodeBrix.PdfDocuments.MitLicenseForever    CodeBrix.PdfDocuments.*
+  CodeBrix.PdfDocCreate.MitLicenseForever    CodeBrix.PdfDocCreate.*
+  CodeBrix.PdfRasterizer.MitLicenseForever   CodeBrix.PdfRasterizer
+
+The ".MitLicenseForever" suffix belongs to the PACKAGE ID only. It never
+appears in a namespace, a using directive or a type name.
+
 Source Repository: https://github.com/ellisnet/CodeBrix.PdfDocuments
 License: MIT License
 
@@ -230,6 +243,54 @@ Available XFontStyle values:
     XFontStyle.Italic
     XFontStyle.BoldItalic
 
+--- FONTS AND FONT RESOLUTION ---
+
+NO IFontResolver REGISTRATION IS REQUIRED. On Windows, macOS and Linux the
+installed system fonts are discovered automatically. Just construct an XFont
+with a family name and draw. (This differs from upstream PdfSharpCore, where
+forgetting to set GlobalFontSettings.FontResolver is the classic first failure.)
+
+    var font = new XFont("Arial", 12);          // no setup needed
+
+THE CATCH: AN UNAVAILABLE FAMILY NEVER THROWS - IT IS SILENTLY SUBSTITUTED.
+
+A misspelled or simply not-installed family name produces a document that
+renders in some other face with no exception, no warning and no log entry.
+Verify what you actually got:
+
+    var font = new XFont("Consolas", 12);
+    if (!string.Equals(font.FontFamily.Name, "Consolas", StringComparison.OrdinalIgnoreCase))
+    {
+        // A substitute was chosen - the layout may not be what you expect.
+    }
+
+This bites hardest cross-platform, and worst of all for MONOSPACE text. Typical
+results on a stock Linux desktop with no IFontResolver registered:
+
+    Arial, Verdana, Georgia, Times New Roman, Courier New  -> resolve correctly
+    DejaVu Sans, DejaVu Sans Mono, Liberation Serif        -> resolve correctly
+    Segoe UI, Calibri                                      -> substituted
+    Consolas, Cascadia Mono, Lucida Console                -> substituted
+    (any unknown name)                                     -> substituted
+
+The three families in that middle group are monospace, and their substitute is
+typically a PROPORTIONAL font. Code blocks, aligned columns and ASCII tables
+therefore look correct on Windows and visibly wrong on Linux, silently.
+
+RECOMMENDATIONS:
+  - For cross-platform monospace, prefer "Courier New" or "DejaVu Sans Mono".
+    Avoid Consolas, Cascadia Mono and Lucida Console unless you know the target
+    machine has them.
+  - For containers, CI and any minimal image, do not rely on system fonts at
+    all. A slim base image may have almost none installed. Register an
+    IFontResolver that serves fonts you embed with your application, and set it
+    once at startup, before any font is used:
+
+        GlobalFontSettings.FontResolver = new MyEmbeddedFontResolver();
+
+  - When output must be reproducible across machines, assert on
+    XFont.FontFamily.Name in a test rather than trusting the name you asked for.
+
 --- DRAWING IMAGES ---
 
     using CodeBrix.PdfDocuments.Drawing;
@@ -415,18 +476,44 @@ contain paragraphs, tables, and images.
     bodyStyle.Font.Name = "Arial";
     bodyStyle.ParagraphFormat.SpaceAfter = 4;
 
-    // Create heading styles
-    var h1 = doc.AddStyle("Heading1", "Normal");
+    // Modify the BUILT-IN heading styles - do NOT call AddStyle for these.
+    // Heading1..Heading9 already exist (see BUILT-IN STYLE NAMES below).
+    var h1 = doc.Styles["Heading1"];
     h1.Font.Size = 18;
     h1.Font.Bold = true;
     h1.ParagraphFormat.SpaceBefore = 12;
     h1.ParagraphFormat.SpaceAfter = 6;
 
-    var h2 = doc.AddStyle("Heading2", "Normal");
+    var h2 = doc.Styles["Heading2"];
     h2.Font.Size = 14;
     h2.Font.Bold = true;
     h2.ParagraphFormat.SpaceBefore = 8;
     h2.ParagraphFormat.SpaceAfter = 4;
+
+--- BUILT-IN STYLE NAMES ---
+
+Every Document starts with these styles already defined. Their names are also
+available as constants on the StyleNames class:
+
+    StyleNames.Normal                 "Normal"
+    StyleNames.Heading1 .. Heading9   "Heading1" ... "Heading9"
+    StyleNames.DefaultParagraphFont   "DefaultParagraphFont"
+    StyleNames.Footnote               "Footnote"
+    StyleNames.Header                 "Header"
+    StyleNames.Footer                 "Footer"
+    StyleNames.Hyperlink              "Hyperlink"
+
+Use doc.AddStyle(name, baseStyleName) ONLY for names that are not in this list.
+To change a built-in style, fetch it with doc.Styles[name] and set properties
+on the object you get back.
+
+The heading styles are pre-wired in two ways that AddStyle would destroy:
+
+  - Each carries a ParagraphFormat.OutlineLevel (Heading1 -> Level1, and so on).
+    OutlineLevel is what drives PDF outline/bookmark generation.
+  - They form an inheritance chain. Heading2's base style is "Heading1" - NOT
+    "Normal" - Heading3's is "Heading2", and so on. Setting Font.Name on
+    Heading1 therefore flows down to every deeper heading.
 
 ParagraphAlignment values:
     ParagraphAlignment.Left
@@ -462,6 +549,105 @@ ParagraphAlignment values:
     para.AddText("Normal text ");
     var bold = para.AddFormattedText("bold text", TextFormat.Bold);
     para.AddText(" more normal text.");
+
+    // Hard line break within a paragraph (does NOT start a new paragraph)
+    para.AddLineBreak();
+    para.AddText("Second line of the same paragraph.");
+
+--- BULLET AND NUMBERED LISTS ---
+
+Lists are built with ParagraphFormat.ListInfo. Do NOT fake them with a
+borderless table or with literal "* " prefixes.
+
+    var item1 = section.AddParagraph("First item");
+    item1.Format.ListInfo.ListType = ListType.BulletList1;
+    item1.Format.ListInfo.ContinuePreviousList = false;   // false starts a new list
+    item1.Format.LeftIndent = Unit.FromCentimeter(0.75);
+
+    var item2 = section.AddParagraph("Second item");
+    item2.Format.ListInfo.ListType = ListType.BulletList1;
+    item2.Format.ListInfo.ContinuePreviousList = true;    // true continues the list
+
+ListType values:
+    ListType.BulletList1, BulletList2, BulletList3    (three nesting levels)
+    ListType.NumberList1, NumberList2, NumberList3
+
+ListInfo also exposes NumberPosition (Unit), which sets where the bullet or
+number is drawn.
+
+For correct hanging indents at any nesting depth, combine a negative
+FirstLineIndent with a tab stop at the LeftIndent position:
+
+    item.Format.LeftIndent = Unit.FromCentimeter(0.75);
+    item.Format.FirstLineIndent = Unit.FromCentimeter(-0.75);
+    item.Format.AddTabStop(Unit.FromCentimeter(0.75), TabAlignment.Left);
+
+--- HYPERLINKS AND BOOKMARKS ---
+
+    // Web link
+    var para = section.AddParagraph();
+    para.AddText("See ");
+    var link = para.AddHyperlink("https://example.com", HyperlinkType.Web);
+    link.AddText("the documentation");
+
+HyperlinkType values:
+    HyperlinkType.Web       (also spelled HyperlinkType.Url)
+    HyperlinkType.Local     (also spelled HyperlinkType.Bookmark) - same document
+    HyperlinkType.File      - another file
+
+    // Internal navigation: mark a target, then link to it by name
+    section.AddParagraph("Chapter 1").AddBookmark("ch1");
+
+    var toc = section.AddParagraph();
+    toc.AddHyperlink("ch1", HyperlinkType.Bookmark).AddText("Jump to Chapter 1");
+
+Note the difference from document outlines: AddBookmark creates a named jump
+target INSIDE the document model, whereas PdfDocument.Outlines (see PART 1)
+builds the reader's navigation pane.
+
+--- TAB STOPS ---
+
+Useful for aligned columns without the weight of a table - for example a table
+of contents with dot leaders.
+
+    var line = section.AddParagraph();
+    line.Format.AddTabStop(Unit.FromCentimeter(8), TabAlignment.Right, TabLeader.Dots);
+    line.AddText("Chapter 1");
+    line.AddTab();
+    line.AddText("14");
+
+TabAlignment values:  Left, Center, Right, Decimal
+TabLeader values:     Spaces, Dots, Dashes, Lines, Heavy, MiddleDot
+
+ParagraphFormat.TabStops is the underlying collection; AddTabStop adds to it,
+and ClearAll() removes any tab stops inherited from the style.
+
+--- PARAGRAPH SHADING AND BORDERS ---
+
+Shading is not limited to table cells - a paragraph can have its own
+background and borders, which makes it a good building block for callouts.
+
+    var callout = section.AddParagraph("Note: this is important.");
+    callout.Format.Shading.Color = Colors.LightYellow;
+    callout.Format.Borders.Width = 0.5;
+    callout.Format.Borders.Color = Colors.Orange;
+
+Shading members: Visible (bool), Color (Color), IsCleared (bool).
+
+You do NOT need to set Visible = true. If Visible was never assigned, the
+renderer treats the shading as visible whenever Color has been set, so setting
+Color alone is enough. Reading Shading.Visible on such a paragraph still
+returns false - that is the unassigned flag, not the effective state. Assign
+Visible = false explicitly if you want to suppress a shading inherited from a
+style.
+
+A paragraph border is also the cleanest way to draw a horizontal rule - put a
+top border on a paragraph with a tiny font:
+
+    var rule = section.AddParagraph();
+    rule.Format.Font.Size = 1;
+    rule.Format.Borders.Top.Width = 0.75;
+    rule.Format.Borders.Top.Color = Colors.Gray;
 
 --- ADDING TABLES ---
 
@@ -546,6 +732,51 @@ Border styling:
     Colors.LightBlue, Colors.LightGray, Colors.Gray, Colors.DarkBlue,
     Colors.Yellow, Colors.Orange, ... (standard color names)
 
+--- CONSTRUCTING CUSTOM COLORS ---
+
+    // RGB - all of these are fully opaque
+    var c1 = Color.FromRgb(255, 253, 231);
+    var c2 = new Color(255, 253, 231);           // identical to FromRgb
+
+    // RGB with an explicit alpha (0 = transparent, 255 = opaque)
+    var c3 = Color.FromArgb(128, 255, 253, 231);
+    var c4 = new Color(128, 255, 253, 231);      // identical to FromArgb
+    var c5 = Color.FromRgbColor(128, Colors.SteelBlue);   // recolor the alpha only
+
+    // Packed ARGB integer, in the form 0xAARRGGBB
+    var c6 = new Color(0xFFFFFDE7);
+
+    // CMYK - all values are percentages, 0 to 100
+    var c7 = Color.FromCmyk(0, 1, 9, 0);
+    var c8 = Color.FromCmyk(80, 0, 1, 9, 0);              // leading value is alpha
+    var c9 = Color.FromCmykColor(80, Colors.SteelBlue);
+
+    // From a string
+    var c10 = Color.Parse("SteelBlue");   // any name from the Colors class
+    var c11 = Color.Parse("#fffde7");     // CSS hex - always OPAQUE
+    var c12 = Color.Parse("#ffd");        // CSS shorthand, expands to #ffffdd
+    var c13 = Color.Parse("0xFFFFFDE7");  // packed 0xAARRGGBB
+
+Reading components back:
+
+    color.A, color.R, color.G, color.B      // uint, 0-255
+    color.C, color.M, color.Y, color.K      // double, 0-100 (CMYK)
+    color.Alpha                             // double, 0-100 (CMYK alpha)
+    Color.Empty                             // the "no color" value
+
+WARNING - the two hex spellings do NOT mean the same thing. The prefix decides:
+
+    Color.Parse("#c0c0c0")     -> A=255. Light grey, as in CSS.
+    Color.Parse("0xc0c0c0")    -> A=0.   FULLY TRANSPARENT, not light grey.
+
+"0x" introduces a packed 0xAARRGGBB integer, so six digits leave the alpha byte
+at zero and the color silently disappears. Write the alpha explicitly
+("0xFFC0C0C0"), or use the CSS form, or use Color.FromRgb. See pitfall #18.
+
+An eight-digit "#" value is REJECTED rather than guessed at, because CSS writes
+#rrggbbaa with the alpha last while "0x" puts it first - the two orders cannot
+be told apart. Use the "0x" form when you need to specify alpha in a string.
+
 --- RENDERING TO PDF ---
 
     var pdfRenderer = new PdfDocumentRenderer
@@ -586,6 +817,14 @@ WebAssembly where no PDFium binary is bundled.
 
 The main class is PageRasterizer (sealed, IDisposable). Create an instance,
 configure properties, call rasterize methods, then dispose.
+
+TIP - VISUAL REGRESSION TESTING: pairing PdfRasterizer with PdfDocuments or
+PdfDocCreate gives you an automated way to prove that a document still looks
+right. Generate the PDF, rasterize it to images, and compare those images
+against approved baselines byte-for-byte or with a perceptual diff. Layout
+regressions that no unit test would catch - a shifted table, a font that
+silently substituted, a paragraph that now spills onto a second page - show up
+immediately. Use a fixed Dpi so the baselines stay stable.
 
 IMPORTANT: PDFium is NOT thread-safe. All calls to the native library are
 serialized internally via SemaphoreSlim. You CAN share a single
@@ -1152,7 +1391,9 @@ WHAT THESE LIBRARIES DO NOT DO
 
 Do NOT attempt to use these libraries for the following:
 
-  - Extracting text content from PDFs (no OCR, no text extraction API)
+  - Extracting text content from PDFs (no OCR, no text extraction API).
+    NOTE: this is about READING PDFs. Text you WRITE with these libraries is
+    embedded as real, searchable, selectable text - see pitfall #20.
   - Filling PDF forms programmatically (form fields are rendered visually
     by PdfRasterizer but cannot be edited via an API)
   - Digital signatures
@@ -1314,8 +1555,12 @@ COMMON PITFALLS TO AVOID
    the underlying PdfDocument via pdfRenderer.PdfDocument for additional
    low-level manipulation after rendering.
 
-8. DO NOT assume system fonts are available in Docker/CI environments.
-   Consider embedding fonts if needed.
+8. DO NOT assume system fonts are available in Docker/CI environments, and
+   DO NOT assume a font you asked for is the font you got. No IFontResolver
+   registration is needed, but an unavailable family is silently substituted
+   rather than raising an error - monospace families are the common casualty
+   on Linux. See FONTS AND FONT RESOLUTION in PART 1 for the details and for
+   the cross-platform-safe family names.
 
 9. DO NOT forget to dispose PageRasterizer instances. Use 'using var' or
    'using (...) { }' patterns. After disposal, all methods throw
@@ -1364,6 +1609,38 @@ COMMON PITFALLS TO AVOID
     paragraph hugs whatever is directly above it. Reserve AtLeast for body
     text where you genuinely WANT a guaranteed minimum leading regardless of
     the content on the line.
+
+18. DO NOT write a six-digit "0x" color string and expect it to be opaque.
+    Color.Parse("0xc0c0c0") is FULLY TRANSPARENT, not light grey.
+      "0x" introduces a packed 0xAARRGGBB integer, so the alpha byte comes
+    FIRST. Supply only six digits and alpha stays at zero. Nothing throws:
+    shading, borders and text simply do not appear, which reads as a layout
+    bug rather than a color bug and can cost a long time to find.
+      FIX: write the alpha explicitly - "0xFFC0C0C0" - or use the CSS form
+    "#c0c0c0", or use Color.FromRgb(192, 192, 192). All three are opaque.
+    Note that new Color(192, 192, 192) is opaque too; only the six-digit "0x"
+    STRING form is affected. See CONSTRUCTING CUSTOM COLORS in PART 2.
+
+19. DO NOT call doc.AddStyle(...) with a built-in style name. Heading1 through
+    Heading9, Normal, DefaultParagraphFont, Footnote, Header, Footer and
+    Hyperlink all already exist on a new Document.
+      AddStyle does not throw on a duplicate name - it REPLACES the existing
+    style with a fresh one, and hands you back an object that is NOT the one
+    stored in the document. Every property you then set is written to an
+    orphan and has no effect, so the document silently renders unstyled.
+    Worse, the replacement discards the built-in style's ParagraphFormat.
+    OutlineLevel (which drives PDF outline/bookmark generation) and re-bases
+    it, breaking the Heading1 -> Heading2 -> Heading3 inheritance chain.
+      FIX: fetch the style instead - var h1 = doc.Styles["Heading1"]; - and
+    set properties on that. Reserve AddStyle for names of your own.
+    See BUILT-IN STYLE NAMES in PART 2.
+
+20. DO NOT assume generated PDFs are not text-searchable. These libraries have
+    no text EXTRACTION api (see WHAT THESE LIBRARIES DO NOT DO), but that is a
+    statement about reading PDFs, not about writing them. Text drawn with
+    DrawString or through the PdfDocCreate document model is embedded as real
+    text with correct word spacing, so the output is searchable, selectable and
+    accessible, and can be diffed as text in a regression suite.
 
 ================================================================================
 
@@ -1452,9 +1729,21 @@ Security:       document.SecuritySettings.UserPassword = "..."
 
 --- PdfDocCreate (high-level) ---
 Create doc:     new Document()
-Add style:      doc.AddStyle("Name", "Normal")
+Add style:      doc.AddStyle("MyName", "Normal")   // custom names ONLY
+Built-in style: doc.Styles["Heading1"]             // NEVER AddStyle these
 Add section:    doc.AddSection()
 Add paragraph:  section.AddParagraph("text")
+Line break:     para.AddLineBreak()
+Bullet list:    para.Format.ListInfo.ListType = ListType.BulletList1
+                para.Format.ListInfo.ContinuePreviousList = true
+Hyperlink:      para.AddHyperlink("https://x.com", HyperlinkType.Web).AddText("x")
+Bookmark:       para.AddBookmark("ch1")
+Link to it:     para.AddHyperlink("ch1", HyperlinkType.Bookmark).AddText("go")
+Tab stop:       para.Format.AddTabStop(Unit.FromCentimeter(8),
+                    TabAlignment.Right, TabLeader.Dots); para.AddTab()
+Para shading:   para.Format.Shading.Color = Colors.LightYellow
+Custom color:   Color.FromRgb(255, 253, 231)  /  Color.Parse("#fffde7")
+                (NOT Color.Parse("0xfffde7") - that is transparent)
 Add table:      section.AddTable()
 Add column:     table.AddColumn(width)
 Add row:        table.AddRow()

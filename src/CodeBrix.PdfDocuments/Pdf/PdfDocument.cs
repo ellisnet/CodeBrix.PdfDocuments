@@ -1,4 +1,4 @@
-#region PDFsharp - A .NET library for processing PDF
+﻿#region PDFsharp - A .NET library for processing PDF
 //
 // Authors:
 //   Stefan Lange
@@ -174,7 +174,7 @@ public sealed class PdfDocument : PdfObject, IDisposable
 
     /// <summary>
     /// Gets or sets a user defined object that contains arbitrary information associated with this document.
-    /// The tag is not used by PdfSharpCore.
+    /// The tag is not used by CodeBrix.PdfDocuments.
     /// </summary>
     public object Tag
     {
@@ -185,7 +185,7 @@ public sealed class PdfDocument : PdfObject, IDisposable
 
     /// <summary>
     /// Gets or sets a value used to distinguish PdfDocument objects.
-    /// The name is not used by PdfSharpCore.
+    /// The name is not used by CodeBrix.PdfDocuments.
     /// </summary>
     string Name
     {
@@ -295,8 +295,7 @@ public sealed class PdfDocument : PdfObject, IDisposable
 
     /// <summary>
     /// Saves the document to the specified stream.
-    /// The stream is not closed by this function.
-    /// (Older versions of PDFsharp closes the stream. That was not very useful.)
+    /// The stream is not closed by this function; the caller retains ownership of it.
     /// </summary>
     public void Save(Stream stream)
     {
@@ -392,23 +391,23 @@ public sealed class PdfDocument : PdfObject, IDisposable
         PdfDocumentInformation info = Info;
 
         // Add patch level to producer if it is not '0'.
-        string pdfSharpProducer = VersionInfo.Producer;
+        string thisProducer = VersionInfo.Producer;
         if (!ProductVersionInfo.VersionPatch.Equals("0"))
-            pdfSharpProducer = ProductVersionInfo.Producer2;
+            thisProducer = ProductVersionInfo.Producer2;
 
         // Set Creator if value is undefined.
         if (info.Elements[PdfDocumentInformation.Keys.Creator] == null)
-            info.Creator = pdfSharpProducer;
+            info.Creator = thisProducer;
 
         // Keep original producer if file was imported.
         string producer = info.Producer;
         if (producer.Length == 0)
-            producer = pdfSharpProducer;
+            producer = thisProducer;
         else
         {
-            // Prevent endless concatenation if file is edited with PDFsharp more than once.
+            // Prevent endless concatenation if the file is edited by this library more than once.
             if (!producer.StartsWith(VersionInfo.Title))
-                producer = pdfSharpProducer + " (Original: " + producer + ")";
+                producer = thisProducer + " (Original: " + producer + ")";
         }
         info.Elements.SetString(PdfDocumentInformation.Keys.Producer, producer);
 

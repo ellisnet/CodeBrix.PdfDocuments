@@ -1,4 +1,4 @@
-#region PDFsharp - A .NET library for processing PDF
+﻿#region PDFsharp - A .NET library for processing PDF
 //
 // Authors:
 //   Stefan Lange
@@ -222,7 +222,7 @@ public class PdfOutlineCollection : PdfObject, IList<PdfOutline>
     }
 
     /// <summary>
-    /// Gets the <see cref="PdfSharpCore.Pdf.PdfOutline"/> at the specified index.
+    /// Gets the <see cref="CodeBrix.PdfDocuments.Pdf.PdfOutline"/> at the specified index.
     /// </summary>
     public PdfOutline this[int index]
     {

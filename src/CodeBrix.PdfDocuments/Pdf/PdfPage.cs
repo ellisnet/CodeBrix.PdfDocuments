@@ -99,7 +99,7 @@ public sealed class PdfPage : PdfDictionary, IContentStream
 
     /// <summary>
     /// Gets or sets a user defined object that contains arbitrary information associated with this PDF page.
-    /// The tag is not used by PdfSharpCore.
+    /// The tag is not used by CodeBrix.PdfDocuments.
     /// </summary>
     public object Tag
     {
@@ -303,7 +303,7 @@ public sealed class PdfPage : PdfDictionary, IContentStream
     /// Gets or sets the /Rotate entry of the PDF page. The value is the number of degrees by which the page 
     /// should be rotated clockwise when displayed or printed. The value must be a multiple of 90.
     /// TODO: Next statement is not correct: 
-    /// PDFsharp does not set this value, but for imported pages this value can be set and must be taken
+    /// CodeBrix.PdfDocuments does not set this value, but for imported pages this value can be set and must be taken
     /// into account when adding graphic to such a page.
     /// </summary>
     public int Rotate

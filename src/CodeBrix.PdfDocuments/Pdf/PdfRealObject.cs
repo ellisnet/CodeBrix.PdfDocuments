@@ -1,4 +1,4 @@
-#region PDFsharp - A .NET library for processing PDF
+﻿#region PDFsharp - A .NET library for processing PDF
 //
 // Authors:
 //   Stefan Lange
@@ -33,7 +33,7 @@ using CodeBrix.PdfDocuments.Pdf.IO;
 namespace CodeBrix.PdfDocuments.Pdf; //Was previously: namespace PdfSharpCore.Pdf;
 
 /// <summary>
-/// Represents an indirect real value. This type is not used by PdfSharpCore. If it is imported from
+/// Represents an indirect real value. This type is not used by CodeBrix.PdfDocuments. If it is imported from
 /// an external PDF file, the value is converted into a direct object.
 /// </summary>
 public sealed class PdfRealObject : PdfNumberObject

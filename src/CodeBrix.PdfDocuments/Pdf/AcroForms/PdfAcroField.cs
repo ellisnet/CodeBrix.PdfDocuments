@@ -349,8 +349,8 @@ public abstract class PdfAcroField : PdfDictionary
 
         /// <summary>
         /// Gets a field from the collection. For your convenience an instance of a derived class like
-        /// PdfTextField or PdfCheckBox is returned if PDFsharp can guess the actual type of the dictionary.
-        /// If the actual type cannot be guessed by PDFsharp the function returns an instance
+        /// PdfTextField or PdfCheckBox is returned if CodeBrix.PdfDocuments can guess the actual type of the dictionary.
+        /// If the actual type cannot be guessed by CodeBrix.PdfDocuments the function returns an instance
         /// of PdfGenericField.
         /// </summary>
         public PdfAcroField this[int index]
@@ -401,7 +401,7 @@ public abstract class PdfAcroField : PdfDictionary
 
         /// <summary>
         /// Create a derived type like PdfTextField or PdfCheckBox if possible.
-        /// If the actual cannot be guessed by PDFsharp the function returns an instance
+        /// If the actual cannot be guessed by CodeBrix.PdfDocuments the function returns an instance
         /// of PdfGenericField.
         /// </summary>
         PdfAcroField CreateAcroField(PdfDictionary dict)

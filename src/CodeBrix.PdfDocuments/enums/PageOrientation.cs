@@ -1,4 +1,4 @@
-#region PDFsharp - A .NET library for processing PDF
+﻿#region PDFsharp - A .NET library for processing PDF
 //
 // Authors:
 //   Stefan Lange
@@ -30,9 +30,9 @@
 namespace CodeBrix.PdfDocuments; //Was previously: namespace PdfSharpCore;
 
 /// <summary>
-/// Base namespace of PdfSharpCore. Most classes are implemented in nested namespaces like e. g. PdfSharpCore.Pdf.
+/// Base namespace of CodeBrix.PdfDocuments. Most classes are implemented in nested namespaces like e. g. CodeBrix.PdfDocuments.Pdf.
 /// </summary>
-/// <seealso cref="PdfSharpCore.Pdf"></seealso>
+/// <seealso cref="CodeBrix.PdfDocuments.Pdf"></seealso>
 [System.Runtime.CompilerServices.CompilerGenerated]
 internal class NamespaceDoc { }
 

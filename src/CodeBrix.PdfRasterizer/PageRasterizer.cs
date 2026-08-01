@@ -297,6 +297,25 @@ public sealed partial class PageRasterizer : IDisposable
     private const int DefaultDpi = 300;
     private static readonly Func<int, string> DefaultFileNameGenerator = pageNumber => $"Rasterized_Page_{pageNumber}";
 
+    /// <summary>
+    /// Gets the file extension for <paramref name="imageFormat"/>, guaranteed to start with a dot.
+    /// </summary>
+    /// <remarks>
+    /// Every image format built into CodeBrix.Imaging already includes the leading dot
+    /// (<c>PngFormat.Instance.DefaultFileExtension</c> is <c>".png"</c>), but
+    /// <see cref="RasterizedImageFormat"/> accepts any <see cref="IImageFormat"/>, including a
+    /// third-party implementation that may omit it. Normalizing here lets the callers append the
+    /// extension directly, instead of interpolating a dot that would be doubled for every
+    /// well-behaved format.
+    /// </remarks>
+    private static string NormalizeFileExtension(IImageFormat imageFormat)
+    {
+        var extension = imageFormat.DefaultFileExtension;
+        return string.IsNullOrEmpty(extension) || extension.StartsWith('.')
+            ? extension
+            : "." + extension;
+    }
+
     private Action<string> _logger;
     private bool _disposed;
 
@@ -526,7 +545,7 @@ public sealed partial class PageRasterizer : IDisposable
             var effectivePassword = password ?? Password;
             var scaling = effectiveDpi / 72.0;
             var imageFormat = desiredImageFormat ?? RasterizedImageFormat;
-            var fileExtension = imageFormat.DefaultFileExtension;
+            var fileExtension = NormalizeFileExtension(imageFormat);
 
             // Pin the PDF bytes in unmanaged memory for PDFium
             pdfPtr = Marshal.AllocHGlobal(pdfBytes.Length);
@@ -577,7 +596,7 @@ public sealed partial class PageRasterizer : IDisposable
                     {
                         cancellationToken.ThrowIfCancellationRequested();
                         var pageNumber = pageNumbers is not null ? pageNumbers[idx] : idx + 1;
-                        var fileName = $"{FileNameGenerator(pageNumber)}.{fileExtension}";
+                        var fileName = $"{FileNameGenerator(pageNumber)}{fileExtension}";
                         var pagePath = Path.Combine(effectiveDirectory, fileName);
 
                         if (!AllowOverwriteFiles && File.Exists(pagePath))

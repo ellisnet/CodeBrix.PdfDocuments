@@ -1,4 +1,4 @@
-#region PDFsharp - A .NET library for processing PDF
+﻿#region PDFsharp - A .NET library for processing PDF
 //
 // Authors:
 //   Stefan Lange
@@ -45,22 +45,22 @@ public enum XCombineMode  // Same values as System.Drawing.Drawing2D.CombineMode
     Intersect = 1,
 
     /// <summary>
-    /// Not yet implemented in PdfSharpCore.
+    /// Not yet implemented in CodeBrix.PdfDocuments.
     /// </summary>
     Union = 2,
 
     /// <summary>
-    /// Not yet implemented in PdfSharpCore.
+    /// Not yet implemented in CodeBrix.PdfDocuments.
     /// </summary>
     Xor = 3,
 
     /// <summary>
-    /// Not yet implemented in PdfSharpCore.
+    /// Not yet implemented in CodeBrix.PdfDocuments.
     /// </summary>
     Exclude = 4,
 
     /// <summary>
-    /// Not yet implemented in PdfSharpCore.
+    /// Not yet implemented in CodeBrix.PdfDocuments.
     /// </summary>
     Complement = 5,
 }

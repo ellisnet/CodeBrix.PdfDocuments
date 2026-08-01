@@ -1,4 +1,4 @@
-#region PDFsharp Charting - A .NET charting library based on PDFsharp
+﻿#region PDFsharp Charting - A .NET charting library based on PDFsharp
 //
 // Authors:
 //   Niklas Schneider (mailto:Niklas.Schneider@PdfSharpCore.com)
@@ -33,7 +33,7 @@ using CodeBrix.PdfDocuments.Drawing;
 namespace CodeBrix.PdfDocuments.Charting.Renderers; //Was previously: namespace PdfSharpCore.Charting.Renderers;
 
 /// <summary>
-/// Provides functions which converts Charting.DOM objects into PdfSharpCore.Drawing objects.
+/// Provides functions which converts Charting.DOM objects into CodeBrix.PdfDocuments.Drawing objects.
 /// </summary>
 internal class Converter
 {

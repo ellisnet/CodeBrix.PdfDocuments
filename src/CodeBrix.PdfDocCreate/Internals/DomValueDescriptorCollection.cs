@@ -1,4 +1,4 @@
-#region MigraDoc - Creating Documents on the Fly
+﻿#region MigraDoc - Creating Documents on the Fly
 //
 // Authors:
 //   Stefan Lange (mailto:Stefan.Lange@PdfSharpCore.com)
@@ -61,7 +61,7 @@ public class ValueDescriptorCollection : IEnumerable
     }
 
     /// <summary>
-    /// Gets the <see cref="MigraDoc.DocumentObjectModel.Internals.ValueDescriptor"/> at the specified index.
+    /// Gets the <see cref="CodeBrix.PdfDocCreate.DocumentObjectModel.Internals.ValueDescriptor"/> at the specified index.
     /// </summary>
     /// <value></value>
     public ValueDescriptor this[int index]
@@ -70,7 +70,7 @@ public class ValueDescriptorCollection : IEnumerable
     }
 
     /// <summary>
-    /// Gets the <see cref="MigraDoc.DocumentObjectModel.Internals.ValueDescriptor"/> with the specified name.
+    /// Gets the <see cref="CodeBrix.PdfDocCreate.DocumentObjectModel.Internals.ValueDescriptor"/> with the specified name.
     /// </summary>
     /// <value></value>
     public ValueDescriptor this[string name]

@@ -1,4 +1,4 @@
-#region PDFsharp - A .NET library for processing PDF
+﻿#region PDFsharp - A .NET library for processing PDF
 //
 // Authors:
 //   Stefan Lange
@@ -30,7 +30,7 @@
 namespace CodeBrix.PdfDocuments.Pdf.Annotations; //Was previously: namespace PdfSharpCore.Pdf.Annotations;
 
 /// <summary>
-/// Represents a generic annotation. Used for annotation dictionaries unknown to PdfSharpCore.
+/// Represents a generic annotation. Used for annotation dictionaries unknown to CodeBrix.PdfDocuments.
 /// </summary>
 internal sealed class PdfGenericAnnotation : PdfAnnotation
 {

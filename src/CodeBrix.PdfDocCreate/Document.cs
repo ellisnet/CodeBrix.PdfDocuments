@@ -1,4 +1,4 @@
-#region MigraDoc - Creating Documents on the Fly
+﻿#region MigraDoc - Creating Documents on the Fly
 //
 // Authors:
 //   Stefan Lange (mailto:Stefan.Lange@PdfSharpCore.com)
@@ -41,7 +41,7 @@ using CodeBrix.PdfDocCreate.DocumentObjectModel.IO;
 namespace CodeBrix.PdfDocCreate.DocumentObjectModel; //Was previously: namespace MigraDocCore.DocumentObjectModel;
 
 /// <summary>
-/// Represents a MigraDoc document.
+/// Represents a CodeBrix.PdfDocCreate document.
 /// </summary>
 public sealed class Document : DocumentObject, IVisitable
 {
@@ -95,8 +95,8 @@ public sealed class Document : DocumentObject, IVisitable
         if (this.renderer != null && renderer != null && !Object.ReferenceEquals(this.renderer, renderer))
         {
             throw new InvalidOperationException("The document is already bound to another renderer. " +
-                                                "A MigraDoc document can be rendered by only one renderer, because the rendering process " +
-                                                "modifies its internal structure. If you want to render a MigraDoc document  on different renderers, " +
+                                                "A document can be rendered by only one renderer, because the rendering process " +
+                                                "modifies its internal structure. If you want to render a document on different renderers, " +
                                                 "you must create a copy of it using the Clone function.");
         }
         this.renderer = renderer;

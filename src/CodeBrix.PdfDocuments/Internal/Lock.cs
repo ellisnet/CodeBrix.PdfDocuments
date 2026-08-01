@@ -1,4 +1,4 @@
-#region PDFsharp - A .NET library for processing PDF
+﻿#region PDFsharp - A .NET library for processing PDF
 //
 // Authors:
 //   Stefan Lange
@@ -35,7 +35,7 @@ using CodeBrix.PdfDocuments.Pdf.Internal;
 namespace CodeBrix.PdfDocuments.Internal; //Was previously: namespace PdfSharpCore.Internal;
 
 /// <summary>
-/// Static locking functions to make PDFsharp thread save.
+/// Static locking functions to make CodeBrix.PdfDocuments thread save.
 /// </summary>
 internal static class Lock
 {

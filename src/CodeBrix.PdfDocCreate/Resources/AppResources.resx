@@ -262,7 +262,7 @@
     <value>String expected: '{0}'.</value>
   </data>
   <data name="StyleExpected" xml:space="preserve">
-    <value>The value must be of type MigraDoc.DocumentObjectModel.Style.</value>
+    <value>The value must be of type CodeBrix.PdfDocCreate.DocumentObjectModel.Style.</value>
   </data>
   <data name="StyleNameExpected" xml:space="preserve">
     <value>Invalid style name '{0}'.</value>

@@ -33,8 +33,10 @@ using System;
 namespace CodeBrix.PdfDocuments.Drawing.BarCodes; //Was previously: namespace PdfSharpCore.Drawing.BarCodes;
 
 /// <summary>
-/// Defines the DataMatrix 2D barcode. THIS IS AN EMPIRA INTERNAL IMPLEMENTATION. THE CODE IN
-/// THE OPEN SOURCE VERSION IS A FAKE.
+/// Defines the DataMatrix 2D barcode.
+/// IMPORTANT: the matrix this produces contains only RANDOM DATA. It is not a conforming
+/// DataMatrix as defined in the ISO/IEC 16022:2000 specification, and it will not scan.
+/// Do not use it where a readable barcode is required.
 /// </summary>
 public class CodeDataMatrix : MatrixCode
 {

@@ -1,4 +1,4 @@
-#region PDFsharp - A .NET library for processing PDF
+﻿#region PDFsharp - A .NET library for processing PDF
 //
 // Authors:
 //   Stefan Lange
@@ -48,7 +48,7 @@ public enum PdfStringEncoding
     RawEncoding = PdfStringFlags.RawEncoding,
 
     /// <summary>
-    /// Not yet used by PdfSharpCore.
+    /// Not yet used by CodeBrix.PdfDocuments.
     /// </summary>
     StandardEncoding = PdfStringFlags.StandardEncoding,
 
@@ -67,12 +67,12 @@ public enum PdfStringEncoding
     WinAnsiEncoding = PdfStringFlags.WinAnsiEncoding,
 
     /// <summary>
-    /// Not yet used by PdfSharpCore.
+    /// Not yet used by CodeBrix.PdfDocuments.
     /// </summary>
     MacRomanEncoding = PdfStringFlags.MacExpertEncoding,
 
     /// <summary>
-    /// Not yet used by PdfSharpCore.
+    /// Not yet used by CodeBrix.PdfDocuments.
     /// </summary>
     MacExpertEncoding = PdfStringFlags.MacExpertEncoding,
 

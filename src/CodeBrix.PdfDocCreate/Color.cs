@@ -276,13 +276,32 @@ public struct Color : INullableValue
     /// Parses the string and returns a color object.
     /// Throws ArgumentException if color is invalid.
     /// </summary>
-    /// <param name="color">integer, hex or color name.</param>
+    /// <param name="color">A color name, a CSS hex color, a <c>"0x"</c>-prefixed
+    /// packed ARGB value, or a decimal integer.</param>
+    /// <remarks>
+    /// The two hex spellings deliberately follow different, well-established conventions, and
+    /// the prefix indicates which one applies:
+    /// <list type="bullet">
+    /// <item><description><c>"#rrggbb"</c> and the CSS shorthand <c>"#rgb"</c> are CSS colors and
+    /// are always FULLY OPAQUE. <c>"#c0c0c0"</c> is light grey.</description></item>
+    /// <item><description><c>"0x..."</c> is a packed ARGB integer in the form <c>0xAARRGGBB</c>,
+    /// so the alpha byte comes FIRST and is NOT defaulted. <c>"0xc0c0c0"</c> has an alpha of
+    /// zero and is therefore fully TRANSPARENT - write <c>"0xFFC0C0C0"</c> for opaque light grey.
+    /// This matches the behaviour of the upstream library.</description></item>
+    /// </list>
+    /// An eight-digit <c>"#"</c> value is rejected rather than guessed at: CSS writes
+    /// <c>#rrggbbaa</c> with the alpha LAST, which is the opposite order from <c>0xAARRGGBB</c>,
+    /// so silently accepting it would produce the wrong color.
+    /// </remarks>
     public static Color Parse(string color)
     {
         if (color == null)
             throw new ArgumentNullException("color");
         if (color == "")
             throw new ArgumentException("color");
+
+        if (color[0] == '#')
+            return ParseCssHexColor(color);
 
         try
         {
@@ -313,6 +332,58 @@ public struct Color : INullableValue
         {
             throw new ArgumentException(DomSR.InvalidColorString(color), ex);
         }
+    }
+
+    /// <summary>
+    /// Parses a CSS hex color - "#rrggbb", or the "#rgb" shorthand - as a fully opaque color.
+    /// </summary>
+    /// <remarks>
+    /// CSS hex colors have no alpha component in these two forms, so the result is always opaque.
+    /// This is deliberately different from the "0x" form handled by <see cref="Parse"/>, which is
+    /// a packed 0xAARRGGBB integer and does not default the alpha byte.
+    /// </remarks>
+    private static Color ParseCssHexColor(string color)
+    {
+        string digits = color.Substring(1);
+
+        if (digits.Length == 8)
+            throw new ArgumentException(DomSR.InvalidColorString(color)
+                + " Eight-digit CSS colors (#rrggbbaa) are not supported, because CSS places the"
+                + " alpha component last while the \"0x\" form places it first (0xAARRGGBB), so the"
+                + " two cannot be told apart. Use \"0x\" with an eight-digit AARRGGBB value to"
+                + " specify alpha.");
+
+        if (digits.Length != 3 && digits.Length != 6)
+            throw new ArgumentException(DomSR.InvalidColorString(color));
+
+        // Validated explicitly rather than left to uint.Parse, because NumberStyles.HexNumber also
+        // allows surrounding whitespace - which would let "#ab " through as a 3-digit shorthand.
+        foreach (char digit in digits)
+        {
+            if (!((digit >= '0' && digit <= '9')
+                  || (digit >= 'a' && digit <= 'f')
+                  || (digit >= 'A' && digit <= 'F')))
+                throw new ArgumentException(DomSR.InvalidColorString(color));
+        }
+
+        uint value = uint.Parse(digits, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+
+        byte r, g, b;
+        if (digits.Length == 3)
+        {
+            // CSS shorthand doubles each digit, so "#abc" means "#aabbcc".
+            r = (byte)(((value & 0xF00) >> 8) * 0x11);
+            g = (byte)(((value & 0x0F0) >> 4) * 0x11);
+            b = (byte)((value & 0x00F) * 0x11);
+        }
+        else
+        {
+            r = (byte)((value & 0xFF0000) >> 16);
+            g = (byte)((value & 0x00FF00) >> 8);
+            b = (byte)(value & 0x0000FF);
+        }
+
+        return new Color(r, g, b);
     }
 
     /// <summary>
@@ -466,6 +537,37 @@ public struct Color : INullableValue
         }
     }
     static Hashtable stdColors;
+
+    /// <summary>
+    /// Creates a fully opaque Color structure from the specified red, green and blue values.
+    /// </summary>
+    /// <param name="r">The red component, in a range between 0 and 255.</param>
+    /// <param name="g">The green component, in a range between 0 and 255.</param>
+    /// <param name="b">The blue component, in a range between 0 and 255.</param>
+    /// <remarks>
+    /// Equivalent to <c>new Color(r, g, b)</c>. Use <see cref="FromArgb(byte, byte, byte, byte)"/>
+    /// to supply an alpha value.
+    /// </remarks>
+    public static Color FromRgb(byte r, byte g, byte b)
+    {
+        return new Color(r, g, b);
+    }
+
+    /// <summary>
+    /// Creates a Color structure from the specified alpha, red, green and blue values.
+    /// </summary>
+    /// <param name="a">The alpha (opacity) component, in a range between 0 (fully transparent)
+    /// and 255 (fully opaque).</param>
+    /// <param name="r">The red component, in a range between 0 and 255.</param>
+    /// <param name="g">The green component, in a range between 0 and 255.</param>
+    /// <param name="b">The blue component, in a range between 0 and 255.</param>
+    /// <remarks>
+    /// Equivalent to <c>new Color(a, r, g, b)</c>.
+    /// </remarks>
+    public static Color FromArgb(byte a, byte r, byte g, byte b)
+    {
+        return new Color(a, r, g, b);
+    }
 
     /// <summary>
     /// Creates an RGB color from an existing color with a new alpha (transparency) value.

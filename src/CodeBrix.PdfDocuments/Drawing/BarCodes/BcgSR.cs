@@ -31,7 +31,7 @@ namespace CodeBrix.PdfDocuments.Drawing.BarCodes; //Was previously: namespace Pd
 
 // TODO: Mere with PDFsharp strings table
 /// <summary>
-/// String resources for the empira barcode renderer.
+/// String resources for the barcode renderer.
 /// </summary>
 internal class BcgSR
 {

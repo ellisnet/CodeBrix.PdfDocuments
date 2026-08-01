@@ -6,7 +6,7 @@ using Xunit;
 
 namespace CodeBrix.PdfDocuments.Tests; //Was previously: namespace PdfSharpCore.Test;
 
-public class MigradocTurkishTest
+public class TurkishCultureRenderingTests
 {
     private CultureInfo originalCulture;
     private CultureInfo originalUICulture;

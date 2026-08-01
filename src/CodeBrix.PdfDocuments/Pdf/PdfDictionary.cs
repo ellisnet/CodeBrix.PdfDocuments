@@ -883,7 +883,7 @@ public class PdfDictionary : PdfObject, IEnumerable<KeyValuePair<string, PdfItem
                     if (true) // || _owner.Document.IsImported)
                     {
                         Type type = GetValueType(key);
-                        Debug.Assert(type != null, "No value type specified in meta information. Please send this file to PDFsharp support.");
+                        Debug.Assert(type != null, "No value type specified in meta information. Please report this file to CodeBrix.PdfDocuments.");
 
                         // Rewritten WinRT style.
                         TypeInfo typeInfo = type.GetTypeInfo();
@@ -891,12 +891,12 @@ public class PdfDictionary : PdfObject, IEnumerable<KeyValuePair<string, PdfItem
                         {
                             if (typeof(PdfDictionary).GetTypeInfo().IsAssignableFrom(typeInfo))
                             {
-                                Debug.Assert(value is PdfDictionary, "Bug in PdfSharpCore. Please send this file to PDFsharp support.");
+                                Debug.Assert(value is PdfDictionary, "Bug in CodeBrix.PdfDocuments. Please report this file.");
                                 value = CreateDictionary(type, (PdfDictionary)value);
                             }
                             else if (typeof(PdfArray).GetTypeInfo().IsAssignableFrom(typeInfo))
                             {
-                                Debug.Assert(value is PdfArray, "Bug in PdfSharpCore. Please send this file to PDFsharp support.");
+                                Debug.Assert(value is PdfArray, "Bug in CodeBrix.PdfDocuments. Please report this file.");
                                 value = CreateArray(type, (PdfArray)value);
                             }
                             else
@@ -915,7 +915,7 @@ public class PdfDictionary : PdfObject, IEnumerable<KeyValuePair<string, PdfItem
                         Debug.Assert(!dict.IsIndirect);
 
                         Type type = GetValueType(key);
-                        Debug.Assert(type != null, "No value type specified in meta information. Please send this file to PDFsharp support.");
+                        Debug.Assert(type != null, "No value type specified in meta information. Please report this file to CodeBrix.PdfDocuments.");
                         if (dict.GetType() != type)
                             dict = CreateDictionary(type, dict);
                         return dict;
@@ -927,7 +927,7 @@ public class PdfDictionary : PdfObject, IEnumerable<KeyValuePair<string, PdfItem
 
                         Type type = GetValueType(key);
                         // This is more complicated. If type is null do nothing
-                        //Debug.Assert(type != null, "No value type specified in meta information. Please send this file to PDFsharp support.");
+                        //Debug.Assert(type != null, "No value type specified in meta information. Please report this file to CodeBrix.PdfDocuments.");
                         if (type != null && type != array.GetType())
                             array = CreateArray(type, array);
                         return array;
@@ -1592,7 +1592,7 @@ public class PdfDictionary : PdfObject, IEnumerable<KeyValuePair<string, PdfItem
         }
 
         /// <summary>
-        /// Tries to unfilter the bytes of the stream. If the stream is filtered and PDFsharp knows the filter
+        /// Tries to unfilter the bytes of the stream. If the stream is filtered and CodeBrix.PdfDocuments knows the filter
         /// algorithm, the stream content is replaced by its unfiltered value and the function returns true.
         /// Otherwise the content remains untouched and the function returns false.
         /// The function is useful for analyzing existing PDF files.

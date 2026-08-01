@@ -42,9 +42,7 @@ namespace CodeBrix.PdfDocuments.Drawing.Pdf; //Was previously: namespace PdfShar
 /// <summary>
 /// Represents the current PDF graphics state.
 /// </summary>
-/// <remarks>
-/// Completely revised for PDFsharp 1.4.
-/// </remarks>
+// Provenance: completely revised upstream for PDFsharp 1.4.
 internal sealed class PdfGraphicsState : ICloneable
 {
     public PdfGraphicsState(XGraphicsPdfRenderer renderer)

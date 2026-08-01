@@ -1,4 +1,4 @@
-#region MigraDoc - Creating Documents on the Fly
+﻿#region MigraDoc - Creating Documents on the Fly
 //
 // Authors:
 //   Klaus Potzesny (mailto:Klaus.Potzesny@PdfSharpCore.com)
@@ -429,7 +429,7 @@ public class FormattedDocument : IAreaProvider
     /// Must be called after rendering the document.
     /// </summary>
     /// <returns>The current Y position at the end of the last page.</returns>
-    public double GetCurrentMigraDocPosition()
+    public double GetCurrentDocumentPosition()
     {
         RenderInfo[] RenderInfos = GetRenderInfos(PageCount);
         RenderInfo r = RenderInfos[RenderInfos.Length - 1];

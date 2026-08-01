@@ -738,7 +738,9 @@ public class PdfRasterizerTests : IDisposable
 
             var files = Directory.GetFiles(outputDir);
             files.Length.Should().Be(1);
-            Assert.Contains("MyPage_1", files[0]);
+            // Asserted exactly, not with Assert.Contains: a substring check passed happily against
+            // the old "MyPage_1..png", which is how the doubled dot survived.
+            Path.GetFileName(files[0]).Should().Be("MyPage_1.png");
 
 #if SAVE_TEMP_FILES
             if (Directory.Exists(TempFolder))
@@ -751,6 +753,74 @@ public class PdfRasterizerTests : IDisposable
                 }
             }
 #endif
+        }
+        finally
+        {
+            CleanupDirectory(outputDir);
+        }
+    }
+
+    [Fact]
+    public async Task RasterizeToImageFiles_UsesDefaultNameWithASingleDotBeforeTheExtension()
+    {
+        var outputDir = CreateTempOutputDirectory();
+
+        try
+        {
+            var pdfBytes = CreateSamplePdfBytes(1, jokeIndex: 2);
+            _rasterizer.AllowOverwriteFiles = true;
+            await _rasterizer.RasterizeToImageFiles(pdfBytes, outputDir,
+                cancellationToken: TestContext.Current.CancellationToken);
+
+            var files = Directory.GetFiles(outputDir);
+            files.Length.Should().Be(1);
+            Path.GetFileName(files[0]).Should().Be("Rasterized_Page_1.png");
+        }
+        finally
+        {
+            CleanupDirectory(outputDir);
+        }
+    }
+
+    [Fact]
+    public async Task RasterizeToImageFiles_WithNonDefaultFormat_UsesThatFormatsExtension()
+    {
+        var outputDir = CreateTempOutputDirectory();
+
+        try
+        {
+            var pdfBytes = CreateSamplePdfBytes(1, jokeIndex: 2);
+            _rasterizer.AllowOverwriteFiles = true;
+            await _rasterizer.RasterizeToImageFiles(pdfBytes, outputDir,
+                desiredImageFormat: JpegFormat.Instance,
+                cancellationToken: TestContext.Current.CancellationToken);
+
+            var files = Directory.GetFiles(outputDir);
+            files.Length.Should().Be(1);
+            Path.GetFileName(files[0]).Should().Be($"Rasterized_Page_1{JpegFormat.Instance.DefaultFileExtension}");
+        }
+        finally
+        {
+            CleanupDirectory(outputDir);
+        }
+    }
+
+    [Fact]
+    public async Task RasterizeToThumbnailFiles_UsesASingleDotBeforeTheExtension()
+    {
+        var outputDir = CreateTempOutputDirectory();
+
+        try
+        {
+            var pdfBytes = CreateSamplePdfBytes(1, jokeIndex: 2);
+            _rasterizer.AllowOverwriteFiles = true;
+            _rasterizer.FileNameGenerator = pageNumber => $"Thumb_{pageNumber}";
+            await _rasterizer.RasterizeToThumbnailFiles(pdfBytes, outputDirectory: outputDir,
+                cancellationToken: TestContext.Current.CancellationToken);
+
+            var files = Directory.GetFiles(outputDir);
+            files.Length.Should().Be(1);
+            Path.GetFileName(files[0]).Should().Be("Thumb_1.png");
         }
         finally
         {

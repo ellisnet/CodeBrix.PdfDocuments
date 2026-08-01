@@ -140,7 +140,7 @@ public class FontResolverInfo
     string _key;
 
     /// <summary>
-    /// A name that uniquely identifies the font (not the family), e.g. the file name of the font. PDFsharp does not use this
+    /// A name that uniquely identifies the font (not the family), e.g. the file name of the font. CodeBrix.PdfDocuments does not use this
     /// name internally, but passes it to the GetFont function of the IFontResolver interface to retrieve the font data.
     /// </summary>
     public string FaceName
@@ -150,7 +150,7 @@ public class FontResolverInfo
     readonly string _faceName;
 
     /// <summary>
-    /// Indicates whether bold must be simulated. Bold simulation is not implemented in PdfSharpCore.
+    /// Indicates whether bold must be simulated. Bold simulation is not implemented in CodeBrix.PdfDocuments.
     /// </summary>
     public bool MustSimulateBold
     {

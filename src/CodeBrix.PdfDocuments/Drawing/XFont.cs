@@ -1,4 +1,4 @@
-#region PDFsharp - A .NET library for processing PDF
+﻿#region PDFsharp - A .NET library for processing PDF
 //
 // Authors:
 //   Stefan Lange
@@ -93,7 +93,7 @@ public sealed class XFont
 
     /// <summary>
     /// Initializes this instance by computing the glyph typeface, font family, font source and TrueType fontface.
-    /// (PDFsharp currently only deals with TrueType fonts.)
+    /// (CodeBrix.PdfDocuments currently only deals with TrueType fonts.)
     /// </summary>
     void Initialize()
     {
