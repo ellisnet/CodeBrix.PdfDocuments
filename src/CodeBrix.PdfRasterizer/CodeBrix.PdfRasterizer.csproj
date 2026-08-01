@@ -98,7 +98,7 @@
     <None Include="runtimes\android-arm64\native\LICENSE" Pack="true" PackagePath="runtimes\android-arm64\native" Link="runtimes\android-arm64\native\LICENSE" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="CodeBrix.Imaging.ApacheLicenseForever" Version="1.0.164.1087" />
+    <PackageReference Include="CodeBrix.Imaging.ApacheLicenseForever" Version="1.0.213.41" />
   </ItemGroup>
 
   <ItemGroup>
