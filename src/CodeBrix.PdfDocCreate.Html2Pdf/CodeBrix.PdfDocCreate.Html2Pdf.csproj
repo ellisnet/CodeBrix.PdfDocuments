@@ -1,0 +1,93 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <!--
+    Package / assembly version: date-stamped and auto-incrementing.
+
+    Format:  1.<x>.<y>.<z>   (every field is derived from UTC "now")
+
+      1  (major)     Always 1 for this library.
+      x  (minor)     Whole years since $(_VersionBaseYear).
+                     With base 2026: 2026=0, 2027=1, 2028=2, ...
+      y  (build)     Day of year, 1-based inclusive, UTC.
+                     Jan 1 = 1, Feb 1 = 32, Dec 31 = 365 (366 in a leap year).
+      z  (revision)  Minute of day, UTC, range 0 to 1439.
+                     00:00 = 0, 23:59 = 1439.
+
+    The version is always strictly increasing over time:
+      * within a day, z grows;
+      * at a day boundary, y increments and outranks z resetting to 0;
+      * at a (UTC) year boundary, x increments and outranks y and z resetting.
+
+    Notes / caveats:
+      * All fields read from System.DateTime.UtcNow, so a local dev build and a
+        UTC CI build agree on the value. Math.Floor on the minutes keeps z in
+        0..1439 (plain rounding could land on 1440 late in the day).
+      * Because the value depends on the clock, every build produces a NEW
+        version. With GeneratePackageOnBuild=true that means a fresh .nupkg on
+        each build, and two builds in the SAME UTC minute produce the SAME
+        version (so do not publish two packages from within one minute).
+      * This is date-stamp versioning, not SemVer: minor encodes the year and
+        major is pinned to 1, so major/minor do not signal API compatibility.
+      * To re-baseline the minor number, change _VersionBaseYear below.
+  -->
+  <PropertyGroup>
+    <_VersionBaseYear>2026</_VersionBaseYear>
+    <_VersionYears>$([MSBuild]::Subtract($([System.DateTime]::UtcNow.Year), $(_VersionBaseYear)))</_VersionYears>
+    <_VersionDayOfYear>$([System.DateTime]::UtcNow.DayOfYear)</_VersionDayOfYear>
+    <_VersionMinuteOfDay>$([System.Convert]::ToInt32($([System.Math]::Floor($([System.DateTime]::UtcNow.TimeOfDay.TotalMinutes)))))</_VersionMinuteOfDay>
+    <BuildVersion>1.$(_VersionYears).$(_VersionDayOfYear).$(_VersionMinuteOfDay)</BuildVersion>
+    <Version>$(BuildVersion)</Version>
+    <AssemblyVersion>$(BuildVersion)</AssemblyVersion>
+    <FileVersion>$(BuildVersion)</FileVersion>
+  </PropertyGroup>
+
+  <!-- NuGet Package Properties -->
+  <PropertyGroup>
+    <PackageId>CodeBrix.PdfDocCreate.Html2Pdf.MitLicenseForever</PackageId>
+    <Authors>Jeremy Ellis</Authors>
+    <Product>CodeBrix.PdfDocCreate.Html2Pdf</Product>
+    <Title>CodeBrix.PdfDocCreate.Html2Pdf</Title>
+    <Description>Renders author-created HTML pages with CSS styling into PDF documents via the CodeBrix.PdfDocCreate document object model. Applies a documented subset of CSS - inline style attributes, style blocks, and linked local stylesheets - with real selector matching, cascade, specificity, and inheritance. All text is rendered with the CodeBrix.Platform.Fonts Roboto (sans-serif), Merriweather (serif), and Roboto Mono (monospace) font packages, so output is identical on every operating system. Designed for HTML/CSS written for PDF generation, not for repurposing arbitrary web pages.</Description>
+    <PackageProjectUrl>https://github.com/ellisnet/CodeBrix.PdfDocuments</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/ellisnet/CodeBrix.PdfDocuments</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageIcon>icon-codebrix-128.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <Copyright>Copyright (c) 2026 Jeremy Ellis and contributors</Copyright>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <PackageTags>Html2Pdf;HTML;CSS;PDF;document;rendering;CodeBrix</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      ProjectReference is used for local build/debug in Visual Studio.
+      The pack target automatically resolves the dependency using the referenced
+      project's PackageId (CodeBrix.PdfDocCreate.MitLicenseForever) and PackageVersion.
+    -->
+    <ProjectReference Include="..\CodeBrix.PdfDocCreate\CodeBrix.PdfDocCreate.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CodeBrix.MarkupParse.MitLicenseForever" Version="1.0.164.1248" />
+    <PackageReference Include="CodeBrix.StyleSheetParse.MitLicenseForever" Version="1.0.165.124" />
+    <PackageReference Include="CodeBrix.Platform.Fonts.Roboto.OflLicenseForever" Version="1.0.209.315" />
+    <PackageReference Include="CodeBrix.Platform.Fonts.Merriweather.OflLicenseForever" Version="1.0.209.309" />
+    <PackageReference Include="CodeBrix.Platform.Fonts.RobotoMono.OflLicenseForever" Version="1.0.216.1150" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\icon-codebrix-128.png" Pack="true" PackagePath="" />
+    <None Include="..\..\README.md" Pack="true" PackagePath="" />
+    <None Include="..\..\AGENT-README.txt" Pack="true" PackagePath="" />
+    <None Include="..\..\THIRD-PARTY-NOTICES.txt" Pack="true" PackagePath="" />
+    <None Include="buildTransitive\**\*" Pack="true" PackagePath="buildTransitive/" />
+  </ItemGroup>
+
+</Project>

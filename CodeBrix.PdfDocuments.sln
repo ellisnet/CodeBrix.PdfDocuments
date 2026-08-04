@@ -23,6 +23,14 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodeBrix.PdfDocCreate", "sr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodeBrix.PdfRasterizer", "src\CodeBrix.PdfRasterizer\CodeBrix.PdfRasterizer.csproj", "{51B5CEC6-5836-47BD-A4DA-EC12AD15807C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodeBrix.PdfDocCreate.Html2Pdf", "src\CodeBrix.PdfDocCreate.Html2Pdf\CodeBrix.PdfDocCreate.Html2Pdf.csproj", "{7856C5EF-077E-4CE6-8840-F088CF7232BF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodeBrix.PdfDocCreate.Markdown2Pdf", "src\CodeBrix.PdfDocCreate.Markdown2Pdf\CodeBrix.PdfDocCreate.Markdown2Pdf.csproj", "{B877FD71-D754-4A4F-8821-D84D5100AA9D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodeBrix.PdfDocCreate.Html2Pdf.Tests", "tests\CodeBrix.PdfDocCreate.Html2Pdf.Tests\CodeBrix.PdfDocCreate.Html2Pdf.Tests.csproj", "{C6EF4486-1011-4DC5-BEC6-4F68BFA9883A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodeBrix.PdfDocCreate.Markdown2Pdf.Tests", "tests\CodeBrix.PdfDocCreate.Markdown2Pdf.Tests\CodeBrix.PdfDocCreate.Markdown2Pdf.Tests.csproj", "{A4373BA9-36A2-4C48-8D25-269A49E2A6CB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -45,12 +53,30 @@ Global
 		{51B5CEC6-5836-47BD-A4DA-EC12AD15807C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{51B5CEC6-5836-47BD-A4DA-EC12AD15807C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{51B5CEC6-5836-47BD-A4DA-EC12AD15807C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7856C5EF-077E-4CE6-8840-F088CF7232BF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7856C5EF-077E-4CE6-8840-F088CF7232BF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7856C5EF-077E-4CE6-8840-F088CF7232BF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7856C5EF-077E-4CE6-8840-F088CF7232BF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B877FD71-D754-4A4F-8821-D84D5100AA9D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B877FD71-D754-4A4F-8821-D84D5100AA9D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B877FD71-D754-4A4F-8821-D84D5100AA9D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B877FD71-D754-4A4F-8821-D84D5100AA9D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C6EF4486-1011-4DC5-BEC6-4F68BFA9883A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C6EF4486-1011-4DC5-BEC6-4F68BFA9883A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C6EF4486-1011-4DC5-BEC6-4F68BFA9883A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C6EF4486-1011-4DC5-BEC6-4F68BFA9883A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A4373BA9-36A2-4C48-8D25-269A49E2A6CB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A4373BA9-36A2-4C48-8D25-269A49E2A6CB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A4373BA9-36A2-4C48-8D25-269A49E2A6CB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A4373BA9-36A2-4C48-8D25-269A49E2A6CB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{9096517B-BA14-44D9-8798-AA9539D2CF05} = {AF816CCD-AD19-4784-9E92-0E0D405AC943}
+		{C6EF4486-1011-4DC5-BEC6-4F68BFA9883A} = {AF816CCD-AD19-4784-9E92-0E0D405AC943}
+		{A4373BA9-36A2-4C48-8D25-269A49E2A6CB} = {AF816CCD-AD19-4784-9E92-0E0D405AC943}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {0A049193-65F8-49AF-82CB-75D42563DA16}

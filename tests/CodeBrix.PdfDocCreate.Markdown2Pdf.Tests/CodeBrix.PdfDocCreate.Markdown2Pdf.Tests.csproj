@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
+    <PackageReference Include="SilverAssertions.ApacheLicenseForever" Version="1.0.164.180" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="xunit.v3" Version="3.2.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\CodeBrix.PdfDocCreate.Markdown2Pdf\CodeBrix.PdfDocCreate.Markdown2Pdf.csproj" />
+    <ProjectReference Include="..\..\src\CodeBrix.PdfRasterizer\CodeBrix.PdfRasterizer.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Fixtures\**\*.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <!--
+    A package consumer receives the font-copy behaviour through the packed
+    buildTransitive targets; a ProjectReference does not flow those, so the test
+    project imports the same file directly and exercises the identical mechanism.
+  -->
+  <Import Project="..\..\src\CodeBrix.PdfDocCreate.Html2Pdf\buildTransitive\net10.0\CodeBrix.PdfDocCreate.Html2Pdf.MitLicenseForever.targets" />
+
+</Project>

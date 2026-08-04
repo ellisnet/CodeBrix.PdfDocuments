@@ -1,14 +1,16 @@
 THIRD-PARTY SOFTWARE NOTICES AND INFORMATION
 
 This project (CodeBrix.PdfDocuments / CodeBrix.PdfDocCreate /
-CodeBrix.PdfRasterizer) incorporates code from the open source projects
-listed below. The original copyright notices and the licenses under which
-those projects were received are set forth below.
+CodeBrix.PdfRasterizer / CodeBrix.PdfDocCreate.Html2Pdf /
+CodeBrix.PdfDocCreate.Markdown2Pdf) incorporates code from the open source
+projects listed below. The original copyright notices and the licenses under
+which those projects were received are set forth below.
 
 All of the source code in the CodeBrix.PdfDocuments, CodeBrix.PdfDocCreate,
-and CodeBrix.PdfRasterizer libraries is licensed under the MIT License (see
-the LICENSE file in the root of this repository). This project complies with
-all provisions of the open source licenses of the upstream projects from
+CodeBrix.PdfRasterizer, CodeBrix.PdfDocCreate.Html2Pdf, and
+CodeBrix.PdfDocCreate.Markdown2Pdf libraries is licensed under the MIT License
+(see the LICENSE file in the root of this repository). This project complies
+with all provisions of the open source licenses of the upstream projects from
 which code was copied, modified, adapted, or derived.
 
 Note: All references to and dependencies on the SixLabors.ImageSharp and
@@ -552,6 +554,133 @@ handling is provided by the CodeBrix.Imaging and CodeBrix.Compression packages.
    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
    ---------------------------------------------------------------------------
+
+================================================================================
+
+9. markdown-it (version 14.1.0)
+   https://github.com/markdown-it/markdown-it
+
+   The Markdown parser inside CodeBrix.PdfDocCreate.Markdown2Pdf (the
+   CodeBrix.PdfDocCreate.Markdown2Pdf.MarkdownIt namespace) is a C# port of
+   the markdown-it JavaScript library. Named-entity decoding is provided by
+   CodeBrix.MarkupParse in place of the upstream "entities" dependency, and
+   hostname punycoding uses System.Globalization.IdnMapping in place of
+   punycode.js. The linkify-it dependency is not ported.
+
+   License: MIT
+
+   ---------------------------------------------------------------------------
+   Copyright (c) 2014 Vitaly Puzrin, Alex Kocharin.
+
+   Permission is hereby granted, free of charge, to any person
+   obtaining a copy of this software and associated documentation
+   files (the "Software"), to deal in the Software without
+   restriction, including without limitation the rights to use,
+   copy, modify, merge, publish, distribute, sublicense, and/or sell
+   copies of the Software, and to permit persons to whom the
+   Software is furnished to do so, subject to the following
+   conditions:
+
+   The above copyright notice and this permission notice shall be
+   included in all copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+   OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+   NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+   HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+   WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+   OTHER DEALINGS IN THE SOFTWARE.
+   ---------------------------------------------------------------------------
+
+================================================================================
+
+10. mdurl (version 2.0.0)
+    https://github.com/markdown-it/mdurl
+
+    The MdUrl class in CodeBrix.PdfDocCreate.Markdown2Pdf is a C# port of the
+    mdurl URL utilities used by markdown-it. Its parser derives from the
+    Node.js url parser (copyright Joyent, Inc. and other Node contributors,
+    also MIT licensed).
+
+    License: MIT
+
+    ---------------------------------------------------------------------------
+    Copyright (c) 2015 Vitaly Puzrin, Alex Kocharin.
+
+    (MIT License text as in section 9 above.)
+    ---------------------------------------------------------------------------
+
+================================================================================
+
+11. markdown-it-footnote (version 4.0.0)
+    https://github.com/markdown-it/markdown-it-footnote
+
+    The FootnotePlugin class in CodeBrix.PdfDocCreate.Markdown2Pdf is a C#
+    port of the markdown-it-footnote plugin.
+
+    License: MIT
+
+    ---------------------------------------------------------------------------
+    Copyright (c) 2014-2015 Vitaly Puzrin, Alex Kocharin.
+
+    (MIT License text as in section 9 above.)
+    ---------------------------------------------------------------------------
+
+================================================================================
+
+12. markdown-it-task-lists
+    https://github.com/revin/markdown-it-task-lists
+
+    The TaskListPlugin class in CodeBrix.PdfDocCreate.Markdown2Pdf is a C#
+    port of the markdown-it-task-lists plugin, adapted to emit styleable
+    spans instead of input elements.
+
+    License: ISC
+
+    ---------------------------------------------------------------------------
+    Copyright (c) 2016, Revin Guillen
+
+    Permission to use, copy, modify, and/or distribute this software for any
+    purpose with or without fee is hereby granted, provided that the above
+    copyright notice and this permission notice appear in all copies.
+
+    THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+    WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+    MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+    ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+    WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+    ---------------------------------------------------------------------------
+
+================================================================================
+
+13. markdown-it-front-matter
+    https://github.com/ParkSB/markdown-it-front-matter
+
+    The FrontMatterPlugin class in CodeBrix.PdfDocCreate.Markdown2Pdf is a C#
+    port of the markdown-it-front-matter plugin.
+
+    License: MIT
+
+    ---------------------------------------------------------------------------
+    Copyright (c) 2016-2020 ParkSB.
+
+    (MIT License text as in section 9 above.)
+    ---------------------------------------------------------------------------
+
+================================================================================
+
+14. CommonMark specification test corpus (version 0.31.2) - tests only
+    https://spec.commonmark.org/
+
+    The CodeBrix.PdfDocCreate.Markdown2Pdf.Tests project embeds the example
+    test cases extracted from the CommonMark specification (spec.json) as a
+    test fixture. The CommonMark specification is copyright John MacFarlane
+    and is licensed under Creative Commons BY-SA 4.0. The corpus is used only
+    by the test project and is not distributed in any NuGet package.
 
 ================================================================================
 

@@ -1,12 +1,14 @@
 ================================================================================
-AGENT-README: CodeBrix.PdfDocuments / CodeBrix.PdfDocCreate / CodeBrix.PdfRasterizer
+AGENT-README: CodeBrix.PdfDocuments / CodeBrix.PdfDocCreate /
+CodeBrix.PdfRasterizer / CodeBrix.PdfDocCreate.Html2Pdf /
+CodeBrix.PdfDocCreate.Markdown2Pdf
 A Comprehensive Guide for AI Coding Agents
 ================================================================================
 
 OVERVIEW
 --------
-CodeBrix.PdfDocuments, CodeBrix.PdfDocCreate, and CodeBrix.PdfRasterizer are
-THREE companion .NET libraries for working with PDF documents:
+This repository produces FIVE companion .NET libraries for working with PDF
+documents:
 
   1. CodeBrix.PdfDocuments - Low-level PDF library for creating, reading, merging,
      and manipulating PDF documents using direct graphics drawing (XGraphics).
@@ -20,11 +22,27 @@ THREE companion .NET libraries for working with PDF documents:
      support for thumbnails, page information, and cross-platform operation.
      This depends on CodeBrix.PdfDocuments and CodeBrix.Imaging.
 
+  4. CodeBrix.PdfDocCreate.Html2Pdf - Renders author-created HTML pages with CSS
+     styling into PDF documents through the PdfDocCreate document object model.
+     Applies a documented subset of CSS with real selector matching, cascade,
+     specificity and inheritance. All text renders with the CodeBrix.Platform.Fonts
+     package fonts (Roboto / Merriweather / Roboto Mono), so output is identical
+     on every operating system. Designed for HTML/CSS written FOR PDF generation,
+     not for repurposing arbitrary web pages. See PART 4.
+
+  5. CodeBrix.PdfDocCreate.Markdown2Pdf - Renders ANY Markdown (.md) file into a
+     nice-looking, pre-formatted, printable PDF with zero configuration, using a
+     vendored C# port of the markdown-it CommonMark parser and the Html2Pdf
+     rendering pipeline. Also exposes the generated HTML/CSS so a consumer can
+     restyle the output before rendering it with Html2Pdf. See PART 5.
+
 CodeBrix.PdfDocuments and CodeBrix.PdfDocCreate are forks of the popular
 PdfSharpCore (v1.3.67) and MigraDocCore (v1.3.67) libraries.
 CodeBrix.PdfRasterizer contains rendering logic derived from Docnet.Core and
-bundles pre-built PDFium native binaries.
-All three libraries are licensed under the MIT License.
+bundles pre-built PDFium native binaries. CodeBrix.PdfDocCreate.Markdown2Pdf
+contains a C# port of the markdown-it JavaScript parser (MIT) with its
+footnote, task-list, and front-matter plugins.
+All five libraries are licensed under the MIT License.
 
 IMPORTANT: If you are familiar with PdfSharp/PdfSharpCore, the API surface of
 CodeBrix.PdfDocuments is very similar. If you are familiar with MigraDoc/
@@ -37,11 +55,13 @@ PACKAGE-TO-NAMESPACE MAP (read this before writing any using directive - the
 package name and the namespace are NOT the same, and this is the single most
 common mistake):
 
-  NuGet package                              Namespace root
-  -----------------------------------------  ----------------------------
-  CodeBrix.PdfDocuments.MitLicenseForever    CodeBrix.PdfDocuments.*
-  CodeBrix.PdfDocCreate.MitLicenseForever    CodeBrix.PdfDocCreate.*
-  CodeBrix.PdfRasterizer.MitLicenseForever   CodeBrix.PdfRasterizer
+  NuGet package                                        Namespace root
+  ---------------------------------------------------  ----------------------------------
+  CodeBrix.PdfDocuments.MitLicenseForever              CodeBrix.PdfDocuments.*
+  CodeBrix.PdfDocCreate.MitLicenseForever              CodeBrix.PdfDocCreate.*
+  CodeBrix.PdfRasterizer.MitLicenseForever             CodeBrix.PdfRasterizer
+  CodeBrix.PdfDocCreate.Html2Pdf.MitLicenseForever     CodeBrix.PdfDocCreate.Html2Pdf.*
+  CodeBrix.PdfDocCreate.Markdown2Pdf.MitLicenseForever CodeBrix.PdfDocCreate.Markdown2Pdf.*
 
 The ".MitLicenseForever" suffix belongs to the PACKAGE ID only. It never
 appears in a namespace, a using directive or a type name.
@@ -92,6 +112,32 @@ for your platform. There is NO separate PDFium installation required.
 The pre-built native library (pdfium.dll / pdfium.dylib / pdfium.so) is
 bundled inside the NuGet package and copied to the output directory at
 build time.
+
+--- Package 4: CodeBrix.PdfDocCreate.Html2Pdf (HTML+CSS to PDF) ---
+
+NuGet Package: CodeBrix.PdfDocCreate.Html2Pdf.MitLicenseForever
+Dependencies:
+  - CodeBrix.PdfDocCreate.MitLicenseForever
+  - CodeBrix.MarkupParse.MitLicenseForever
+  - CodeBrix.StyleSheetParse.MitLicenseForever
+  - CodeBrix.Platform.Fonts.Roboto.OflLicenseForever
+  - CodeBrix.Platform.Fonts.Merriweather.OflLicenseForever
+  - CodeBrix.Platform.Fonts.RobotoMono.OflLicenseForever
+
+    dotnet add package CodeBrix.PdfDocCreate.Html2Pdf.MitLicenseForever
+
+NOTE: The font packages ship .ttf files inside their nupkgs; the Html2Pdf
+package's build targets copy them into the consuming application's output
+under CodeBrix.Platform.Fonts.<Name>/Fonts/. No font installation or
+registration is required - the renderer discovers them automatically.
+
+--- Package 5: CodeBrix.PdfDocCreate.Markdown2Pdf (Markdown to PDF) ---
+
+NuGet Package: CodeBrix.PdfDocCreate.Markdown2Pdf.MitLicenseForever
+Dependencies:
+  - CodeBrix.PdfDocCreate.Html2Pdf.MitLicenseForever (which pulls the rest)
+
+    dotnet add package CodeBrix.PdfDocCreate.Markdown2Pdf.MitLicenseForever
 
 Requirements: .NET 10.0 or higher
 
@@ -154,6 +200,21 @@ CodeBrix.PdfDocCreate (high-level document model):
     using CodeBrix.PdfDocCreate.DocumentObjectModel;         // Document, Section, Paragraph, Style
     using CodeBrix.PdfDocCreate.DocumentObjectModel.Tables;  // Table, Row, Cell, Column
     using CodeBrix.PdfDocCreate.Rendering;                   // PdfDocumentRenderer
+
+CodeBrix.PdfDocCreate.Html2Pdf (HTML+CSS to PDF):
+
+    using CodeBrix.PdfDocCreate.Html2Pdf;        // HtmlPdfRenderer, HtmlRenderOptions,
+                                                 // HtmlRenderResult, RenderWarnings
+    using CodeBrix.PdfDocCreate.Html2Pdf.Fonts;  // Html2PdfFonts (font discovery)
+
+CodeBrix.PdfDocCreate.Markdown2Pdf (Markdown to PDF):
+
+    using CodeBrix.PdfDocCreate.Markdown2Pdf;    // MarkdownPdfRenderer,
+                                                 // MarkdownRenderOptions,
+                                                 // MarkdownRenderResult,
+                                                 // MarkdownHtmlResult
+    using CodeBrix.PdfDocCreate.Markdown2Pdf.MarkdownIt;  // MarkdownParser (the
+                                                 // markdown-it port, for advanced use)
 
 CodeBrix.PdfRasterizer (PDF-to-image rendering):
 
@@ -1090,6 +1151,181 @@ This allows configuring once via properties, then overriding per-call.
 
 ================================================================================
 
+PART 4: CodeBrix.PdfDocCreate.Html2Pdf (HTML+CSS TO PDF)
+==========================================================
+
+Renders author-created HTML with CSS styling into PDF. HTML parses with
+CodeBrix.MarkupParse; the CSS dialect below is applied with real selector
+matching (CodeBrix.MarkupParse's selector engine), cascade, specificity and
+inheritance (stylesheets parse with CodeBrix.StyleSheetParse); the result is
+composed onto the PdfDocCreate document object model, whose renderer performs
+all layout (line breaking, pagination, tables).
+
+DESIGN SCOPE: this is for HTML/CSS an author writes FOR PDF generation. It is
+NOT a browser: floats, positioning, flexbox/grid, JavaScript, media queries,
+CSS variables and calc() are out of scope. Unsupported CSS never fails a
+render - it is ignored and reported in the result's Warnings collection.
+
+--- BASIC USE ---
+
+    using CodeBrix.PdfDocCreate.Html2Pdf;
+
+    var renderer = new HtmlPdfRenderer();
+
+    // From a file (relative stylesheet/image references resolve to its folder)
+    var result = renderer.RenderFile("report.html", "report.pdf");
+
+    // From a string, to a file or to bytes
+    result = renderer.RenderHtml(html, "out.pdf", baseDirectory: "assets");
+    result = renderer.RenderHtmlToBytes(html);
+
+    Console.WriteLine($"{result.PageCount} pages, {result.Warnings.Count} warnings");
+    foreach (var warning in result.Warnings.Messages) { Console.WriteLine(warning); }
+
+--- OPTIONS (HtmlRenderOptions, all with sensible defaults) ---
+
+    renderer.Options.SetPageSize("a4");        // letter (default), legal, a3..b5
+    renderer.Options.Landscape = true;
+    renderer.Options.MarginTopPoints = 54;     // margins in points (default 72)
+    renderer.Options.HeaderText = "{title}";   // centered; {page}, {pages}, {title}
+    renderer.Options.FooterText = "Page {page} of {pages}";
+    renderer.Options.AllowRemoteImages = true; // http(s) images; off by default
+    renderer.Options.GenerateOutline = false;  // h1-h6 -> PDF bookmark pane (on)
+    renderer.Options.DocumentTitle = "Override Title";  // else the <title> element
+
+@page rules in the document's CSS override the configured size and margins:
+
+    @page { size: a4 landscape; margin: 2cm; }
+
+--- SUPPORTED HTML ELEMENTS ---
+
+Block: h1-h6, p, div, section, article, main, header, footer, aside, nav,
+blockquote, pre, hr, ul, ol, li (nested to any depth), dl/dt/dd, figure,
+figcaption, table/thead/tbody/tfoot/tr/th/td (colspan AND rowspan; automatic
+content-measured column widths), img, details/summary, address.
+Inline: a (real link annotations: web, mailto, and #anchor bookmarks), span,
+strong/b, em/i, u/ins, s/del/strike, code/kbd/samp, sub, sup, small, br, img.
+Ignored (with a warning where meaningful): script, style/link (consumed for
+CSS), iframe, canvas, svg, audio, video, form controls.
+
+--- SUPPORTED CSS DIALECT ---
+
+Sources: inline style="" attributes, <style> blocks, and <link rel="stylesheet">
+to LOCAL .css files. Remote stylesheets are skipped with a warning.
+
+Properties: font-family, font-size (absolute, %, em, rem, keywords),
+font-weight (normal/bold/bolder/lighter/100-900 - numeric weights select real
+static font faces), font-style, color, background-color (and the color of the
+background shorthand), line-height, text-align, text-decoration (underline,
+line-through, none), text-indent, text-transform, white-space, margin/padding
+(+ per-side longhands), border (+ per-side and width/style/color longhands;
+solid/dashed/dotted), width/height (img, table, td), page-break-before/after
+(and break-before/after), list-style-type, display (none), vertical-align.
+Units: pt, px (0.75pt), em, rem, %, in, cm, mm, pc. Colors: named, #hex,
+rgb()/rgba(). Selectors: the full CodeBrix.MarkupParse engine (type, .class,
+#id, attribute, combinators, :nth-child and friends). !important is honored.
+Cascade: built-in default sheet < author rules (specificity, then source
+order) < inline style; author !important above all non-important layers.
+
+--- FONTS (IMPORTANT) ---
+
+All text renders with the CodeBrix.Platform.Fonts package fonts - NEVER with
+operating-system fonts - so output is byte-comparable across machines:
+
+    sans-serif (and unknown families)  ->  Roboto
+    serif                              ->  Merriweather
+    monospace                          ->  Roboto Mono
+
+The font packages ship .ttf files inside their nupkgs, and the Html2Pdf
+package's buildTransitive targets copy them into the consuming application's
+build output under CodeBrix.Platform.Fonts.<Name>/Fonts/. The renderer
+discovers them there automatically (Html2PdfFonts). If fonts live somewhere
+unusual, call Html2PdfFonts.AddFontDirectory(path) before the first render.
+A missing font layout produces an InvalidOperationException naming the fix.
+Characters outside the packages' coverage (emoji, CJK, ...) are removed with
+a warning instead of rendering as tofu boxes.
+
+================================================================================
+
+PART 5: CodeBrix.PdfDocCreate.Markdown2Pdf (MARKDOWN TO PDF)
+==============================================================
+
+Point it at ANY .md file and get a nice-looking, pre-formatted, printable PDF
+with zero configuration. Markdown parses through a vendored C# port of
+markdown-it (CommonMark plus GFM tables and strikethrough, plus footnote,
+task-list and YAML front-matter plugins, plus syntax highlighting for common
+fence languages), converts to HTML with a polished built-in stylesheet, and
+renders through Html2Pdf.
+
+--- WORKFLOW (a): zero-config Markdown to PDF ---
+
+    using CodeBrix.PdfDocCreate.Markdown2Pdf;
+
+    var renderer = new MarkdownPdfRenderer();
+
+    // Writes my_notes.pdf next to the source file
+    var result = renderer.RenderFile("my_notes.md");
+
+    // Or control the output location / render from a string / get bytes
+    result = renderer.RenderFile("my_notes.md", "out/notes.pdf");
+    result = renderer.RenderMarkdown(markdownText, "out.pdf", baseDirectory);
+    result = renderer.RenderMarkdownToBytes(markdownText);
+
+Defaults chosen for you: US Letter pages, book-ish margins, Merriweather body
+text, Roboto headings, Roboto Mono code with syntax-highlight colors, footer
+"page / pages" numbers, and a PDF outline built from the headings. The title
+is inferred from YAML front matter (title:), else the first heading, else the
+file name; front-matter author: fills the PDF author metadata.
+
+The only options (MarkdownRenderOptions): PageSize ("letter" default),
+AllowRemoteImages (false), FooterText ("{page} / {pages}"; null disables).
+
+--- WORKFLOW (b): restyle the generated HTML/CSS yourself ---
+
+Consumers who want a different look intercept the HTML/CSS instead of asking
+Markdown2Pdf for styling knobs:
+
+    var generated = renderer.GenerateHtmlFromFile("my_notes.md");
+    // generated.BodyHtml - the rendered markup
+    // generated.Css      - the default stylesheet (Html2Pdf dialect)
+    // generated.Title    - the inferred title
+
+    var myCss = generated.Css.Replace("#1c1c1c", "#000033");   // or replace wholesale
+    var html = generated.ToHtmlDocument(myCss);
+
+    var htmlRenderer = new HtmlPdfRenderer();
+    htmlRenderer.RenderHtml(html, "restyled.pdf", generated.BaseDirectory);
+
+--- MARKDOWN FEATURES ---
+
+CommonMark (verified against the full specification example corpus), GFM
+tables (with column alignment) and strikethrough, footnotes ([^label] and
+inline ^[note]), GitHub task lists (- [ ] / - [x], rendered as checkbox
+glyphs), YAML front matter (consumed, never rendered; title/author mined),
+reference links and images, autolinks, embedded HTML (rendered through
+Html2Pdf's documented element subset), and fenced code with automatic syntax
+highlighting for csharp, c/cpp, bash/shell/powershell, json, xml/html/xaml,
+javascript/typescript, python, sql and yaml.
+
+Robustness contract: any .md input produces a document - unsupported
+constructs degrade and are reported in Warnings, never thrown.
+
+--- THE markdown-it PORT (advanced) ---
+
+CodeBrix.PdfDocCreate.Markdown2Pdf.MarkdownIt.MarkdownParser is a faithful C#
+port of the markdown-it JavaScript parser and can be used directly for
+Markdown-to-HTML work, including custom plugins:
+
+    using CodeBrix.PdfDocCreate.Markdown2Pdf.MarkdownIt;
+
+    var md = new MarkdownParser();                    // markdown-it "default" preset
+    var html = md.Render("# hello **world**");
+    var strict = new MarkdownParser(MarkdownPreset.CommonMark);
+
+    md.Use(parser => parser.Inline.Ruler.After("emphasis", "my_rule", MyRule));
+
+================================================================================
+
 COMPLETE EXAMPLES
 =================
 
@@ -1399,7 +1635,8 @@ Do NOT attempt to use these libraries for the following:
   - Digital signatures
   - PDF/A compliance validation
   - Editing existing PDF text content (can add new content to existing pages)
-  - Converting HTML to PDF directly
+  - Converting arbitrary live WEBSITES to PDF (CodeBrix.PdfDocCreate.Html2Pdf
+    renders author-created HTML/CSS - see PART 4 - but it is not a browser)
   - Reading/writing Word (.docx) or Excel (.xlsx) files
   - Creating PDF portfolios
 
@@ -1709,6 +1946,28 @@ QUICK REFERENCE CARD
 Low-level:    dotnet add package CodeBrix.PdfDocuments.MitLicenseForever
 High-level:   dotnet add package CodeBrix.PdfDocCreate.MitLicenseForever
 Rasterizer:   dotnet add package CodeBrix.PdfRasterizer.MitLicenseForever
+HTML to PDF:  dotnet add package CodeBrix.PdfDocCreate.Html2Pdf.MitLicenseForever
+MD to PDF:    dotnet add package CodeBrix.PdfDocCreate.Markdown2Pdf.MitLicenseForever
+
+--- Html2Pdf (HTML+CSS to PDF) ---
+Create:         var r = new HtmlPdfRenderer()
+Page size:      r.Options.SetPageSize("a4"); r.Options.Landscape = true
+Furniture:      r.Options.FooterText = "Page {page} of {pages}"
+Render file:    var res = r.RenderFile("in.html", "out.pdf")
+Render string:  r.RenderHtml(html, "out.pdf", baseDir) / r.RenderHtmlToBytes(html)
+Inspect:        res.PageCount, res.Warnings.Messages, res.Title
+Fonts:          automatic (package fonts); Html2PdfFonts.AddFontDirectory(dir)
+CSS page rule:  @page { size: a4 landscape; margin: 2cm; }
+
+--- Markdown2Pdf (Markdown to PDF) ---
+Create:         var r = new MarkdownPdfRenderer()
+Zero-config:    var res = r.RenderFile("doc.md")     // doc.pdf next to it
+To bytes:       r.RenderMarkdownToBytes(markdownText)
+Options:        r.Options.PageSize / .AllowRemoteImages / .FooterText
+Restyle (b):    var g = r.GenerateHtmlFromFile("doc.md")
+                new HtmlPdfRenderer().RenderHtml(g.ToHtmlDocument(myCss),
+                    "out.pdf", g.BaseDirectory)
+Parser only:    new MarkdownParser().Render("# md")  // markdown-it port
 
 --- PdfDocuments (low-level) ---
 Create doc:     new PdfDocument()
