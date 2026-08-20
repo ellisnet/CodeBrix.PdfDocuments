@@ -94,7 +94,18 @@
       not require libfontconfig at runtime and cannot reach system fonts.
     -->
     <PackageReference Include="CodeBrix.SkiaSvg.MitLicenseForever" Version="1.0.214.1201" />
-    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.151.0" />
+    <!--
+      IMPORTANT NOTE: CodeBrix.PdfDocCreate.Html2Pdf *cannot* have a declared dependency on 
+      SkiaSharp.NativeAssets.Linux or SkiaSharp.NativeAssets.Linux.NoDependencies - even though
+      it *does* require one of these, when running on Linux.
+      Having the package reference - and declared dependency for the nuget package - here will
+      likely cause problems with CodeBrix.PdfDocCreate.Html2Pdf.MitLicenseForever nuget package
+      consumers who have their own SkiaSharp-on-Linux-native-assets dependency.
+      So, for the CodeBrix.PdfDocCreate.Html2Pdf.MitLicenseForever nuget package to be used on
+      Linux, the consuming application *must* have its own dependency on either
+      SkiaSharp.NativeAssets.Linux or SkiaSharp.NativeAssets.Linux.NoDependencies.
+    -->
+    <!--<PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.151.0" />-->
   </ItemGroup>
 
   <ItemGroup>

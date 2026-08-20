@@ -12,6 +12,11 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="xunit.v3" Version="4.0.0" />
+    <!--
+      SkiaSharp.NativeAssets.Linux is needed for the tests to run on a Linux platform, 
+      and its presence here should not cause problems for Windows or Mac.
+    -->
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.151.0" />
   </ItemGroup>
 
   <ItemGroup>
