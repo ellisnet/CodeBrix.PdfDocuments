@@ -61,9 +61,23 @@ internal static class SvgImageRasterizer
     /// with a transparent background. The natural size (in points, 1 CSS px = 0.75 pt)
     /// comes from the SVG's own width/height/viewBox, so the raster scale never leaks
     /// into layout. Throws when the content is not renderable; the caller converts
-    /// failures to warnings.
+    /// failures to warnings. A missing SkiaSharp native surfaces as
+    /// <see cref="SkiaNativeLibraryMissingException"/> so the reason is legible from the
+    /// message rather than buried in a type-initializer chain.
     /// </summary>
     public static byte[] RasterizeToPng(byte[] svgBytes, double scale, out double naturalWidthPoints, out double naturalHeightPoints)
+    {
+        try
+        {
+            return Rasterize(svgBytes, scale, out naturalWidthPoints, out naturalHeightPoints);
+        }
+        catch (Exception ex) when (SkiaNativeLibrary.IsMissingNativeLibrary(ex))
+        {
+            throw new SkiaNativeLibraryMissingException(ex);
+        }
+    }
+
+    private static byte[] Rasterize(byte[] svgBytes, double scale, out double naturalWidthPoints, out double naturalHeightPoints)
     {
         lock (RenderSync)
         {

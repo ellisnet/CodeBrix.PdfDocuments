@@ -33,6 +33,45 @@ to the latest LTS version of Microsoft .NET.
 CodeBrix.PdfDocuments is a fork of the code of the popular PdfSharpCore library version 1.3.67 and the
 MigraDocCore libraries version 1.3.67 - see below for licensing details.
 
+## ⚠️ Important for Linux: SVG rendering needs a SkiaSharp native-assets package
+
+**If your application runs on Linux and renders SVG content** through
+`CodeBrix.PdfDocCreate.Html2Pdf` or `CodeBrix.PdfDocCreate.Markdown2Pdf`, your application must
+reference **one** of these two NuGet packages itself:
+
+```
+dotnet add package SkiaSharp.NativeAssets.Linux
+```
+
+**or**
+
+```
+dotnet add package SkiaSharp.NativeAssets.Linux.NoDependencies
+```
+
+**Either package satisfies Html2Pdf equally - neither is recommended over the other.** Reference
+exactly one, whichever suits your application. **If your application already references one of them
+for its own reasons, keep that one** - nothing needs to change, and you should not swap it for the
+other.
+
+The two differ only in how the native library obtains font services: `SkiaSharp.NativeAssets.Linux`
+links against the system `libfontconfig`, while `SkiaSharp.NativeAssets.Linux.NoDependencies` is
+self-contained. That difference does not affect Html2Pdf, which never consults system fonts, so the
+choice is yours to make on your own deployment grounds.
+
+**Windows and macOS require nothing extra** - SkiaSharp supplies those native binaries through its
+own package. This requirement applies to Linux only, and only when SVG content is actually rendered.
+
+**Why isn't this just a package dependency?** Two mutually exclusive Linux native-assets variants
+exist, and only the consuming application can decide which one it wants. If Html2Pdf declared either
+one, it would force that choice on every consumer and conflict with applications that already
+reference the other. So the choice is deliberately left to you.
+
+**What happens if it is missing?** Nothing crashes. SVG images are skipped and the rest of the
+document renders normally. The skip is reported through the render result's collected warnings, with
+the code `image.svg.nativemissing` and a message naming both packages - so if SVG content is
+unexpectedly absent from your PDF, inspect `result.Warnings`.
+
 ## CodeBrix.PdfDocuments supports:
 
 * Creating PDF documents from scratch
@@ -90,7 +129,9 @@ for PDF generation - it is not a web browser.
 * Every image format CodeBrix.Imaging decodes (PNG, JPEG, BMP, WebP, GIF, TIFF, TGA, PBM/PGM/PPM),
   with transparency preserved, as local files, data: URIs, or (opt-in) http(s) URLs
 * SVG images - referenced files, `data:image/svg+xml` URIs, and inline `<svg>` elements - rendered
-  through an offscreen CPU rasterizer, identically on Windows, macOS, and Linux
+  through an offscreen CPU rasterizer, identically on Windows, macOS, and Linux (on Linux this
+  requires a SkiaSharp native-assets package reference in your application - see the important
+  note near the top of this document)
 * Headers/footers with page-number tokens
 * All text rendered with the CodeBrix.Platform.Fonts packages (Roboto, Merriweather, Roboto Mono),
   automatically copied into the application output - identical PDF output on every operating system

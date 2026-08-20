@@ -155,6 +155,15 @@ internal sealed class ImageResolver
         {
             pngBytes = SvgImageRasterizer.RasterizeToPng(svgBytes, _svgRasterScale, out naturalWidthPoints, out naturalHeightPoints);
         }
+        catch (SkiaNativeLibraryMissingException ex)
+        {
+            // Deliberately no image reference in the message: every SVG in the document
+            // fails for this one environmental reason, so an unqualified message collapses
+            // to a single collected warning whose Occurrences count reports how many were
+            // skipped, instead of repeating the guidance once per image.
+            _warnings.Add(RenderWarnings.CategoryImage, ex.Message, "image.svg.nativemissing");
+            return false;
+        }
         catch (Exception ex)
         {
             _warnings.Add(RenderWarnings.CategoryImage,

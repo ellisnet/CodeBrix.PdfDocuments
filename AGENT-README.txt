@@ -36,6 +36,53 @@ documents:
      rendering pipeline. Also exposes the generated HTML/CSS so a consumer can
      restyle the output before rendering it with Html2Pdf. See PART 5.
 
+################################################################################
+## IMPORTANT - LINUX ONLY: SVG RENDERING NEEDS A SkiaSharp NATIVE-ASSETS PACKAGE
+################################################################################
+
+If your application runs on LINUX and renders SVG content through
+CodeBrix.PdfDocCreate.Html2Pdf or CodeBrix.PdfDocCreate.Markdown2Pdf, the
+APPLICATION must reference ONE of these two NuGet packages itself:
+
+    SkiaSharp.NativeAssets.Linux
+    SkiaSharp.NativeAssets.Linux.NoDependencies
+
+  dotnet add package SkiaSharp.NativeAssets.Linux
+    -- OR --
+  dotnet add package SkiaSharp.NativeAssets.Linux.NoDependencies
+
+EITHER package satisfies Html2Pdf equally - neither is recommended over the
+other. Reference exactly ONE, whichever suits the application. If the
+application already references one of them for its own reasons, KEEP THAT ONE;
+nothing needs to change, and it must not be swapped for the other.
+
+The two differ only in how the native obtains font services - the plain variant
+links against the system libfontconfig, the ".NoDependencies" variant is
+self-contained - and that difference does not affect Html2Pdf, which never
+consults system fonts. Choose on the application's own deployment grounds.
+
+WINDOWS and macOS need NOTHING extra - SkiaSharp's own package brings those
+natives transitively.
+
+WHY this is not just a package dependency: Html2Pdf DELIBERATELY does not
+declare a dependency on either package. Two mutually exclusive Linux variants
+exist, and only the consuming application can choose between them; declaring one
+here would force that choice on every consumer and break applications that
+already reference the other. This is a deliberate design decision - DO NOT
+"fix" it by adding a PackageReference to the Html2Pdf library.
+
+WHAT HAPPENS IF IT IS MISSING: nothing crashes. SVG images are skipped and the
+rest of the document renders normally. The skip is reported as a collected
+rendering warning with the code "image.svg.nativemissing", whose message names
+both packages. Check HtmlRenderResult.Warnings (or MarkdownRenderResult.Warnings)
+when SVG content is silently absent from your output.
+
+NOTE FOR THIS REPOSITORY'S OWN TESTS: the test projects DO carry a
+PackageReference to SkiaSharp.NativeAssets.Linux.NoDependencies, so the suite
+passes on Linux. That reference belongs ONLY in tests/, never in src/.
+
+################################################################################
+
 CodeBrix.PdfDocuments and CodeBrix.PdfDocCreate are forks of the popular
 PdfSharpCore (v1.3.67) and MigraDocCore (v1.3.67) libraries.
 CodeBrix.PdfRasterizer contains rendering logic derived from Docnet.Core and
@@ -123,11 +170,16 @@ Dependencies:
   - CodeBrix.Platform.Fonts.Roboto.OflLicenseForever
   - CodeBrix.Platform.Fonts.Merriweather.OflLicenseForever
   - CodeBrix.Platform.Fonts.RobotoMono.OflLicenseForever
-  - CodeBrix.SkiaSvg.MitLicenseForever (SVG rasterization; brings SkiaSharp,
-    HarfBuzzSharp, and the Windows/macOS/Linux native assets they need - SVG
-    rendering works on all three desktop platforms with no extra packages)
-  - SkiaSharp.NativeAssets.Linux.NoDependencies (self-contained Linux native;
-    no libfontconfig required at runtime)
+  - CodeBrix.SkiaSvg.MitLicenseForever (SVG rasterization; brings SkiaSharp and
+    HarfBuzzSharp, plus the Windows and macOS native assets they need - so SVG
+    rendering works on those two platforms with no extra packages)
+
+  NOT declared, but REQUIRED ON LINUX for SVG content - the consuming
+  application must reference one of these itself (see the IMPORTANT notice at
+  the top of this file for why):
+  - SkiaSharp.NativeAssets.Linux, or
+  - SkiaSharp.NativeAssets.Linux.NoDependencies (self-contained; no
+    libfontconfig required at runtime)
 
     dotnet add package CodeBrix.PdfDocCreate.Html2Pdf.MitLicenseForever
 
@@ -141,6 +193,12 @@ registration is required - the renderer discovers them automatically.
 NuGet Package: CodeBrix.PdfDocCreate.Markdown2Pdf.MitLicenseForever
 Dependencies:
   - CodeBrix.PdfDocCreate.Html2Pdf.MitLicenseForever (which pulls the rest)
+
+  Markdown2Pdf renders through Html2Pdf, so it inherits the Linux SVG
+  requirement exactly: an application on Linux whose Markdown embeds SVG images
+  must reference SkiaSharp.NativeAssets.Linux or
+  SkiaSharp.NativeAssets.Linux.NoDependencies itself. See the IMPORTANT notice
+  at the top of this file.
 
     dotnet add package CodeBrix.PdfDocCreate.Markdown2Pdf.MitLicenseForever
 
