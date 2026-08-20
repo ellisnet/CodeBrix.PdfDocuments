@@ -4,6 +4,8 @@ using CodeBrix.Imaging.Formats.Bmp;
 using CodeBrix.Imaging.Formats.Gif;
 using CodeBrix.Imaging.Formats.Jpeg;
 using CodeBrix.Imaging.Formats.Png;
+using CodeBrix.Imaging.Formats.Tga;
+using CodeBrix.Imaging.Formats.Tiff;
 using CodeBrix.Imaging.Formats.Webp;
 using CodeBrix.Imaging.PixelFormats;
 using CodeBrix.PdfDocuments.Drawing;
@@ -39,8 +41,10 @@ public class ImagingImageSource<TPixel> : ImageSource where TPixel : unmanaged, 
         return new ImagingImageSourceImpl<TPixel>(name, image, quality, SupportsTransparency(imgFormat));
     }
 
+    // Formats that can carry an alpha channel take the lossless bitmap+SMask path;
+    // alpha-free formats (JPEG, PBM) re-encode as JPEG.
     private static bool SupportsTransparency(IImageFormat format)
-        => format is PngFormat or WebpFormat or GifFormat;
+        => format is PngFormat or WebpFormat or GifFormat or BmpFormat or TgaFormat or TiffFormat;
 
     private class ImagingImageSourceImpl<TPixel2> : IImageSource where TPixel2 : unmanaged, IPixel<TPixel2>
     {

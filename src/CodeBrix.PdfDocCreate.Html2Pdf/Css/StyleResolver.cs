@@ -73,7 +73,7 @@ internal sealed class StyleResolver
         }
         catch (Exception ex)
         {
-            _warnings.Add(RenderWarnings.CategoryCss, $"A stylesheet could not be parsed and was ignored ({ex.GetType().Name}).");
+            _warnings.Add(RenderWarnings.CategoryCss, $"A stylesheet could not be parsed and was ignored ({ex.GetType().Name}).", "css.stylesheet.unparseable");
             return;
         }
 
@@ -94,7 +94,7 @@ internal sealed class StyleResolver
 
                 if (matcher == null)
                 {
-                    _warnings.Add(RenderWarnings.CategoryCss, $"Selector '{componentText}' is not supported and was ignored.");
+                    _warnings.Add(RenderWarnings.CategoryCss, $"Selector '{componentText}' is not supported and was ignored.", "css.selector.unsupported");
                     continue;
                 }
 
@@ -205,7 +205,7 @@ internal sealed class StyleResolver
         }
         catch (Exception)
         {
-            _warnings.Add(RenderWarnings.CategoryCss, "An inline style attribute could not be parsed and was ignored.");
+            _warnings.Add(RenderWarnings.CategoryCss, "An inline style attribute could not be parsed and was ignored.", "css.inline-style.unparseable");
             return Enumerable.Empty<Property>();
         }
     }
@@ -259,7 +259,7 @@ internal sealed class StyleResolver
                 var colorToken = value.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
                     .LastOrDefault(t => CssColorParser.TryParse(t, out _));
                 if (colorToken != null) { bag["background-color"] = colorToken; }
-                else { _warnings.Add(RenderWarnings.CategoryCss, "Only the color component of the 'background' shorthand is supported."); }
+                else { _warnings.Add(RenderWarnings.CategoryCss, "Only the color component of the 'background' shorthand is supported.", "css.background.partial"); }
                 return;
             case "text-decoration":
             case "text-decoration-line":
@@ -279,7 +279,7 @@ internal sealed class StyleResolver
         }
         else
         {
-            _warnings.Add(RenderWarnings.CategoryCss, $"CSS property '{property}' is not supported and was ignored.");
+            _warnings.Add(RenderWarnings.CategoryCss, $"CSS property '{property}' is not supported and was ignored.", "css.property.unsupported");
         }
     }
 
@@ -365,7 +365,7 @@ internal sealed class StyleResolver
             if (resolved > 0) { return resolved; }
         }
 
-        _warnings.Add(RenderWarnings.CategoryCss, $"font-size value '{value}' is not valid and was ignored.");
+        _warnings.Add(RenderWarnings.CategoryCss, $"font-size value '{value}' is not valid and was ignored.", "css.value.invalid");
         return parentSize;
     }
 
@@ -720,7 +720,7 @@ internal sealed class StyleResolver
     }
 
     private void WarnValue(string property, string value) =>
-        _warnings.Add(RenderWarnings.CategoryCss, $"Value '{value}' for CSS property '{property}' is not valid and was ignored.");
+        _warnings.Add(RenderWarnings.CategoryCss, $"Value '{value}' for CSS property '{property}' is not valid and was ignored.", "css.value.invalid");
 
     // ---- @page ----------------------------------------------------------------
 
@@ -750,7 +750,7 @@ internal sealed class StyleResolver
                 case "margin-bottom": ApplyPageMargin("bottom", value); break;
                 case "margin-left": ApplyPageMargin("left", value); break;
                 default:
-                    _warnings.Add(RenderWarnings.CategoryCss, $"@page property '{name}' is not supported and was ignored.");
+                    _warnings.Add(RenderWarnings.CategoryCss, $"@page property '{name}' is not supported and was ignored.", "css.page-rule.unsupported");
                     break;
             }
         }
@@ -808,7 +808,7 @@ internal sealed class StyleResolver
             || length.Unit == CssUnit.Percent
             || length.Unit == CssUnit.Number)
         {
-            _warnings.Add(RenderWarnings.CategoryCss, $"@page margin value '{value}' is not valid and was ignored.");
+            _warnings.Add(RenderWarnings.CategoryCss, $"@page margin value '{value}' is not valid and was ignored.", "css.page-margin.invalid");
             return;
         }
 

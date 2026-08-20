@@ -27,17 +27,20 @@ internal sealed class InlineExtractor
     private readonly Dictionary<string, string> _faceCache = new Dictionary<string, string>(StringComparer.Ordinal);
     private readonly HashSet<string> _unresolvedFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     private readonly double _contentWidthPoints;
+    private readonly bool _keepUncoveredCharacters;
 
     public InlineExtractor(
         StyleResolver resolver,
         RenderWarnings warnings,
         ImageResolver images,
-        double contentWidthPoints)
+        double contentWidthPoints,
+        bool keepUncoveredCharacters = false)
     {
         _resolver = resolver;
         _warnings = warnings;
         _images = images;
         _contentWidthPoints = contentWidthPoints;
+        _keepUncoveredCharacters = keepUncoveredCharacters;
     }
 
     /// <summary>Extracts the runs of every inline descendant of a container element.</summary>
@@ -86,7 +89,7 @@ internal sealed class InlineExtractor
                 if (_unresolvedFamilies.Add(family))
                 {
                     _warnings.Add(RenderWarnings.CategoryFont,
-                        $"Font family '{family}' does not match any package font; the default sans-serif family was used.");
+                        $"Font family '{family}' does not match any package font; the default sans-serif family was used.", "font.family.unresolved");
                 }
             }
             face = Html2PdfFonts.TryResolveFaceName("sans-serif", style.FontWeight, style.Italic);
@@ -128,6 +131,11 @@ internal sealed class InlineExtractor
 
             case "img":
                 AppendImage(element, style, runs, href);
+                lastWasSpace = false;
+                return;
+
+            case "svg":
+                AppendInlineSvg(element, style, runs, href);
                 lastWasSpace = false;
                 return;
 
@@ -175,48 +183,69 @@ internal sealed class InlineExtractor
         if (string.IsNullOrEmpty(data)) { return; }
 
         var preserve = style.WhiteSpace is "pre" or "pre-wrap";
-        var text = ApplyTransform(GlyphSafety.Filter(data, _warnings), style.TextTransform);
+        var transformed = ApplyTransform(data, style.TextTransform);
+        var faceSegments = SegmentByCoverage(transformed, style);
 
         if (preserve)
         {
-            var segments = text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
-            for (var i = 0; i < segments.Length; i++)
+            foreach (var faceSegment in faceSegments)
             {
-                if (i > 0) { runs.Add(new InlineRun { IsLineBreak = true }); }
-                if (segments[i].Length > 0)
+                var lines = faceSegment.Text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+                for (var i = 0; i < lines.Length; i++)
                 {
-                    runs.Add(CreateTextRun(segments[i].Replace("\t", "    "), style, href));
+                    if (i > 0) { runs.Add(new InlineRun { IsLineBreak = true }); }
+                    if (lines[i].Length > 0)
+                    {
+                        runs.Add(CreateTextRun(lines[i].Replace("\t", "    "), style, href, faceSegment.FaceName));
+                    }
                 }
             }
             lastWasSpace = false;
             return;
         }
 
-        var builder = new System.Text.StringBuilder(text.Length);
-        foreach (var c in text)
+        foreach (var faceSegment in faceSegments)
         {
-            if (c is ' ' or '\t' or '\n' or '\r')
+            var builder = new System.Text.StringBuilder(faceSegment.Text.Length);
+            foreach (var c in faceSegment.Text)
             {
-                if (!lastWasSpace) { builder.Append(' '); }
-                lastWasSpace = true;
+                if (c is ' ' or '\t' or '\n' or '\r')
+                {
+                    if (!lastWasSpace) { builder.Append(' '); }
+                    lastWasSpace = true;
+                }
+                else
+                {
+                    builder.Append(c);
+                    lastWasSpace = false;
+                }
             }
-            else
-            {
-                builder.Append(c);
-                lastWasSpace = false;
-            }
-        }
 
-        if (builder.Length > 0)
-        {
-            runs.Add(CreateTextRun(builder.ToString(), style, href));
+            if (builder.Length > 0)
+            {
+                runs.Add(CreateTextRun(builder.ToString(), style, href, faceSegment.FaceName));
+            }
         }
     }
 
-    private InlineRun CreateTextRun(string text, ComputedStyle style, string href) => new InlineRun
+    /// <summary>
+    /// Splits text into per-face segments: characters the style's font covers render
+    /// with it, characters only a fallback family covers split into their own runs,
+    /// and what nothing covers is filtered per the configured policy.
+    /// </summary>
+    private List<GlyphSafety.TextSegment> SegmentByCoverage(string text, ComputedStyle style)
+        => GlyphSafety.Segment(
+            text,
+            ResolveFace(style),
+            style.FontWeight,
+            style.Italic,
+            _keepUncoveredCharacters,
+            _warnings);
+
+    private InlineRun CreateTextRun(string text, ComputedStyle style, string href, string faceOverride = null) => new InlineRun
     {
         Text = text,
-        FaceName = ResolveFace(style),
+        FaceName = faceOverride ?? ResolveFace(style),
         SizePoints = style.FontSizePoints,
         TextColor = style.TextColor,
         Underline = style.Underline,
@@ -231,11 +260,38 @@ internal sealed class InlineExtractor
             var alt = element.GetAttribute("alt");
             if (!string.IsNullOrWhiteSpace(alt))
             {
-                runs.Add(CreateTextRun("[" + GlyphSafety.Filter(alt, _warnings) + "]", style, href));
+                runs.Add(CreateTextRun("[", style, href));
+                foreach (var segment in SegmentByCoverage(alt, style))
+                {
+                    runs.Add(CreateTextRun(segment.Text, style, href, segment.FaceName));
+                }
+                runs.Add(CreateTextRun("]", style, href));
             }
             return;
         }
 
+        AppendResolvedImage(element, style, runs, href, source, naturalW, naturalH);
+    }
+
+    private void AppendInlineSvg(IElement element, ComputedStyle style, List<InlineRun> runs, string href)
+    {
+        if (!_images.TryResolveSvgMarkup(element.OuterHtml, out var source, out var naturalW, out var naturalH))
+        {
+            return;
+        }
+
+        AppendResolvedImage(element, style, runs, href, source, naturalW, naturalH);
+    }
+
+    private void AppendResolvedImage(
+        IElement element,
+        ComputedStyle style,
+        List<InlineRun> runs,
+        string href,
+        CodeBrix.PdfDocuments.Drawing.ImageSource.IImageSource source,
+        double naturalW,
+        double naturalH)
+    {
         double? width = style.WidthPoints;
         double? height = style.HeightPoints;
 

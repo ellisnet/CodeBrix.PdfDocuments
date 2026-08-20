@@ -2,7 +2,10 @@ using CodeBrix.Imaging;
 using CodeBrix.Imaging.Formats.Bmp;
 using CodeBrix.Imaging.Formats.Gif;
 using CodeBrix.Imaging.Formats.Jpeg;
+using CodeBrix.Imaging.Formats.Pbm;
 using CodeBrix.Imaging.Formats.Png;
+using CodeBrix.Imaging.Formats.Tga;
+using CodeBrix.Imaging.Formats.Tiff;
 using CodeBrix.Imaging.Formats.Webp;
 using CodeBrix.Imaging.PixelFormats;
 using CodeBrix.Imaging.Processing;
@@ -111,7 +114,7 @@ public class ImagingImageSourceTests
     }
 
     [Fact]
-    public void FromFile_WithBmp_ReturnsNonTransparentImageSource()
+    public void FromFile_WithBmp_ReturnsTransparentImageSource()
     {
         var bmpBytes = GetEmbeddedResourceBytes("test-image-01.bmp");
         var tempPath = Path.Combine(Path.GetTempPath(), $"ImagingImageSourceTest_{Guid.NewGuid()}.bmp");
@@ -123,7 +126,8 @@ public class ImagingImageSourceTests
 
             source.Width.Should().BeGreaterThan(0);
             source.Height.Should().BeGreaterThan(0);
-            source.Transparent.Should().BeFalse();
+            // BMP is alpha-capable, so it takes the lossless bitmap+SMask path.
+            source.Transparent.Should().BeTrue();
         }
         finally
         {
@@ -208,10 +212,35 @@ public class ImagingImageSourceTests
     }
 
     [Fact]
-    public void FromImagingImage_BmpFormat_IsNotTransparent()
+    public void FromImagingImage_BmpFormat_IsTransparent()
     {
+        // BMP can carry alpha (32bpp), so it takes the lossless bitmap+SMask path.
         using var image = new Image<Rgba32>(10, 10);
         var source = ImagingImageSource<Rgba32>.FromImagingImage(image, BmpFormat.Instance);
+        source.Transparent.Should().BeTrue();
+    }
+
+    [Fact]
+    public void FromImagingImage_TgaFormat_IsTransparent()
+    {
+        using var image = new Image<Rgba32>(10, 10);
+        var source = ImagingImageSource<Rgba32>.FromImagingImage(image, TgaFormat.Instance);
+        source.Transparent.Should().BeTrue();
+    }
+
+    [Fact]
+    public void FromImagingImage_TiffFormat_IsTransparent()
+    {
+        using var image = new Image<Rgba32>(10, 10);
+        var source = ImagingImageSource<Rgba32>.FromImagingImage(image, TiffFormat.Instance);
+        source.Transparent.Should().BeTrue();
+    }
+
+    [Fact]
+    public void FromImagingImage_PbmFormat_IsNotTransparent()
+    {
+        using var image = new Image<Rgba32>(10, 10);
+        var source = ImagingImageSource<Rgba32>.FromImagingImage(image, PbmFormat.Instance);
         source.Transparent.Should().BeFalse();
     }
 

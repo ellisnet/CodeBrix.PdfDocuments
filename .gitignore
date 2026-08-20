@@ -416,3 +416,7 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# LilyPort SVG dialect inventory and other machine-local test assets.
+# This folder and EVERYTHING under it must never be committed.
+**/optional-testing-files/

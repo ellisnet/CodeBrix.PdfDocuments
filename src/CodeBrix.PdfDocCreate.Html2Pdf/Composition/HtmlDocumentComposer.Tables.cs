@@ -32,7 +32,7 @@ internal sealed partial class HtmlDocumentComposer
     {
         if (!target.IsSection)
         {
-            _warnings.Add(RenderWarnings.CategoryHtml, "A table nested inside another table (or box) is not supported and was skipped.");
+            _warnings.Add(RenderWarnings.CategoryHtml, "A table nested inside another table (or box) is not supported and was skipped.", "html.table.nested");
             return;
         }
 

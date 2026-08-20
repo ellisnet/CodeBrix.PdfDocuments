@@ -50,6 +50,22 @@ public sealed class HtmlRenderOptions
     public bool GenerateOutline { get; set; } = true;
 
     /// <summary>
+    /// Scale factor for rasterizing SVG images, relative to the SVG's natural CSS-pixel
+    /// size. The default of 2.0 is roughly 192 DPI when the image is placed at its
+    /// natural size; raise it for sharper print output at the cost of a larger PDF.
+    /// Values are clamped to the range 0.25 - 8.0 at render time.
+    /// </summary>
+    public double SvgRasterScale { get; set; } = 2.0;
+
+    /// <summary>
+    /// When false (the default), characters no registered font covers are removed with
+    /// a warning. When true, they are kept and render as the font's missing-glyph
+    /// notdef shape (a visible tofu box or blank), so a coverage gap leaves a trace in
+    /// the document instead of silently changing the text.
+    /// </summary>
+    public bool KeepUncoveredCharacters { get; set; }
+
+    /// <summary>
     /// Overrides the document title; when null the HTML title element is used.
     /// </summary>
     public string DocumentTitle { get; set; }

@@ -1,55 +1,124 @@
 using System;
+using System.Collections.Generic;
 using System.Text;
+using CodeBrix.PdfDocCreate.Html2Pdf.Fonts;
 
 namespace CodeBrix.PdfDocCreate.Html2Pdf.Composition;
 
 /// <summary>
-/// Filters text down to the character ranges the package fonts actually cover, so
-/// unsupported scripts and astral-plane characters (emoji, rare symbols) degrade to a
-/// collected warning instead of rendering as tofu boxes.
+/// Decides, per code point, which registered font face renders a piece of text: the
+/// face the style resolved to when that font's own cmap covers the character, else the
+/// first covering per-glyph fallback family. Characters nothing covers degrade to a
+/// collected warning (removed by default, kept as missing-glyph boxes on opt-in).
+/// Coverage is read from the actual font files, so a new font package extends what
+/// renders without any change here.
 /// </summary>
 internal static class GlyphSafety
 {
-    /// <summary>
-    /// Removes characters outside the supported coverage. Returns the filtered text;
-    /// removed content is reported once per category through the warnings collector.
-    /// </summary>
-    public static string Filter(string text, RenderWarnings warnings)
-    {
-        if (string.IsNullOrEmpty(text)) { return text ?? ""; }
+    /// <summary>A stretch of text plus the face it renders with (null = the style's face).</summary>
+    internal readonly record struct TextSegment(string Text, string FaceName);
 
-        StringBuilder builder = null;
+    /// <summary>
+    /// Splits text into segments per rendering face and filters uncovered characters.
+    /// The legacy character allow-list is retained as a floor: anything it admitted
+    /// before coverage-driven filtering existed is still admitted, so no previously
+    /// rendering document loses characters.
+    /// </summary>
+    public static List<TextSegment> Segment(
+        string text,
+        string primaryFace,
+        int weight,
+        bool italic,
+        bool keepUncovered,
+        RenderWarnings warnings)
+    {
+        var result = new List<TextSegment>();
+        if (string.IsNullOrEmpty(text)) { return result; }
+
+        var coverage = Html2PdfFonts.TryGetFaceCoverage(primaryFace);
+        var current = new StringBuilder(text.Length);
+        string currentFace = null;
+
+        void Flush()
+        {
+            if (current.Length > 0)
+            {
+                result.Add(new TextSegment(current.ToString(), currentFace));
+                current.Clear();
+            }
+        }
+
         for (var i = 0; i < text.Length; i++)
         {
             var c = text[i];
-
+            var codePoint = (int)c;
+            var isPair = false;
             if (char.IsHighSurrogate(c) && i + 1 < text.Length && char.IsLowSurrogate(text[i + 1]))
             {
-                builder ??= new StringBuilder(text, 0, i, text.Length);
-                warnings.Add(RenderWarnings.CategoryFont,
-                    "Emoji and other characters outside the Basic Multilingual Plane are not covered by the package fonts and were removed.");
-                i++; // skip the low surrogate too
-                continue;
+                codePoint = char.ConvertToUtf32(c, text[i + 1]);
+                isPair = true;
             }
 
-            if (IsAllowed(c))
+            if (c == '﻿' || (c >= '︀' && c <= '️'))
             {
-                builder?.Append(c);
-                continue;
+                continue; // byte-order marks and variation selectors vanish silently
             }
 
-            builder ??= new StringBuilder(text, 0, i, text.Length);
-
-            if (c is '﻿' or '​' or '‌' or '‍' || (c >= '︀' && c <= '️'))
+            string targetFace;
+            if (c is '\t' or '\n' or '\r')
             {
-                continue; // zero-width characters and variation selectors vanish silently
+                targetFace = null;
+            }
+            else if (coverage != null && coverage.Covers(codePoint))
+            {
+                targetFace = null;
+            }
+            else
+            {
+                var fallbackFace = Html2PdfFonts.TryResolveFallbackFace(codePoint, weight, italic);
+                if (fallbackFace != null
+                    && !fallbackFace.Equals(primaryFace, StringComparison.OrdinalIgnoreCase))
+                {
+                    targetFace = fallbackFace;
+                }
+                else if (!isPair && IsAllowed(c))
+                {
+                    targetFace = null; // legacy floor: previously admitted characters stay
+                }
+                else if (keepUncovered)
+                {
+                    targetFace = null;
+                    warnings.Add(RenderWarnings.CategoryFont,
+                        $"Characters not covered by any registered font were kept and will render as missing-glyph boxes (first seen: U+{codePoint:X4}).",
+                        "font.uncovered.kept", codePoint);
+                }
+                else
+                {
+                    warnings.Add(RenderWarnings.CategoryFont, isPair
+                        ? "Emoji and other characters outside the Basic Multilingual Plane are not covered by the package fonts and were removed."
+                        : $"Characters in an unsupported script or symbol range (first seen: U+{codePoint:X4}) are not covered by the package fonts and were removed.",
+                        "font.uncovered.removed", codePoint);
+                    if (isPair) { i++; }
+                    continue;
+                }
             }
 
-            warnings.Add(RenderWarnings.CategoryFont,
-                $"Characters in an unsupported script or symbol range (first seen: U+{(int)c:X4}) are not covered by the package fonts and were removed.");
+            if (!string.Equals(targetFace, currentFace, StringComparison.OrdinalIgnoreCase))
+            {
+                Flush();
+                currentFace = targetFace;
+            }
+
+            current.Append(c);
+            if (isPair)
+            {
+                current.Append(text[i + 1]);
+                i++;
+            }
         }
 
-        return builder?.ToString() ?? text;
+        Flush();
+        return result;
     }
 
     private static bool IsAllowed(char c)

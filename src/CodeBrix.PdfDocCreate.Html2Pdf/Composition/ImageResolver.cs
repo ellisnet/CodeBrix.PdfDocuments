@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Net.Http;
 using CodeBrix.Imaging;
+using CodeBrix.PdfDocCreate.Html2Pdf.Svg;
 using CodeBrix.PdfDocuments.Drawing;
 using CodeBrix.PdfDocuments.Utils;
 
@@ -20,13 +21,15 @@ internal sealed class ImageResolver
 
     private readonly string _baseDirectory;
     private readonly bool _allowRemote;
+    private readonly double _svgRasterScale;
     private readonly RenderWarnings _warnings;
     private int _counter;
 
-    public ImageResolver(string baseDirectory, bool allowRemote, RenderWarnings warnings)
+    public ImageResolver(string baseDirectory, bool allowRemote, double svgRasterScale, RenderWarnings warnings)
     {
         _baseDirectory = baseDirectory;
         _allowRemote = allowRemote;
+        _svgRasterScale = Math.Clamp(svgRasterScale, 0.25, 8.0);
         _warnings = warnings;
         EnsureImagingBackend();
     }
@@ -52,7 +55,7 @@ internal sealed class ImageResolver
 
         if (string.IsNullOrWhiteSpace(src))
         {
-            _warnings.Add(RenderWarnings.CategoryImage, "An img element without a usable src attribute was skipped.");
+            _warnings.Add(RenderWarnings.CategoryImage, "An img element without a usable src attribute was skipped.", "image.src.missing");
             return false;
         }
 
@@ -71,7 +74,7 @@ internal sealed class ImageResolver
                 if (!_allowRemote)
                 {
                     _warnings.Add(RenderWarnings.CategoryImage,
-                        $"Remote image '{Truncate(reference)}' was skipped; enable AllowRemoteImages to fetch http(s) images.");
+                        $"Remote image '{Truncate(reference)}' was skipped; enable AllowRemoteImages to fetch http(s) images.", "image.remote.disabled");
                     return false;
                 }
                 bytes = DownloadBytes(reference);
@@ -84,14 +87,19 @@ internal sealed class ImageResolver
         catch (Exception ex)
         {
             _warnings.Add(RenderWarnings.CategoryImage,
-                $"Image '{Truncate(reference)}' could not be loaded and was skipped ({ex.GetType().Name}).");
+                $"Image '{Truncate(reference)}' could not be loaded and was skipped ({ex.GetType().Name}).", "image.load.failed");
             return false;
         }
 
         if (bytes == null || bytes.Length == 0)
         {
-            _warnings.Add(RenderWarnings.CategoryImage, $"Image '{Truncate(reference)}' could not be loaded and was skipped.");
+            _warnings.Add(RenderWarnings.CategoryImage, $"Image '{Truncate(reference)}' could not be loaded and was skipped.", "image.load.failed");
             return false;
+        }
+
+        if (SvgImageRasterizer.LooksLikeSvg(bytes))
+        {
+            return TryRasterizeSvg(bytes, reference, ref source, ref naturalWidthPoints, ref naturalHeightPoints);
         }
 
         try
@@ -105,7 +113,7 @@ internal sealed class ImageResolver
         catch (Exception ex)
         {
             _warnings.Add(RenderWarnings.CategoryImage,
-                $"Image '{Truncate(reference)}' is not in a supported format and was skipped ({ex.GetType().Name}).");
+                $"Image '{Truncate(reference)}' is not in a supported format and was skipped ({ex.GetType().Name}).", "image.format.unsupported");
             return false;
         }
 
@@ -115,21 +123,52 @@ internal sealed class ImageResolver
         return true;
     }
 
-    private byte[] ReadLocalFile(string reference)
+    /// <summary>
+    /// Resolves inline svg element markup (already serialized to a string) the same way
+    /// a referenced .svg file resolves: rasterized to a transparent PNG.
+    /// </summary>
+    public bool TryResolveSvgMarkup(string svgMarkup, out ImageSource.IImageSource source, out double naturalWidthPoints, out double naturalHeightPoints)
     {
-        var candidate = Path.IsPathRooted(reference)
-            ? reference
-            : Path.Combine(_baseDirectory ?? "", reference.Replace('/', Path.DirectorySeparatorChar));
+        source = null;
+        naturalWidthPoints = 0;
+        naturalHeightPoints = 0;
 
-        if (!File.Exists(candidate))
+        if (string.IsNullOrWhiteSpace(svgMarkup))
         {
-            // href/src values are often percent-encoded ("my%20image.png").
-            var unescaped = Uri.UnescapeDataString(candidate);
-            if (File.Exists(unescaped)) { candidate = unescaped; }
+            _warnings.Add(RenderWarnings.CategoryImage, "An svg element without usable content was skipped.", "image.svg.empty");
+            return false;
         }
 
-        return File.ReadAllBytes(candidate);
+        var bytes = System.Text.Encoding.UTF8.GetBytes(svgMarkup);
+        return TryRasterizeSvg(bytes, "(inline svg)", ref source, ref naturalWidthPoints, ref naturalHeightPoints);
     }
+
+    private bool TryRasterizeSvg(byte[] svgBytes, string reference, ref ImageSource.IImageSource source, ref double naturalWidthPoints, ref double naturalHeightPoints)
+    {
+        // Per-glyph font fallback for SVG text: characters the styled face lacks are
+        // wrapped in tspans naming the covering fallback family before rasterization;
+        // what nothing covers renders as missing-glyph shapes and warns.
+        svgBytes = SvgTextFallback.Process(svgBytes, Truncate(reference), _warnings);
+
+        byte[] pngBytes;
+        try
+        {
+            pngBytes = SvgImageRasterizer.RasterizeToPng(svgBytes, _svgRasterScale, out naturalWidthPoints, out naturalHeightPoints);
+        }
+        catch (Exception ex)
+        {
+            _warnings.Add(RenderWarnings.CategoryImage,
+                $"SVG image '{Truncate(reference)}' could not be rendered and was skipped ({ex.GetType().Name}).", "image.svg.failed");
+            return false;
+        }
+
+        var name = $"html2pdf-img-{++_counter}";
+        source = ImageSource.FromBinary(name, () => pngBytes, quality: 90);
+        return true;
+    }
+
+    private byte[] ReadLocalFile(string reference)
+        => File.ReadAllBytes(LocalFileResolver.Resolve(reference, _baseDirectory));
 
     private static byte[] DecodeDataUri(string reference)
     {

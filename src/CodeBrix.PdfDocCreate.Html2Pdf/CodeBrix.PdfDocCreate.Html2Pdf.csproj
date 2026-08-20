@@ -52,7 +52,7 @@
     <Authors>Jeremy Ellis</Authors>
     <Product>CodeBrix.PdfDocCreate.Html2Pdf</Product>
     <Title>CodeBrix.PdfDocCreate.Html2Pdf</Title>
-    <Description>Renders author-created HTML pages with CSS styling into PDF documents via the CodeBrix.PdfDocCreate document object model. Applies a documented subset of CSS - inline style attributes, style blocks, and linked local stylesheets - with real selector matching, cascade, specificity, and inheritance. All text is rendered with the CodeBrix.Platform.Fonts Roboto (sans-serif), Merriweather (serif), and Roboto Mono (monospace) font packages, so output is identical on every operating system. Designed for HTML/CSS written for PDF generation, not for repurposing arbitrary web pages.</Description>
+    <Description>Renders author-created HTML pages with CSS styling into PDF documents via the CodeBrix.PdfDocCreate document object model. Applies a documented subset of CSS - inline style attributes, style blocks, and linked local stylesheets - with real selector matching, cascade, specificity, and inheritance. Embeds every image format CodeBrix.Imaging decodes plus SVG (referenced files, data: URIs, and inline svg elements, rasterized identically on Windows, macOS, and Linux). All text is rendered with the CodeBrix.Platform.Fonts Roboto (sans-serif), Merriweather (serif), and Roboto Mono (monospace) font packages - plus any fonts the consumer registers - so output is identical on every operating system. Designed for HTML/CSS written for PDF generation, not for repurposing arbitrary web pages.</Description>
     <PackageProjectUrl>https://github.com/ellisnet/CodeBrix.PdfDocuments</PackageProjectUrl>
     <RepositoryUrl>https://github.com/ellisnet/CodeBrix.PdfDocuments</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
@@ -80,6 +80,21 @@
     <PackageReference Include="CodeBrix.Platform.Fonts.Roboto.OflLicenseForever" Version="1.0.209.315" />
     <PackageReference Include="CodeBrix.Platform.Fonts.Merriweather.OflLicenseForever" Version="1.0.209.309" />
     <PackageReference Include="CodeBrix.Platform.Fonts.RobotoMono.OflLicenseForever" Version="1.0.216.1150" />
+    <!--
+      Noto Music joins the per-glyph fallback chain automatically at discovery: it
+      renders the musical characters the text families lack, and is never a body-text
+      default.
+    -->
+    <PackageReference Include="CodeBrix.Platform.Fonts.NotoMusic.OflLicenseForever" Version="1.0.231.1184" />
+    <!--
+      SVG placement: CodeBrix.SkiaSvg renders SVG to an offscreen CPU raster that is
+      embedded as a transparent PNG. SkiaSharp's own nuspec brings the Windows and
+      macOS native assets transitively, but never a Linux one (two variants exist),
+      so the self-contained NoDependencies variant is referenced explicitly - it does
+      not require libfontconfig at runtime and cannot reach system fonts.
+    -->
+    <PackageReference Include="CodeBrix.SkiaSvg.MitLicenseForever" Version="1.0.214.1201" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.151.0" />
   </ItemGroup>
 
   <ItemGroup>

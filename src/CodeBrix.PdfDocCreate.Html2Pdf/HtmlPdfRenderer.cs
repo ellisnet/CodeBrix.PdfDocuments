@@ -121,13 +121,13 @@ public sealed class HtmlPdfRenderer
         var body = dom.Body ?? htmlElement;
         var bodyStyle = body != null ? resolver.Compute(body, htmlStyle) : htmlStyle;
 
-        var images = new ImageResolver(resolvedBase, options.AllowRemoteImages, warnings);
+        var images = new ImageResolver(resolvedBase, options.AllowRemoteImages, options.SvgRasterScale, warnings);
 
         using (var measure = new MeasureHelper())
         {
             var composer = new HtmlDocumentComposer(
                 section, resolver, warnings, images, measure,
-                contentWidth, options.GenerateOutline);
+                contentWidth, options.GenerateOutline, options.KeepUncoveredCharacters);
 
             SetNormalStyle(document, bodyStyle, composer);
             AddPageFurniture(section, options, title, bodyStyle, composer);
@@ -175,22 +175,15 @@ public sealed class HtmlPdfRenderer
                 || href.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
             {
                 warnings.Add(RenderWarnings.CategoryCss,
-                    $"Remote stylesheet '{href}' was skipped; only local stylesheet files are supported.");
+                    $"Remote stylesheet '{href}' was skipped; only local stylesheet files are supported.", "css.stylesheet.remote");
                 continue;
             }
 
-            var path = Path.IsPathRooted(href)
-                ? href
-                : Path.Combine(baseDirectory, href.Replace('/', Path.DirectorySeparatorChar));
-            if (!File.Exists(path))
-            {
-                var unescaped = Uri.UnescapeDataString(path);
-                if (File.Exists(unescaped)) { path = unescaped; }
-            }
+            var path = LocalFileResolver.Resolve(href, baseDirectory);
 
             if (!File.Exists(path))
             {
-                warnings.Add(RenderWarnings.CategoryCss, $"Linked stylesheet '{href}' was not found and was skipped.");
+                warnings.Add(RenderWarnings.CategoryCss, $"Linked stylesheet '{href}' was not found and was skipped.", "css.stylesheet.missing");
                 continue;
             }
 

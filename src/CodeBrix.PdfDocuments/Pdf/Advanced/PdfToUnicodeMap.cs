@@ -77,9 +77,9 @@ internal sealed class PdfToUnicodeMap : PdfDictionary
             "/CMapName /Adobe-Identity-UCS def /CMapType 2 def\n";
         string suffix = "endcmap CMapName currentdict /CMap defineresource pop end end";
 
-        Dictionary<int, char> glyphIndexToCharacter = new Dictionary<int, char>();
+        Dictionary<int, int> glyphIndexToCharacter = new Dictionary<int, int>();
         int lowIndex = 65536, hiIndex = -1;
-        foreach (KeyValuePair<char, int> entry in _cmapInfo.CharacterToGlyphIndex)
+        foreach (KeyValuePair<int, int> entry in _cmapInfo.CharacterToGlyphIndex)
         {
             int index = (int)entry.Value;
             lowIndex = Math.Min(lowIndex, index);
@@ -98,8 +98,21 @@ internal sealed class PdfToUnicodeMap : PdfDictionary
 
         // Sorting seems not necessary. The limit is 100 entries, we will see.
         wrt.WriteLine(String.Format("{0} beginbfrange", glyphIndexToCharacter.Count));
-        foreach (KeyValuePair<int, char> entry in glyphIndexToCharacter)
-            wrt.WriteLine(String.Format("<{0:X4}><{0:X4}><{1:X4}>", entry.Key, (int)entry.Value));
+        foreach (KeyValuePair<int, int> entry in glyphIndexToCharacter)
+        {
+            // A supplementary-plane character maps to its UTF-16BE surrogate pair.
+            if (entry.Value > 0xFFFF)
+            {
+                int value = entry.Value - 0x10000;
+                int high = 0xD800 + (value >> 10);
+                int low = 0xDC00 + (value & 0x3FF);
+                wrt.WriteLine(String.Format("<{0:X4}><{0:X4}><{1:X4}{2:X4}>", entry.Key, high, low));
+            }
+            else
+            {
+                wrt.WriteLine(String.Format("<{0:X4}><{0:X4}><{1:X4}>", entry.Key, entry.Value));
+            }
+        }
         wrt.WriteLine("endbfrange");
 
         wrt.Write(suffix);

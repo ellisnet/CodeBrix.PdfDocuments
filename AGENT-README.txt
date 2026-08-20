@@ -123,6 +123,11 @@ Dependencies:
   - CodeBrix.Platform.Fonts.Roboto.OflLicenseForever
   - CodeBrix.Platform.Fonts.Merriweather.OflLicenseForever
   - CodeBrix.Platform.Fonts.RobotoMono.OflLicenseForever
+  - CodeBrix.SkiaSvg.MitLicenseForever (SVG rasterization; brings SkiaSharp,
+    HarfBuzzSharp, and the Windows/macOS/Linux native assets they need - SVG
+    rendering works on all three desktop platforms with no extra packages)
+  - SkiaSharp.NativeAssets.Linux.NoDependencies (self-contained Linux native;
+    no libfontconfig required at runtime)
 
     dotnet add package CodeBrix.PdfDocCreate.Html2Pdf.MitLicenseForever
 
@@ -372,8 +377,14 @@ RECOMMENDATIONS:
     var xImage = XImage.FromImageSource(image);
     renderer.DrawImage(xImage, new XPoint(50, 150));
 
-Supported image formats for embedding:
-    PNG, JPEG, BMP, WebP, GIF
+Supported image formats for embedding (every format CodeBrix.Imaging decodes):
+    PNG, JPEG, BMP, WebP, GIF, TIFF, TGA, PBM/PGM/PPM
+Formats that can carry transparency (PNG, WebP, GIF, BMP, TIFF, TGA) embed
+losslessly with their alpha channel preserved; JPEG and PBM embed as JPEG.
+Known decoder caveats (from CodeBrix.Imaging): no animated WebP, no
+arithmetic-coded JPEG; animated GIF embeds its first frame.
+SVG is NOT supported at this level - SVG placement is an Html2Pdf/Markdown2Pdf
+feature (see PART 4).
 
 --- DRAWING GRAPHICS ---
 
@@ -1182,6 +1193,16 @@ render - it is ignored and reported in the result's Warnings collection.
     Console.WriteLine($"{result.PageCount} pages, {result.Warnings.Count} warnings");
     foreach (var warning in result.Warnings.Messages) { Console.WriteLine(warning); }
 
+    // Structured warnings for test baselines: a stable machine-readable Code
+    // (e.g. "font.uncovered.removed", "image.format.unsupported"), a Category
+    // enum, an occurrence count, and - for glyph-coverage warnings - the code
+    // point involved. Finer-grained than Messages: distinct dropped code
+    // points are separate items even when their display message collapses.
+    foreach (var item in result.Warnings.Items)
+    {
+        Console.WriteLine($"{item.Category} {item.Code} x{item.Occurrences} U+{item.CodePoint:X4}");
+    }
+
 --- OPTIONS (HtmlRenderOptions, all with sensible defaults) ---
 
     renderer.Options.SetPageSize("a4");        // letter (default), legal, a3..b5
@@ -1192,6 +1213,8 @@ render - it is ignored and reported in the result's Warnings collection.
     renderer.Options.AllowRemoteImages = true; // http(s) images; off by default
     renderer.Options.GenerateOutline = false;  // h1-h6 -> PDF bookmark pane (on)
     renderer.Options.DocumentTitle = "Override Title";  // else the <title> element
+    renderer.Options.SvgRasterScale = 3.0;     // SVG raster sharpness (default 2.0)
+    renderer.Options.KeepUncoveredCharacters = true;  // tofu instead of removal (off)
 
 @page rules in the document's CSS override the configured size and margins:
 
@@ -1202,11 +1225,47 @@ render - it is ignored and reported in the result's Warnings collection.
 Block: h1-h6, p, div, section, article, main, header, footer, aside, nav,
 blockquote, pre, hr, ul, ol, li (nested to any depth), dl/dt/dd, figure,
 figcaption, table/thead/tbody/tfoot/tr/th/td (colspan AND rowspan; automatic
-content-measured column widths), img, details/summary, address.
+content-measured column widths), img, svg, details/summary, address.
 Inline: a (real link annotations: web, mailto, and #anchor bookmarks), span,
-strong/b, em/i, u/ins, s/del/strike, code/kbd/samp, sub, sup, small, br, img.
+strong/b, em/i, u/ins, s/del/strike, code/kbd/samp, sub, sup, small, br, img,
+svg.
 Ignored (with a warning where meaningful): script, style/link (consumed for
-CSS), iframe, canvas, svg, audio, video, form controls.
+CSS), iframe, canvas, audio, video, form controls.
+
+--- IMAGES AND SVG ---
+
+img sources may be local files (relative paths resolve against the document's
+base directory and work with EITHER separator style on every OS), data: URIs,
+or - only when AllowRemoteImages is enabled - http(s) URLs. Every format
+CodeBrix.Imaging decodes embeds: PNG, JPEG, BMP, WebP, GIF, TIFF, TGA,
+PBM/PGM/PPM. Alpha-capable formats keep their transparency losslessly.
+
+SVG is fully supported and renders through an offscreen CPU rasterizer
+(CodeBrix.SkiaSvg) to a transparent PNG - identical output on Windows, macOS
+and Linux, no GPU or window system involved:
+  - <img src="figure.svg">, data:image/svg+xml URIs (base64 or percent-encoded),
+    and inline <svg>...</svg> elements (block or inside a paragraph) all render.
+  - The SVG's own width/height/viewBox decides its natural size (1 CSS px =
+    0.75 pt); CSS width/height on the element (including physical units like
+    mm) override it.
+  - Options.SvgRasterScale (default 2.0, about 192 DPI at natural size) sets
+    the raster sharpness; it never changes the placed size.
+  - SVG <text> renders with the registered document fonts only (see FONTS);
+    system fonts are never consulted. font-family values are candidate LISTS
+    ("Some Face,serif") tried in order; generic families map to the package
+    defaults (including SVG-style spellings "sans" and "mono"), and a family
+    no registered font provides falls back to the default sans face - the
+    same behavior as HTML text.
+  - SVG text has per-glyph font fallback, driven by the same fallback chain
+    HTML text uses (AddFallbackFamily / includeInFallback; Noto Music joins
+    automatically): before rasterization, characters the styled face lacks
+    are wrapped in tspans naming the covering fallback family. A character NO
+    registered font covers renders as its missing-glyph shape - and WARNS,
+    one structured item per distinct code point (code "font.svg-text.notdef",
+    with the code point and an occurrence count), so coverage gaps are
+    baselined instead of invisible.
+  - A broken or unrenderable SVG degrades to a collected warning, never an
+    exception.
 
 --- SUPPORTED CSS DIALECT ---
 
@@ -1239,11 +1298,50 @@ operating-system fonts - so output is byte-comparable across machines:
 The font packages ship .ttf files inside their nupkgs, and the Html2Pdf
 package's buildTransitive targets copy them into the consuming application's
 build output under CodeBrix.Platform.Fonts.<Name>/Fonts/. The renderer
-discovers them there automatically (Html2PdfFonts). If fonts live somewhere
-unusual, call Html2PdfFonts.AddFontDirectory(path) before the first render.
-A missing font layout produces an InvalidOperationException naming the fix.
-Characters outside the packages' coverage (emoji, CJK, ...) are removed with
-a warning instead of rendering as tofu boxes.
+discovers them there automatically (Html2PdfFonts). A missing font layout
+produces an InvalidOperationException naming the fix.
+
+CONSUMER FONT REGISTRATION (all methods on the static Html2PdfFonts class;
+all are idempotent, and all may also be called AFTER renders have happened -
+additions take effect on the next render):
+
+    // Package-shaped directories (CodeBrix.Platform.Fonts.<Name>/Fonts/ with
+    // .ttf.manifest files) living somewhere unusual:
+    Html2PdfFonts.AddFontDirectory(path);
+
+    // Loose .ttf/.otf files - NO manifest needed; family name, weight and
+    // style are read from the font's own name and OS/2 tables:
+    Html2PdfFonts.AddFontFile("MyFont-Regular.ttf");
+    Html2PdfFonts.AddFontFiles(paths);
+    Html2PdfFonts.AddFontFilesFromDirectory(dir);
+
+    // Per-glyph fallback: consulted (in registration order) for characters
+    // the styled font lacks. Pass includeInFallback: true on the Add* calls,
+    // or name an already-registered family:
+    Html2PdfFonts.AddFallbackFamily("Family Name");
+
+A registered font is usable everywhere at once: CSS font-family values, SVG
+<text> font-family values, and per-glyph fallback (when opted in). The first
+registration of a family name wins; later registrations of the same family
+are silently ignored. File path arguments accept either separator style on
+every operating system.
+
+GLYPH COVERAGE is decided per character against the actual cmap table of the
+font each run resolved to - not against assumed Unicode ranges - so adding a
+font package or file extends what renders with no code change:
+  - A character the styled font covers renders with it.
+  - A character it lacks renders with the first fallback family that covers
+    it (the run is split around it; only that character switches font).
+  - A character nothing covers is REMOVED with a collected warning by
+    default; set Options.KeepUncoveredCharacters = true to keep such
+    characters and render the font's visible missing-glyph shape instead, so
+    a coverage gap leaves a trace on the page.
+Supplementary-plane characters (above U+FFFF, e.g. musical notation) are
+handled as single code points end to end and embed correctly when a
+registered font provides them through a cmap format 12 table.
+Music notation families (CodeBrix.Platform.Fonts.NotoMusic*) are wired into
+the fallback chain automatically when discovered, and are never a body-text
+default.
 
 ================================================================================
 
@@ -1278,7 +1376,9 @@ is inferred from YAML front matter (title:), else the first heading, else the
 file name; front-matter author: fills the PDF author metadata.
 
 The only options (MarkdownRenderOptions): PageSize ("letter" default),
-AllowRemoteImages (false), FooterText ("{page} / {pages}"; null disables).
+AllowRemoteImages (false), FooterText ("{page} / {pages}"; null disables),
+SvgRasterScale (2.0), KeepUncoveredCharacters (false) - the last two are
+forwarded to Html2Pdf and mean the same things there.
 
 --- WORKFLOW (b): restyle the generated HTML/CSS yourself ---
 
@@ -1303,9 +1403,14 @@ tables (with column alignment) and strikethrough, footnotes ([^label] and
 inline ^[note]), GitHub task lists (- [ ] / - [x], rendered as checkbox
 glyphs), YAML front matter (consumed, never rendered; title/author mined),
 reference links and images, autolinks, embedded HTML (rendered through
-Html2Pdf's documented element subset), and fenced code with automatic syntax
-highlighting for csharp, c/cpp, bash/shell/powershell, json, xml/html/xaml,
-javascript/typescript, python, sql and yaml.
+Html2Pdf's documented element subset, inline <svg> included), and fenced code
+with automatic syntax highlighting for csharp, c/cpp, bash/shell/powershell,
+json, xml/html/xaml, javascript/typescript, python, sql and yaml.
+
+Images in Markdown support the same formats as Html2Pdf (PNG, JPEG, BMP,
+WebP, GIF, TIFF, TGA, PBM/PGM/PPM, and SVG), referenced as relative/absolute
+paths (either separator style works on every OS) or data: URIs - the data:
+URI allow-list admits exactly those image types and rejects everything else.
 
 Robustness contract: any .md input produces a document - unsupported
 constructs degrade and are reported in Warnings, never thrown.
@@ -1956,7 +2061,12 @@ Furniture:      r.Options.FooterText = "Page {page} of {pages}"
 Render file:    var res = r.RenderFile("in.html", "out.pdf")
 Render string:  r.RenderHtml(html, "out.pdf", baseDir) / r.RenderHtmlToBytes(html)
 Inspect:        res.PageCount, res.Warnings.Messages, res.Title
-Fonts:          automatic (package fonts); Html2PdfFonts.AddFontDirectory(dir)
+Fonts:          automatic (package fonts); Html2PdfFonts.AddFontDirectory(dir),
+                .AddFontFile(path) / .AddFontFiles / .AddFontFilesFromDirectory
+                (loose .ttf/.otf, no manifest), .AddFallbackFamily(name)
+SVG:            <img src="x.svg">, data:image/svg+xml, inline <svg> all render;
+                r.Options.SvgRasterScale sets sharpness
+Tofu opt-in:    r.Options.KeepUncoveredCharacters = true
 CSS page rule:  @page { size: a4 landscape; margin: 2cm; }
 
 --- Markdown2Pdf (Markdown to PDF) ---

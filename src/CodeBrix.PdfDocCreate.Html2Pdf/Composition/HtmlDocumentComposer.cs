@@ -19,13 +19,13 @@ internal sealed partial class HtmlDocumentComposer
     {
         "a", "abbr", "b", "bdi", "bdo", "big", "br", "cite", "code", "data", "dfn", "em",
         "font", "i", "img", "ins", "kbd", "label", "mark", "q", "s", "samp", "small",
-        "span", "strike", "strong", "sub", "sup", "time", "tt", "u", "var", "wbr",
+        "span", "strike", "strong", "sub", "sup", "svg", "time", "tt", "u", "var", "wbr",
     };
 
     private static readonly HashSet<string> IgnoredElements = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         "script", "style", "link", "meta", "template", "noscript", "head", "title",
-        "base", "iframe", "canvas", "svg", "audio", "video", "object", "embed", "map",
+        "base", "iframe", "canvas", "audio", "video", "object", "embed", "map",
         "input", "button", "select", "textarea", "form", "colgroup", "col",
     };
 
@@ -46,7 +46,8 @@ internal sealed partial class HtmlDocumentComposer
         ImageResolver images,
         MeasureHelper measure,
         double contentWidthPoints,
-        bool generateOutline)
+        bool generateOutline,
+        bool keepUncoveredCharacters = false)
     {
         _section = section;
         _resolver = resolver;
@@ -55,7 +56,7 @@ internal sealed partial class HtmlDocumentComposer
         _measure = measure;
         _contentWidthPoints = contentWidthPoints;
         _generateOutline = generateOutline;
-        _inline = new InlineExtractor(resolver, warnings, images, contentWidthPoints);
+        _inline = new InlineExtractor(resolver, warnings, images, contentWidthPoints, keepUncoveredCharacters);
     }
 
     /// <summary>Composes the body element's content into the section.</summary>
@@ -208,6 +209,7 @@ internal sealed partial class HtmlDocumentComposer
                 return;
 
             case "img":
+            case "svg":
                 EmitBlockImage(element, style, target, context);
                 return;
 
@@ -273,7 +275,7 @@ internal sealed partial class HtmlDocumentComposer
             case "colgroup": case "col":
                 return; // structurally expected; not worth a warning
             default:
-                _warnings.Add(RenderWarnings.CategoryHtml, $"The <{elementName}> element is not supported and was skipped.");
+                _warnings.Add(RenderWarnings.CategoryHtml, $"The <{elementName}> element is not supported and was skipped.", "html.element.ignored");
                 return;
         }
     }

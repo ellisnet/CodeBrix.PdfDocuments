@@ -477,12 +477,19 @@ internal class XGraphicsPdfRenderer : IXGraphicsRenderer
             for (int idx = 0; idx < s.Length; idx++)
             {
                 char ch = s[idx];
-                if (isSymbolFont)
+                int codePoint = ch;
+                if (char.IsHighSurrogate(ch) && idx + 1 < s.Length && char.IsLowSurrogate(s[idx + 1]))
+                {
+                    // A surrogate pair is one code point and produces ONE glyph.
+                    codePoint = char.ConvertToUtf32(ch, s[idx + 1]);
+                    idx++;
+                }
+                else if (isSymbolFont)
                 {
                     // Remap ch for symbol fonts.
-                    ch = (char)(ch | (descriptor.FontFace.os2.usFirstCharIndex & 0xFF00));  // @@@ refactor
+                    codePoint = (char)(ch | (descriptor.FontFace.os2.usFirstCharIndex & 0xFF00));  // @@@ refactor
                 }
-                int glyphID = descriptor.CharCodeToGlyphIndex(ch);
+                int glyphID = descriptor.CharCodeToGlyphIndex(codePoint);
                 sb.Append((char)glyphID);
             }
             s = sb.ToString();

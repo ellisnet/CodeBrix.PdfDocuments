@@ -6,6 +6,9 @@
 // Differences from upstream: hostname punycoding uses System.Globalization
 // IdnMapping instead of punycode.js, and the linkify-it dependency is not
 // ported - the Linkify option is accepted but bare-URL autolinking is inert.
+// The data: image allow-list is widened from upstream's gif/png/jpeg/webp to
+// every format the Html2Pdf render pipeline can embed (the CodeBrix.Imaging
+// decoder set plus SVG).
 // ============================================================================
 
 using System;
@@ -24,7 +27,9 @@ namespace CodeBrix.PdfDocCreate.Markdown2Pdf.MarkdownIt;
 public sealed class MarkdownParser
 {
     private static readonly Regex BadProtoRe = new Regex("^(vbscript|javascript|file|data):", RegexOptions.Compiled);
-    private static readonly Regex GoodDataRe = new Regex("^data:image\\/(gif|png|jpeg|webp);", RegexOptions.Compiled);
+    private static readonly Regex GoodDataRe = new Regex(
+        "^data:image\\/(gif|png|jpeg|webp|bmp|x-windows-bmp|tiff|x-tga|x-targa|x-portable-pixmap|x-portable-graymap|x-portable-bitmap|x-portable-anymap|svg\\+xml)[;,]",
+        RegexOptions.Compiled);
     private static readonly string[] RecodeHostnameFor = { "http:", "https:", "mailto:" };
 
     /// <summary>Creates a parser with the given preset and optional option overrides.</summary>

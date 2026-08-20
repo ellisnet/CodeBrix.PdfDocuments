@@ -37,29 +37,35 @@ internal sealed class SingleFaceFontResolver : IFontResolver
 /// <summary>
 /// Resolves a whole package font family for plain family-name requests, mapping the
 /// bold flag to weight 700 and the regular request to weight 400. Registered with
-/// MetaFontResolver under the family name.
+/// MetaFontResolver under the family name, and - via its alias-name constructor -
+/// under the family names inside the font files themselves (name IDs 1 and 16), which
+/// the PDF layer's font-metrics re-resolution asks for. Without the aliases those
+/// requests would silently fall through to operating-system fonts.
 /// </summary>
 internal sealed class PackageFontFamilyResolver : IFontResolver
 {
     private readonly PackageFontFamily _family;
     private readonly Dictionary<string, SingleFaceFontResolver> _faceResolvers;
+    private readonly string _matchName;
 
     public PackageFontFamilyResolver(
         PackageFontFamily family,
-        Dictionary<string, SingleFaceFontResolver> faceResolvers)
+        Dictionary<string, SingleFaceFontResolver> faceResolvers,
+        string aliasName = null)
     {
         _family = family;
         _faceResolvers = faceResolvers;
+        _matchName = aliasName ?? family.FamilyName;
     }
 
     /// <inheritdoc />
-    public string DefaultFontName => _family.FamilyName;
+    public string DefaultFontName => _matchName;
 
     /// <inheritdoc />
     public FontResolverInfo ResolveTypeface(string familyName, bool isBold, bool isItalic)
     {
         if (familyName == null
-            || !familyName.Trim().Equals(_family.FamilyName, StringComparison.OrdinalIgnoreCase))
+            || !familyName.Trim().Equals(_matchName, StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }

@@ -95,13 +95,21 @@ static class FontHelper
                     continue;
                 }
 
-                if (symbol)
+                int codePoint = ch;
+                if (char.IsHighSurrogate(ch) && idx + 1 < length && char.IsLowSurrogate(text[idx + 1]))
+                {
+                    // A surrogate pair is one code point and measures as ONE glyph.
+                    codePoint = char.ConvertToUtf32(ch, text[idx + 1]);
+                    idx++;
+                    adjustedLength--;
+                }
+                else if (symbol)
                 {
                     // Remap ch for symbol fonts.
-                    ch = (char)(ch | (descriptor.FontFace.os2.usFirstCharIndex & 0xFF00));  // @@@ refactor
+                    codePoint = (char)(ch | (descriptor.FontFace.os2.usFirstCharIndex & 0xFF00));  // @@@ refactor
                     // Used | instead of + because of: http://PdfSharpCore.codeplex.com/workitem/15954
                 }
-                int glyphIndex = descriptor.CharCodeToGlyphIndex(ch);
+                int glyphIndex = descriptor.CharCodeToGlyphIndex(codePoint);
                 width += descriptor.GlyphIndexToWidth(glyphIndex);
             }
             maxWidth = Math.Max(maxWidth, width);

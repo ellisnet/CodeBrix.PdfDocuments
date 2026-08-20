@@ -48,7 +48,9 @@ internal class CMapInfo
     internal OpenTypeDescriptor _descriptor;
 
     /// <summary>
-    /// Adds the characters of the specified string to the hashtable.
+    /// Adds the characters of the specified string to the hashtable. A surrogate pair
+    /// is added as its single supplementary-plane code point, so its glyph resolves
+    /// through the font's format 12 cmap subtable.
     /// </summary>
     public void AddChars(string text)
     {
@@ -59,19 +61,29 @@ internal class CMapInfo
             for (int idx = 0; idx < length; idx++)
             {
                 char ch = text[idx];
-                if (!CharacterToGlyphIndex.ContainsKey(ch))
+                int codePoint = ch;
+                if (char.IsHighSurrogate(ch) && idx + 1 < length && char.IsLowSurrogate(text[idx + 1]))
                 {
-                    char ch2 = ch;
-                    if (symbol)
+                    codePoint = char.ConvertToUtf32(ch, text[idx + 1]);
+                    idx++;
+                }
+
+                if (!CharacterToGlyphIndex.ContainsKey(codePoint))
+                {
+                    int mapped = codePoint;
+                    if (symbol && codePoint <= 0xFFFF)
                     {
                         // Remap ch for symbol fonts.
-                        ch2 = (char)(ch | (_descriptor.FontFace.os2.usFirstCharIndex & 0xFF00));  // @@@ refactor
+                        mapped = (char)(codePoint | (_descriptor.FontFace.os2.usFirstCharIndex & 0xFF00));  // @@@ refactor
                     }
-                    int glyphIndex = _descriptor.CharCodeToGlyphIndex(ch2);
-                    CharacterToGlyphIndex.Add(ch, glyphIndex);
+                    int glyphIndex = _descriptor.CharCodeToGlyphIndex(mapped);
+                    CharacterToGlyphIndex.Add(codePoint, glyphIndex);
                     GlyphIndices[glyphIndex] = null;
-                    MinChar = (char)Math.Min(MinChar, ch);
-                    MaxChar = (char)Math.Max(MaxChar, ch);
+                    if (codePoint <= 0xFFFF)
+                    {
+                        MinChar = (char)Math.Min(MinChar, (char)codePoint);
+                        MaxChar = (char)Math.Max(MaxChar, (char)codePoint);
+                    }
                 }
             }
         }
@@ -110,11 +122,11 @@ internal class CMapInfo
         return CharacterToGlyphIndex.ContainsKey(ch);
     }
 
-    public char[] Chars
+    public int[] Chars
     {
         get
         {
-            char[] chars = new char[CharacterToGlyphIndex.Count];
+            int[] chars = new int[CharacterToGlyphIndex.Count];
             CharacterToGlyphIndex.Keys.CopyTo(chars, 0);
             Array.Sort(chars);
             return chars;
@@ -131,6 +143,11 @@ internal class CMapInfo
 
     public char MinChar = char.MaxValue;
     public char MaxChar = char.MinValue;
-    public Dictionary<char, int> CharacterToGlyphIndex = new Dictionary<char, int>();
+
+    /// <summary>
+    /// Maps used Unicode code points (supplementary-plane values included) to their
+    /// glyph indices.
+    /// </summary>
+    public Dictionary<int, int> CharacterToGlyphIndex = new Dictionary<int, int>();
     public Dictionary<int, object> GlyphIndices = new Dictionary<int, object>();
 }

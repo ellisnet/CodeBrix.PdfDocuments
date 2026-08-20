@@ -289,8 +289,41 @@ internal sealed class OpenTypeDescriptor : FontDescriptor
     /// </summary>
     public int CharCodeToGlyphIndex(char value)
     {
+        return CharCodeToGlyphIndex((int)value);
+    }
+
+    /// <summary>
+    /// Maps a Unicode code point (including supplementary-plane values above U+FFFF)
+    /// to the index of the corresponding glyph. Supplementary-plane characters require
+    /// the font to carry a cmap format 12 subtable; without one they map to the
+    /// missing glyph.
+    /// </summary>
+    public int CharCodeToGlyphIndex(int value)
+    {
         try
         {
+            // The format 12 subtable covers the full repertoire; use it whenever the
+            // code point is outside the BMP or the font has no format 4 subtable.
+            CMap12 cmap12 = FontFace.cmap.cmap12;
+            if (cmap12 != null && (value > 0xFFFF || FontFace.cmap.cmap4 == null))
+            {
+                int lo = 0, hi = (int)cmap12.nGroups - 1;
+                while (lo <= hi)
+                {
+                    int mid = (lo + hi) / 2;
+                    if (value < cmap12.startCharCode[mid])
+                        hi = mid - 1;
+                    else if (value > cmap12.endCharCode[mid])
+                        lo = mid + 1;
+                    else
+                        return (int)(cmap12.startGlyphId[mid] + (uint)(value - cmap12.startCharCode[mid]));
+                }
+                return 0;
+            }
+
+            if (value > 0xFFFF)
+                return 0;
+
             CMap4 cmap4 = FontFace.cmap.cmap4;
             int segCount = cmap4.segCountX2 / 2;
             int seg;

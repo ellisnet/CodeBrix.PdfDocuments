@@ -87,9 +87,15 @@ for PDF generation - it is not a web browser.
 * Headings (with PDF outline/bookmarks), paragraphs, nested lists, definition lists, blockquotes,
   code blocks, tables (colspan and rowspan, content-measured column widths), images, and links
   (including in-document `#anchor` links)
+* Every image format CodeBrix.Imaging decodes (PNG, JPEG, BMP, WebP, GIF, TIFF, TGA, PBM/PGM/PPM),
+  with transparency preserved, as local files, data: URIs, or (opt-in) http(s) URLs
+* SVG images - referenced files, `data:image/svg+xml` URIs, and inline `<svg>` elements - rendered
+  through an offscreen CPU rasterizer, identically on Windows, macOS, and Linux
 * Headers/footers with page-number tokens
 * All text rendered with the CodeBrix.Platform.Fonts packages (Roboto, Merriweather, Roboto Mono),
   automatically copied into the application output - identical PDF output on every operating system
+* Consumer font registration (loose `.ttf`/`.otf` files, no manifest needed) usable from CSS and
+  SVG text, with per-glyph fallback decided against each font's actual character coverage
 * Unsupported CSS and missing resources degrade to collectable warnings, never exceptions
 
 ## CodeBrix.PdfDocCreate.Markdown2Pdf supports:
