@@ -1,0 +1,20 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".gitignore" />
+    <File Path="AGENT-README.txt" />
+    <File Path="icon-codebrix-128.png" />
+    <File Path="LICENSE" />
+    <File Path="README.md" />
+    <File Path="THIRD-PARTY-NOTICES.txt" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="tests/CodeBrix.PdfDocCreate.Html2Pdf.Tests/CodeBrix.PdfDocCreate.Html2Pdf.Tests.csproj" />
+    <Project Path="tests/CodeBrix.PdfDocCreate.Markdown2Pdf.Tests/CodeBrix.PdfDocCreate.Markdown2Pdf.Tests.csproj" />
+    <Project Path="tests/CodeBrix.PdfDocuments.Tests/CodeBrix.PdfDocuments.Tests.csproj" />
+  </Folder>
+  <Project Path="src/CodeBrix.PdfDocCreate.Html2Pdf/CodeBrix.PdfDocCreate.Html2Pdf.csproj" />
+  <Project Path="src/CodeBrix.PdfDocCreate.Markdown2Pdf/CodeBrix.PdfDocCreate.Markdown2Pdf.csproj" />
+  <Project Path="src/CodeBrix.PdfDocCreate/CodeBrix.PdfDocCreate.csproj" />
+  <Project Path="src/CodeBrix.PdfDocuments/CodeBrix.PdfDocuments.csproj" />
+  <Project Path="src/CodeBrix.PdfRasterizer/CodeBrix.PdfRasterizer.csproj" />
+</Solution>
