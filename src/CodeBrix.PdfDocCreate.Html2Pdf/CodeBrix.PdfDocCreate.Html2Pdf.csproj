@@ -75,17 +75,17 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="CodeBrix.MarkupParse.MitLicenseForever" Version="1.0.164.1248" />
+    <PackageReference Include="CodeBrix.MarkupParse.MitLicenseForever" Version="1.0.238.561" />
     <PackageReference Include="CodeBrix.StyleSheetParse.MitLicenseForever" Version="1.0.238.81" />
-    <PackageReference Include="CodeBrix.Platform.Fonts.Roboto.OflLicenseForever" Version="1.0.209.315" />
-    <PackageReference Include="CodeBrix.Platform.Fonts.Merriweather.OflLicenseForever" Version="1.0.209.309" />
-    <PackageReference Include="CodeBrix.Platform.Fonts.RobotoMono.OflLicenseForever" Version="1.0.216.1150" />
+    <PackageReference Include="CodeBrix.Platform.Fonts.Roboto.OflLicenseForever" Version="1.0.238.528" />
+    <PackageReference Include="CodeBrix.Platform.Fonts.Merriweather.OflLicenseForever" Version="1.0.238.511" />
+    <PackageReference Include="CodeBrix.Platform.Fonts.RobotoMono.OflLicenseForever" Version="1.0.238.534" />
     <!--
       Noto Music joins the per-glyph fallback chain automatically at discovery: it
       renders the musical characters the text families lack, and is never a body-text
       default.
     -->
-    <PackageReference Include="CodeBrix.Platform.Fonts.NotoMusic.OflLicenseForever" Version="1.0.231.1184" />
+    <PackageReference Include="CodeBrix.Platform.Fonts.NotoMusic.OflLicenseForever" Version="1.0.238.517" />
     <!--
       SVG placement: the fully managed SVG engine. It parses SVG into a display list
       that is written into the page as vector operators (the default), or rasterized in

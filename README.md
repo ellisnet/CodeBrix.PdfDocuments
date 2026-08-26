@@ -33,6 +33,31 @@ to the latest LTS version of Microsoft .NET.
 CodeBrix.PdfDocuments is a fork of the code of the popular PdfSharpCore library version 1.3.67 and the
 MigraDocCore libraries version 1.3.67 - see below for licensing details.
 
+## Installation
+
+The five packages are complementary rather than alternatives, and each one brings in the ones below
+it. Reference the highest-level package that does what you need:
+
+```
+dotnet add package CodeBrix.PdfDocuments.MitLicenseForever
+```
+
+| Package ID | Use it for | Brings in |
+| --- | --- | --- |
+| `CodeBrix.PdfDocuments.MitLicenseForever` | Drawing at exact coordinates, reading, merging, encrypting | CodeBrix.Imaging, CodeBrix.Compression |
+| `CodeBrix.PdfDocCreate.MitLicenseForever` | Sections, styles, tables, automatic pagination | PdfDocuments |
+| `CodeBrix.PdfDocCreate.Html2Pdf.MitLicenseForever` | Rendering author-written HTML + CSS | PdfDocCreate, MarkupParse, StyleSheetParse, the font packages, and the fully managed drawing engine |
+| `CodeBrix.PdfDocCreate.Markdown2Pdf.MitLicenseForever` | Rendering Markdown with zero configuration | Html2Pdf |
+| `CodeBrix.PdfRasterizer.MitLicenseForever` | Turning finished PDF pages back into images | PdfDocuments, CodeBrix.Imaging, and the bundled PDFium natives |
+
+Note that the NuGet package IDs carry a `.MitLicenseForever` suffix that the assemblies and
+namespaces do not - there is no package named plain `CodeBrix.PdfDocuments`. The suffix is a
+CodeBrix family convention recording the license the package will always be published under.
+
+`CodeBrix.PdfRasterizer` is the only package with a native component: it bundles pre-built PDFium
+binaries and needs no separate native-asset package on any supported platform. The other four are
+fully managed.
+
 ## CodeBrix.PdfDocuments supports:
 
 * Creating PDF documents from scratch
@@ -370,8 +395,21 @@ var htmlRenderer = new HtmlPdfRenderer();
 htmlRenderer.RenderHtml(html, "restyled.pdf", generated.BaseDirectory);
 ```
 
-Note that significant additional sample code is available in the `CodeBrix.PdfDocuments.Tests`,
-`CodeBrix.PdfDocCreate.Html2Pdf.Tests`, and `CodeBrix.PdfDocCreate.Markdown2Pdf.Tests` projects.
+## Documentation
+
+Every one of the five NuGet packages includes its own `AGENT-README.txt` - a complete API reference
+and usage guide written for AI coding agents, specific to the package you referenced. Point your
+agent at that file when it is writing code against these libraries.
+
+Significant additional sample code is available in the `CodeBrix.PdfDocuments.Tests`,
+`CodeBrix.PdfDocCreate.Html2Pdf.Tests`, and `CodeBrix.PdfDocCreate.Markdown2Pdf.Tests` projects:
+https://github.com/ellisnet/CodeBrix.PdfDocuments/tree/main/tests
+
+These libraries create and render PDFs; they do not extract text from existing ones. There is no
+text extraction or OCR, no digital signing or verification, no PDF/A or PDF/X compliance
+generation, no creation of new form fields (existing ones can be read, filled and flattened), and
+no editing of existing page content in place - you can draw over or under it, or replace a content
+stream wholesale, but not change a word where it sits.
 
 ## License
 
