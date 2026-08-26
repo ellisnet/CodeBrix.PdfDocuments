@@ -258,11 +258,19 @@ public sealed class XPen
             //if (length == 0)
             //  throw new ArgumentException("Dash pattern array must not be empty.");
 
+            // PDF's rule (8.4.3.6): every element non-negative, and not all of them zero. A
+            // zero-length dash is legitimate - with round caps it is how a dotted line is
+            // drawn (SVG stroke-dasharray="0,2"), and engraving software writes exactly that.
+            bool anyPositive = false;
             for (int idx = 0; idx < length; idx++)
             {
-                if (value[idx] <= 0)
-                    throw new ArgumentException("Dash pattern value must greater than zero.");
+                if (value[idx] < 0 || double.IsNaN(value[idx]))
+                    throw new ArgumentException("Dash pattern values must not be negative.");
+                if (value[idx] > 0)
+                    anyPositive = true;
             }
+            if (length > 0 && !anyPositive)
+                throw new ArgumentException("Dash pattern values must not all be zero.");
 
             _dirty = true;
             _dashStyle = XDashStyle.Custom;

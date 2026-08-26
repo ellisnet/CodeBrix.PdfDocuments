@@ -121,7 +121,7 @@ public sealed class HtmlPdfRenderer
         var body = dom.Body ?? htmlElement;
         var bodyStyle = body != null ? resolver.Compute(body, htmlStyle) : htmlStyle;
 
-        var images = new ImageResolver(resolvedBase, options.AllowRemoteImages, options.SvgRasterScale, warnings);
+        var images = new ImageResolver(resolvedBase, options.AllowRemoteImages, options.SvgPlacement, options.SvgRasterScale, warnings);
 
         using (var measure = new MeasureHelper())
         {

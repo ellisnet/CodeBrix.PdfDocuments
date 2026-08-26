@@ -595,6 +595,9 @@ COLORS, BRUSHES AND PENS
         public XColor Color; public XBrush Brush; public double Width
         public XDashStyle DashStyle          // Solid | Dash | Dot | DashDot | DashDotDot | Custom
         public double[] DashPattern; public double DashOffset
+        // Both in multiples of the pen width. PDF's rule applies: no element may be
+        // negative and they must not all be zero - a ZERO element is valid and, with
+        // round caps, is how a dotted line is drawn (SVG stroke-dasharray="0,2").
         public XLineCap LineCap              // Flat | Round | Square
         public XLineJoin LineJoin            // Miter | Round | Bevel
         public double MiterLimit
@@ -607,7 +610,22 @@ COLORS, BRUSHES AND PENS
         public XRadialGradientBrush(XPoint center, double r1, double r2, XColor color1, XColor color2)
         public XRadialGradientBrush(XPoint center1, XPoint center2, double r1, double r2, XColor color1, XColor color2)
 
+    public readonly struct XGradientStop
+        public XGradientStop(double offset, XColor color)   // alpha is IGNORED
+        public double Offset; public XColor Color
+
+    public sealed class XShadingBrush : XBaseGradientBrush   // any number of stops
+        public XShadingBrush(XPoint start, XPoint end, IEnumerable<XGradientStop> stops)
+        public XShadingBrush(XPoint startCenter, double startRadius, XPoint endCenter, double endRadius, IEnumerable<XGradientStop> stops)
+        public XShadingKind Kind                 // Axial (PDF type 2) | Radial (type 3)
+        public XPoint Start; public XPoint End
+        public double StartRadius; public double EndRadius     // radial only
+        public IReadOnlyList<XGradientStop> Stops  // sorted, padded to span 0..1
+        public bool ExtendStart; public bool ExtendEnd         // both default true
+        public XMatrix Transform                 // brush space -> user space; HONOURED
+
     XLinearGradientMode: Horizontal, Vertical, ForwardDiagonal, BackwardDiagonal
+    XShadingKind:        Axial, Radial
 
     var brand = XColor.FromArgb(0x1F, 0x5F, 0x9F);
     var halfRed = XColor.FromArgb(128, XColors.Red);              // 50% alpha
@@ -618,6 +636,29 @@ COLORS, BRUSHES AND PENS
     var fade = new XLinearGradientBrush(new XRect(50, 50, 300, 40),
         XColors.White, XColors.SteelBlue, XLinearGradientMode.Horizontal);
     gfx.DrawRectangle(fade, 50, 50, 300, 40);
+
+XShadingBrush is the general form of the two brushes above: any number of
+stops, axial or radial geometry, per-end extension (PDF /Extend), and a
+brush-space transform. It is realized as a PDF shading pattern whose function
+is exponential for two stops and a stitching function for three or more. Give
+the geometry in the brush's own space and let Transform map that space into
+user space - that is how a gradient defined on a shape's bounding box keeps its
+direction when the box is not square.
+
+    var wash = new XShadingBrush(new XPoint(0, 0), new XPoint(1, 0), new[] {
+        new XGradientStop(0, XColors.Red),
+        new XGradientStop(0.5, XColors.Lime),
+        new XGradientStop(1, XColors.Blue) });
+    wash.Transform = new XMatrix(200, 0, 0, 100, 0, 0);   // unit square -> 200x100
+    gfx.DrawRectangle(wash, new XRect(0, 0, 200, 100));
+
+⚠ Transform is honoured ONLY by XShadingBrush. XLinearGradientBrush and
+XRadialGradientBrush inherit the same property from XBaseGradientBrush, but the
+PDF renderer never applies it for them - use XShadingBrush when a gradient
+needs a transform. Those two brushes also used to write FOUR colour components
+(an alpha included) into a DeviceRGB shading function, which strict viewers
+reject with "function with wrong output size", so they rendered as nothing on
+Linux viewers; they now write three and render everywhere.
 
 DRAWING SHAPES
 --------------
@@ -817,14 +858,36 @@ in your code:
 
 "quality" is the JPEG quality used when the image is embedded as JPEG.
 
+THE VECTOR-IMAGE SEAM (ImageSource.IVectorImageSource). An image source can
+draw ITSELF as page content instead of supplying pixels:
+
+    public interface IVectorImageSource : IImageSource
+        double WidthPoints { get; }      // natural size, in POINTS
+        double HeightPoints { get; }
+        void Draw(XGraphics graphics, XRect destination)
+
+The document object model in CodeBrix.PdfDocCreate is what honours it: its
+image renderer lays such a source out at its natural size in points and calls
+Draw at render time, with the graphics state saved and restored around the
+call, so the implementation may transform and clip freely - and NOTHING is
+embedded as a bitmap. PictureFormat cropping does not apply to a vector
+source, and the pixel-oriented IImageSource members (SaveAsJpeg,
+SaveAsPdfBitmap) are never called - an implementation may throw
+NotSupportedException from them.
+
+At THIS level nothing consumes the seam: XImage.FromImageSource and
+XGraphics.DrawImage still work on pixels only. The interface lives here
+because IImageSource does.
+
 Supported image formats for embedding (every format CodeBrix.Imaging decodes):
     PNG, JPEG, BMP, WebP, GIF, TIFF, TGA, PBM/PGM/PPM
 Formats that can carry transparency (PNG, WebP, GIF, BMP, TIFF, TGA) embed
 losslessly with their alpha channel preserved; JPEG and PBM embed as JPEG.
 Known decoder caveats (from CodeBrix.Imaging): no animated WebP, no
 arithmetic-coded JPEG; animated GIF embeds its first frame.
-SVG is NOT supported at this level - SVG placement is a feature of the
-CodeBrix.PdfDocCreate.Html2Pdf / Markdown2Pdf packages.
+SVG is NOT supported at this level - nothing here parses SVG. SVG placement is
+a feature of the CodeBrix.PdfDocCreate.Html2Pdf / Markdown2Pdf packages, which
+reach the page through the vector-image seam described above.
 
 DRAWING PDF PAGES ONTO PAGES (XPdfForm): WATERMARK, OVERLAY, STAMP, N-UP
 -----------------------------------------------------------------------
@@ -902,6 +965,44 @@ frames do not bloat the file:
         using var g = XGraphics.FromPdfPage(p, XGraphicsPdfPageOptions.Append);
         g.DrawImage(stamp, p.Width - stamp.PointWidth - 20, 20);
     }
+
+TRANSPARENCY GROUPS AND BLEND MODES
+-----------------------------------
+An XForm can also be composited onto the page as ONE object rather than as the
+run of separate draws that made it. That is a PDF transparency group, and it is
+the only correct way to give overlapping content a single opacity: drawn
+plainly, the overlap darkens where the shapes cross.
+
+    public void XForm.MakeTransparencyGroup()
+        // Call BEFORE any drawing on the form; throws once it has been drawn on.
+        // Sets /Group << /S /Transparency /CS /DeviceRGB /I true /K false >>.
+
+    public void XGraphics.DrawTransparencyGroup(XForm form, XRect rect, double opacity, XBlendMode blendMode)
+        // Places the form like DrawImage, but under an ExtGState carrying
+        // CA/ca = opacity and /BM = blendMode. No-op on a measure context.
+
+    public PdfDocument XGraphics.PdfDocument
+        // The document behind this graphics object's page or form; null for a
+        // measure context.
+
+    XBlendMode: Normal, Multiply, Screen, Overlay, Darken, Lighten, ColorDodge,
+                ColorBurn, HardLight, SoftLight, Difference, Exclusion, Hue,
+                Saturation, Color, Luminosity     // the PDF /BM names (PDF 1.4)
+
+    // Two overlapping squares as one even 50% wash - no darker overlap
+    var group = new XForm(document, new XRect(0, 0, 200, 100));
+    group.MakeTransparencyGroup();
+    using (var fg = XGraphics.FromForm(group))
+    {
+        fg.DrawRectangle(XBrushes.Red, new XRect(10, 10, 100, 80));
+        fg.DrawRectangle(XBrushes.Red, new XRect(80, 10, 100, 80));
+    }
+    gfx.DrawTransparencyGroup(group, new XRect(0, 0, 200, 100), 0.5, XBlendMode.Normal);
+
+Underneath, PdfExtGState has a BlendMode setter and PdfExtGStateTable exposes
+GetExtGState(double strokeAlpha, double nonStrokeAlpha, XBlendMode blendMode),
+which returns a state shared by value - reach for those only when writing PDF
+operators by hand.
 
 READING EXISTING PDFs
 ---------------------
@@ -1962,6 +2063,18 @@ COMMON PITFALLS TO AVOID
     CodeBrix.PdfDocCreate: CodeBrix.PdfDocuments.Charting has its own Chart,
     Font, Point, LineFormat and DocumentObject types. Alias one namespace.
 
+22. DO NOT expect a gradient brush's Transform to do anything unless the brush
+    is an XShadingBrush. XLinearGradientBrush and XRadialGradientBrush inherit
+    the property from XBaseGradientBrush, but the PDF renderer applies it only
+    for XShadingBrush. Reach for XShadingBrush whenever the gradient needs a
+    transform - or more than two stops.
+
+23. DO NOT give overlapping content a single opacity by drawing each piece
+    translucently: the overlap darkens where the pieces cross. Draw them onto
+    an XForm turned into a transparency group with MakeTransparencyGroup, then
+    place it with DrawTransparencyGroup - the whole group composites once. The
+    same call carries the blend mode.
+
 ================================================================================
 
 WHAT THIS PACKAGE DOES NOT DO
@@ -1985,7 +2098,10 @@ WHAT THIS PACKAGE DOES NOT DO
     package (which accepts a PdfDocument directly).
   - HTML/CSS or Markdown to PDF - CodeBrix.PdfDocCreate.Html2Pdf and
     CodeBrix.PdfDocCreate.Markdown2Pdf.
-  - SVG placement (only raster images embed here).
+  - SVG: nothing here parses it. Only raster images embed at this level; a
+    caller that already HAS vector content can hand it to the document model
+    through ImageSource.IVectorImageSource (see DRAWING IMAGES), which is how
+    Html2Pdf places SVG.
   - Writing AES-encrypted files (RC4 40/128-bit only; AES files can be READ).
   - Reading or writing Word (.docx) or Excel (.xlsx) files.
   - PDF portfolios, JavaScript actions, multimedia annotations.
@@ -2025,6 +2141,17 @@ Feature-to-test-file mapping:
   ImagingImageSource / ImageSource for every supported image format and
   transparency handling:
     https://github.com/ellisnet/CodeBrix.PdfDocuments/tree/main/tests/CodeBrix.PdfDocuments.Tests/Utils/ImagingImageSourceTests.cs
+
+  ImageSource.IVectorImageSource: a source drawn at its natural size in points,
+  honouring an explicit width with the aspect ratio locked, and embedding no
+  image XObject at all:
+    https://github.com/ellisnet/CodeBrix.PdfDocuments/tree/main/tests/CodeBrix.PdfDocuments.Tests/Rendering/VectorImageSourceTests.cs
+
+  Transparency groups and shading brushes: a group with an opacity compositing
+  its overlapping content once, a multiply blend mode reaching the backdrop,
+  and a three-stop XShadingBrush with a brush matrix painting a stitched
+  gradient:
+    https://github.com/ellisnet/CodeBrix.PdfDocuments/tree/main/tests/CodeBrix.PdfDocuments.Tests/Drawing/TransparencyGroupTests.cs
 
   Security: creating 40-bit and 128-bit protected files, opening AES-encrypted
   files, password failures, reading files encrypted by several tools:
@@ -2101,6 +2228,10 @@ Path:           var p = new XGraphicsPath(); p.AddArc(...); p.CloseFigure(); gfx
 Colour:         XColor.FromArgb(r, g, b) / FromArgb(a, r, g, b) / FromCmyk(c, m, y, k) / XColors.Red
 Brush/Pen:      new XSolidBrush(color); new XPen(color, width) { DashStyle = XDashStyle.Dash }
 Gradient:       new XLinearGradientBrush(rect, c1, c2, XLinearGradientMode.Horizontal)
+Multi-stop:     new XShadingBrush(p0, p1, stops) { Transform = m }   // radial ctor too
+Stop:           new XGradientStop(offset, color)         // alpha ignored
+Group:          form.MakeTransparencyGroup(); gfx.DrawTransparencyGroup(form, rect, 0.5, XBlendMode.Multiply)
+Owning doc:     gfx.PdfDocument                          // null on a measure context
 Transform:      gfx.TranslateTransform(dx, dy); .RotateAtTransform(deg, center); .ScaleTransform(s)
 State:          var st = gfx.Save(); ... gfx.Restore(st)
 Clip:           gfx.IntersectClip(rect | path)

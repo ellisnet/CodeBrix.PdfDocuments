@@ -53,8 +53,8 @@ Project reference graph inside the repository:
 Each ProjectReference becomes a package dependency at pack time, resolved from
 the referenced project's PackageId and version. External package references
 (CodeBrix.Compression, CodeBrix.Imaging, CodeBrix.MarkupParse,
-CodeBrix.StyleSheetParse, CodeBrix.SkiaSvg and the CodeBrix.Platform.Fonts.*
-packages) are pinned in the individual csproj files.
+CodeBrix.StyleSheetParse, CodeBrix.Imaging.Drawing.NoSkia and the
+CodeBrix.Platform.Fonts.* packages) are pinned in the individual csproj files.
 
 
 REPOSITORY LAYOUT
@@ -139,16 +139,46 @@ Microsoft.Testing.Platform runner for the whole repository.
     dotnet test CodeBrix.PdfDocuments.slnx
     dotnet test tests/CodeBrix.PdfDocCreate.Html2Pdf.Tests
 
-No environment variables gate any test; there is no opt-in suite. Special prep
-and non-obvious wiring:
+One optional environment variable gates ONE test; everything else runs
+unconditionally. Special prep and non-obvious wiring:
 
-  - LINUX SVG NATIVES. tests/CodeBrix.PdfDocCreate.Html2Pdf.Tests and
-    tests/CodeBrix.PdfDocCreate.Markdown2Pdf.Tests each carry a
-    PackageReference to SkiaSharp.NativeAssets.Linux.NoDependencies so that SVG
-    rasterization works when the suite runs on Linux. THAT REFERENCE BELONGS
-    ONLY IN tests/, NEVER IN src/ - see the note under PACKAGING AND PUBLISHING
-    about why the Html2Pdf library declares neither Linux variant. The
-    reference is harmless on Windows and macOS.
+  - NO NATIVE PREP OF ANY KIND. The whole chain, SVG included, is managed code,
+    so the suite needs nothing installed on any operating system. The test
+    projects USED to carry a PackageReference to
+    SkiaSharp.NativeAssets.Linux.NoDependencies for SVG; that reference is gone
+    and must not come back - see the note under PACKAGING AND PUBLISHING.
+  - THE CORPUS GATE. LilyPortCorpusGateTests reads
+    HTML2PDF_LILYPORT_SVG_CORPUS. Point it at a folder of real engraving-engine
+    .svg files and the test places every one of them through the vector route
+    and asserts the whole run is clean (nothing failed, nothing fell back to a
+    raster, no bitmap embedded, only the known per-glyph coverage warnings).
+    Unset, or pointing at a folder with no .svg files, the test skips. The
+    corpus is GFDL/GPL-3 material that lives outside this repository and is
+    never committed.
+  - WHERE THE VECTOR-SVG COVERAGE LIVES. It is split across three files because
+    the machinery is split across two packages:
+      tests/CodeBrix.PdfDocuments.Tests/Drawing/TransparencyGroupTests.cs
+          the core primitives: XForm.MakeTransparencyGroup plus
+          XGraphics.DrawTransparencyGroup compositing an overlap once, a
+          multiply blend mode reaching the backdrop, and a three-stop
+          XShadingBrush carrying a brush matrix.
+      tests/CodeBrix.PdfDocCreate.Html2Pdf.Tests/SvgVectorPlacementTests.cs
+          placement and geometry: Vector as the default, no image XObject,
+          transforms, dashes, declared sizing, <use>, SVG text as real text in
+          the face the engine measured with (a /FontFile2 subset with a
+          /ToUnicode map), stroked text staying glyph outlines, an SVG x list
+          placing each glyph where the document put it, group opacity emitted
+          as a transparency group, and the image-filter raster fallback.
+      tests/CodeBrix.PdfDocCreate.Html2Pdf.Tests/SvgVectorFidelityTests.cs
+          gradient fidelity: axial, multi-stop stitching, objectBoundingBox on
+          a wide shape, radial, focal, a gradient stroke, fill-opacity becoming
+          a group of one, and the two gradient cases that still rasterize
+          (stops differing in alpha, repeating spread).
+    All three rasterize their own output with PdfRasterizer and assert on
+    pixels, so a change that writes syntactically valid but wrong PDF is caught.
+    ⚠ Blend modes have NO SVG-level coverage on purpose: CodeBrix.SvgParse does
+    not parse mix-blend-mode, so no picture can carry one. The PDF /BM mapping
+    is covered through TransparencyGroupTests instead.
   - BUILD TARGETS IMPORT. The same two test projects <Import> the file
     src/CodeBrix.PdfDocCreate.Html2Pdf/buildTransitive/net10.0/
     CodeBrix.PdfDocCreate.Html2Pdf.MitLicenseForever.targets directly. A
@@ -237,18 +267,16 @@ ADDITIONAL PACKAGE CONTENT.
     "-x64"), packed to runtimes\linux-x64\native. Every other RID's folder name
     matches its package path.
 
-THE SkiaSharp LINUX NATIVE-ASSETS RULE. The Html2Pdf csproj contains a
-COMMENTED-OUT PackageReference to SkiaSharp.NativeAssets.Linux.NoDependencies,
-with a comment explaining why. Do not uncomment it, and do not "fix" the missing
-dependency. Two mutually exclusive Linux variants exist
-(SkiaSharp.NativeAssets.Linux and SkiaSharp.NativeAssets.Linux.NoDependencies);
-only the consuming application can choose between them, and declaring one here
-would break every consumer that already references the other. A consumer on
-Linux that renders SVG references one itself; when neither is present nothing
-crashes - SVG images are skipped and the skip is reported as a collected
-rendering warning with the code "image.svg.nativemissing". This repository's own
-test projects reference the NoDependencies variant so the suite passes on Linux,
-which is why that reference exists in tests/ and must never be moved to src/.
+⚠ THE NATIVE-FREE RULE. Every package this repository ships except
+CodeBrix.PdfRasterizer (which bundles PDFium) is pure managed code on every
+operating system, and Html2Pdf's SVG support is deliberately part of that: it
+goes through CodeBrix.Imaging.Drawing.NoSkia, a fully managed engine with zero
+native dependencies. THIS IS A RULE, NOT A CIRCUMSTANCE: Html2Pdf must never
+reacquire a Skia dependency, a SkiaSharp native-assets reference, or any other
+native library - not in src/, not in tests/, not "just for SVG rasterization".
+Earlier releases rasterized SVG through Skia and asked Linux consumers to
+reference a native-assets package themselves; that whole arrangement, and the
+"image.svg.nativemissing" warning code that went with it, is retired.
 
 PUBLISHING. Push the five .nupkg files produced by a Release build. Because the
 version is a clock stamp, the five packages published from one build session
@@ -283,7 +311,9 @@ the full license texts. Summary of where the code came from:
   CodeBrix.PdfDocCreate.Html2Pdf
       Written for this repository. It composes onto PdfDocCreate and delegates
       parsing to the CodeBrix.MarkupParse and CodeBrix.StyleSheetParse packages
-      and SVG rasterization to CodeBrix.SkiaSvg.
+      and SVG parsing/drawing to CodeBrix.Imaging.Drawing.NoSkia (which brings
+      CodeBrix.SvgParse). The Svg folder turns that engine's display list into
+      PDF vector operators, or rasterizes it on request.
 
   CodeBrix.PdfDocCreate.Markdown2Pdf
       Contains a C# port of markdown-it 14.1.0 (MIT) in the

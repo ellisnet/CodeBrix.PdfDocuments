@@ -1,3 +1,5 @@
+using CodeBrix.PdfDocCreate.Html2Pdf;
+
 namespace CodeBrix.PdfDocCreate.Markdown2Pdf;
 
 /// <summary>
@@ -23,8 +25,16 @@ public sealed class MarkdownRenderOptions
     public string FooterText { get; set; } = "{page} / {pages}";
 
     /// <summary>
-    /// Scale factor for rasterizing SVG images, relative to the SVG's natural CSS-pixel
-    /// size (default 2.0, roughly 192 DPI at natural size). Forwarded to Html2Pdf.
+    /// How SVG images are placed: as PDF vector content (the default) or as rasterized
+    /// bitmaps. Forwarded to Html2Pdf; see <see cref="SvgPlacementMode"/>.
+    /// </summary>
+    public SvgPlacementMode SvgPlacement { get; set; } = SvgPlacementMode.Vector;
+
+    /// <summary>
+    /// Scale factor for rasterizing SVG content, relative to the SVG's natural CSS-pixel
+    /// size (default 2.0, roughly 192 DPI at natural size): the whole picture in raster
+    /// placement, only the parts PDF cannot express in vector placement. Forwarded to
+    /// Html2Pdf.
     /// </summary>
     public double SvgRasterScale { get; set; } = 2.0;
 

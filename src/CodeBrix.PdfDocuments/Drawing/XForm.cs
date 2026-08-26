@@ -134,6 +134,25 @@ public class XForm : XImage, IContentStream
     /// CodeBrix.PdfDocuments automatically calls this function when this form was used the first time
     /// in a DrawImage function. 
     /// </summary>
+    /// <summary>
+    /// Makes this form a transparency group (PDF 1.4): when it is drawn with
+    /// <see cref="XGraphics.DrawTransparencyGroup"/>, its content is composited onto the page as
+    /// ONE object with the given opacity and blend mode, so content that overlaps inside the
+    /// form does not double up. Call before anything is drawn on the form.
+    /// </summary>
+    public void MakeTransparencyGroup()
+    {
+        if (_formState != FormState.Created)
+            throw new InvalidOperationException("A form becomes a transparency group before any drawing on it.");
+
+        PdfDictionary group = new PdfDictionary(_document);
+        group.Elements.SetName("/S", "/Transparency");
+        group.Elements.SetName("/CS", "/DeviceRGB");
+        group.Elements.SetBoolean("/I", true);
+        group.Elements.SetBoolean("/K", false);
+        _pdfForm.Elements["/Group"] = group;
+    }
+
     public void DrawingFinished()
     {
         if (_formState == FormState.Finished)

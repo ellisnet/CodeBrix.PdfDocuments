@@ -48,7 +48,9 @@ public sealed class PdfShading : PdfDictionary
 
     internal void SetupFromBrush(XBaseGradientBrush brush, XGraphicsPdfRenderer renderer)
     {
-        if (brush is XRadialGradientBrush radialBrush)
+        if (brush is XShadingBrush shadingBrush)
+            SetupFromBrush(shadingBrush, renderer);
+        else if (brush is XRadialGradientBrush radialBrush)
             SetupFromBrush(radialBrush, renderer);
         else if (brush is XLinearGradientBrush linearBrush)
             SetupFromBrush(linearBrush, renderer);
@@ -95,8 +97,8 @@ public sealed class PdfShading : PdfDictionary
         Elements[Keys.Function] = function;
         //Elements[Keys.Extend] = new PdfRawItem("[true true]");
 
-        string clr1 = "[" + PdfEncoders.ToString(color1, colorMode, true) + "]";
-        string clr2 = "[" + PdfEncoders.ToString(color2, colorMode, true) + "]";
+        string clr1 = "[" + PdfEncoders.ToString(color1, colorMode, false) + "]";
+        string clr2 = "[" + PdfEncoders.ToString(color2, colorMode, false) + "]";
 
         function.Elements["/FunctionType"] = new PdfInteger(2);
         function.Elements["/C0"] = new PdfLiteral(clr1);
@@ -181,14 +183,133 @@ public sealed class PdfShading : PdfDictionary
         Elements[Keys.Function] = function;
         //Elements[Keys.Extend] = new PdfRawItem("[true true]");
 
-        string clr1 = "[" + PdfEncoders.ToString(color1, colorMode, true) + "]";
-        string clr2 = "[" + PdfEncoders.ToString(color2, colorMode, true) + "]";
+        string clr1 = "[" + PdfEncoders.ToString(color1, colorMode, false) + "]";
+        string clr2 = "[" + PdfEncoders.ToString(color2, colorMode, false) + "]";
 
         function.Elements["/FunctionType"] = new PdfInteger(2);
         function.Elements["/C0"] = new PdfLiteral(clr1);
         function.Elements["/C1"] = new PdfLiteral(clr2);
         function.Elements["/Domain"] = new PdfLiteral("[0 1]");
         function.Elements["/N"] = new PdfInteger(1);
+    }
+
+    /// <summary>
+    /// Sets up an axial or radial shading with any number of stops from an
+    /// <see cref="XShadingBrush"/>. The geometry is written in the brush's own space; the
+    /// brush transform becomes part of the pattern matrix (see PdfShadingPattern).
+    /// </summary>
+    internal void SetupFromBrush(XShadingBrush brush, XGraphicsPdfRenderer renderer)
+    {
+        if (brush == null)
+            throw new ArgumentNullException("brush");
+
+        PdfColorMode colorMode = _document.Options.ColorMode;
+        Elements[Keys.ShadingType] = new PdfInteger(brush.Kind == XShadingKind.Axial ? 2 : 3);
+        if (colorMode != PdfColorMode.Cmyk)
+            Elements[Keys.ColorSpace] = new PdfName("/DeviceRGB");
+        else
+            Elements[Keys.ColorSpace] = new PdfName("/DeviceCMYK");
+
+        // The two-colour brushes write their coordinates through WorldToView - the renderer's
+        // map from user space into the (y-flipped) space its content operators use - and let
+        // the pattern matrix carry the CTM. A brush transform that is not a similarity cannot
+        // be pushed through that map point by point (a non-uniform scale bends an axial
+        // gradient's level lines), so this brush writes its geometry RAW in brush space and
+        // hands the pattern the whole chain instead: brush transform, then the user-to-content
+        // map probed here as an affine matrix (see PatternSpaceTransform), then the CTM.
+        XPoint origin = renderer.WorldToView(new XPoint(0, 0));
+        XPoint unitX = renderer.WorldToView(new XPoint(1, 0));
+        XPoint unitY = renderer.WorldToView(new XPoint(0, 1));
+        PatternSpaceTransform = new XMatrix(unitX.X - origin.X, unitX.Y - origin.Y, unitY.X - origin.X, unitY.Y - origin.Y, origin.X, origin.Y);
+
+        const string format = Config.SignificantFigures3;
+        if (brush.Kind == XShadingKind.Axial)
+        {
+            Elements[Keys.Coords] = new PdfLiteral("[{0:" + format + "} {1:" + format + "} {2:" + format + "} {3:" + format + "}]",
+                brush.Start.X, brush.Start.Y, brush.End.X, brush.End.Y);
+        }
+        else
+        {
+            Elements[Keys.Coords] = new PdfLiteral("[{0:" + format + "} {1:" + format + "} {2:" + format + "} {3:" + format + "} {4:" + format + "} {5:" + format + "}]",
+                brush.Start.X, brush.Start.Y, brush.StartRadius, brush.End.X, brush.End.Y, brush.EndRadius);
+        }
+
+        Elements[Keys.Function] = BuildStopFunction(brush.Stops, colorMode);
+        Elements[Keys.Extend] = new PdfLiteral("[{0} {1}]", brush.ExtendStart ? "true" : "false", brush.ExtendEnd ? "true" : "false");
+    }
+
+    /// <summary>
+    /// For an <see cref="XShadingBrush"/>: the affine map from user space into the space the
+    /// shading coordinates were written in, which the shading pattern prepends to its matrix
+    /// (after the brush transform, before the CTM). Identity for the two-colour brushes,
+    /// whose coordinates are already mapped.
+    /// </summary>
+    internal XMatrix PatternSpaceTransform = XMatrix.Identity;
+
+    /// <summary>
+    /// An exponential function for two stops, else a stitching function over one
+    /// exponential function per interval. Bounds must be strictly increasing, so a hard
+    /// edge (two stops at one offset) is separated by a hair.
+    /// </summary>
+    private PdfDictionary BuildStopFunction(System.Collections.Generic.IReadOnlyList<XGradientStop> stops, PdfColorMode colorMode)
+    {
+        if (stops.Count == 2)
+            return ExponentialFunction(stops[0].Color, stops[1].Color, colorMode);
+
+        double[] offsets = new double[stops.Count];
+        for (int i = 0; i < stops.Count; i++)
+        {
+            double offset = stops[i].Offset;
+            if (i > 0 && offset <= offsets[i - 1])
+                offset = Math.Min(1, offsets[i - 1] + 0.0001);
+            offsets[i] = offset;
+        }
+
+        PdfDictionary function = new PdfDictionary();
+        function.Elements["/FunctionType"] = new PdfInteger(3);
+        function.Elements["/Domain"] = new PdfLiteral("[0 1]");
+
+        PdfArray functions = new PdfArray(_document);
+        System.Text.StringBuilder bounds = new System.Text.StringBuilder("[");
+        System.Text.StringBuilder encode = new System.Text.StringBuilder("[");
+        for (int i = 0; i < stops.Count - 1; i++)
+        {
+            functions.Elements.Add(ExponentialFunction(stops[i].Color, stops[i + 1].Color, colorMode));
+            if (i > 0)
+            {
+                if (i > 1)
+                    bounds.Append(' ');
+                bounds.Append(PdfEncoders.ToString(offsets[i]));
+            }
+            if (i > 0)
+                encode.Append(' ');
+            encode.Append("0 1");
+        }
+        bounds.Append(']');
+        encode.Append(']');
+
+        function.Elements["/Functions"] = functions;
+        function.Elements["/Bounds"] = new PdfLiteral(bounds.ToString());
+        function.Elements["/Encode"] = new PdfLiteral(encode.ToString());
+        return function;
+    }
+
+    /// <summary>
+    /// A type 2 function between two colours. The colours are written WITHOUT alpha: a
+    /// shading function has exactly as many outputs as the colour space has components,
+    /// and a fourth value in DeviceRGB makes viewers reject the whole shading.
+    /// </summary>
+    private static PdfDictionary ExponentialFunction(XColor color1, XColor color2, PdfColorMode colorMode)
+    {
+        color1 = ColorSpaceHelper.EnsureColorMode(colorMode, color1);
+        color2 = ColorSpaceHelper.EnsureColorMode(colorMode, color2);
+        PdfDictionary function = new PdfDictionary();
+        function.Elements["/FunctionType"] = new PdfInteger(2);
+        function.Elements["/C0"] = new PdfLiteral("[" + PdfEncoders.ToString(color1, colorMode, false) + "]");
+        function.Elements["/C1"] = new PdfLiteral("[" + PdfEncoders.ToString(color2, colorMode, false) + "]");
+        function.Elements["/Domain"] = new PdfLiteral("[0 1]");
+        function.Elements["/N"] = new PdfInteger(1);
+        return function;
     }
 
     /// <summary>

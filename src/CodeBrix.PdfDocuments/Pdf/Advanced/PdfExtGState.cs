@@ -28,6 +28,7 @@
 #endregion
 
 using System.Globalization;
+using CodeBrix.PdfDocuments.Drawing;
 
 namespace CodeBrix.PdfDocuments.Pdf.Advanced; //Was previously: namespace PdfSharpCore.Pdf.Advanced;
 
@@ -192,6 +193,20 @@ public sealed class PdfExtGState : PdfDictionary
         set { Elements.SetReference(Keys.SMask, value); }
     }
 
+    /// <summary>
+    /// Sets the blend mode (/BM) - how objects drawn under this state combine with the backdrop.
+    /// </summary>
+    public XBlendMode BlendMode
+    {
+        set
+        {
+            _blendMode = value;
+            Elements.SetName(Keys.BM, "/" + value.ToString());
+            UpdateKey();
+        }
+    }
+    XBlendMode _blendMode;
+
     internal string Key
     {
         get { return _key; }
@@ -201,7 +216,8 @@ public sealed class PdfExtGState : PdfDictionary
     {
         _key = ((int)(1000 * _strokeAlpha)).ToString(CultureInfo.InvariantCulture) +
                ((int)(1000 * _nonStrokeAlpha)).ToString(CultureInfo.InvariantCulture) +
-               (_strokeOverprint ? "S" : "s") + (_nonStrokeOverprint ? "N" : "n");
+               (_strokeOverprint ? "S" : "s") + (_nonStrokeOverprint ? "N" : "n") +
+               (_blendMode != XBlendMode.Normal ? _blendMode.ToString() : "");
     }
     string _key;
 

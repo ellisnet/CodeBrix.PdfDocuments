@@ -1902,6 +1902,37 @@ public sealed class XGraphics : IDisposable
     readonly GraphicsStateStack _gsStack;
 
     /// <summary>
+    /// Gets the PDF document this graphics object draws into - the owner of its page or of its
+    /// form - or null when there is none (a measure context).
+    /// </summary>
+    public PdfDocument PdfDocument
+    {
+        get
+        {
+            PdfPage page = PdfPage;
+            if (page != null)
+                return page.Owner;
+            return _form != null ? _form.Owner : null;
+        }
+    }
+
+    /// <summary>
+    /// Draws a form as a transparency group: its content lands on the page as ONE object with
+    /// the given constant opacity (0..1) and blend mode, so content overlapping inside the form
+    /// does not double up. Prepare the form with <see cref="XForm.MakeTransparencyGroup"/>
+    /// before drawing on it. Has no effect on a measure context.
+    /// </summary>
+    public void DrawTransparencyGroup(XForm form, XRect rect, double opacity, XBlendMode blendMode)
+    {
+        if (form == null)
+            throw new ArgumentNullException("form");
+
+        XGraphicsPdfRenderer renderer = _renderer as XGraphicsPdfRenderer;
+        if (renderer != null)
+            renderer.DrawTransparencyGroup(form, rect, opacity, blendMode);
+    }
+
+    /// <summary>
     /// Gets the PDF page that serves as drawing surface if PDF is rendered,
     /// or null, if no such object exists.
     /// </summary>

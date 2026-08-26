@@ -19,16 +19,21 @@ internal sealed class ImageResolver
     private static readonly object BackendSync = new object();
     private static HttpClient _httpClient;
 
+    // Keeps a pathological viewBox from allocating an absurd raster.
+    private const int MaxPixelsPerSide = 10000;
+
     private readonly string _baseDirectory;
     private readonly bool _allowRemote;
+    private readonly SvgPlacementMode _svgPlacement;
     private readonly double _svgRasterScale;
     private readonly RenderWarnings _warnings;
     private int _counter;
 
-    public ImageResolver(string baseDirectory, bool allowRemote, double svgRasterScale, RenderWarnings warnings)
+    public ImageResolver(string baseDirectory, bool allowRemote, SvgPlacementMode svgPlacement, double svgRasterScale, RenderWarnings warnings)
     {
         _baseDirectory = baseDirectory;
         _allowRemote = allowRemote;
+        _svgPlacement = svgPlacement;
         _svgRasterScale = Math.Clamp(svgRasterScale, 0.25, 8.0);
         _warnings = warnings;
         EnsureImagingBackend();
@@ -97,9 +102,9 @@ internal sealed class ImageResolver
             return false;
         }
 
-        if (SvgImageRasterizer.LooksLikeSvg(bytes))
+        if (SvgDocumentLoader.LooksLikeSvg(bytes))
         {
-            return TryRasterizeSvg(bytes, reference, ref source, ref naturalWidthPoints, ref naturalHeightPoints);
+            return TryPlaceSvg(bytes, reference, ref source, ref naturalWidthPoints, ref naturalHeightPoints);
         }
 
         try
@@ -125,7 +130,7 @@ internal sealed class ImageResolver
 
     /// <summary>
     /// Resolves inline svg element markup (already serialized to a string) the same way
-    /// a referenced .svg file resolves: rasterized to a transparent PNG.
+    /// a referenced .svg file resolves: placed per the SVG placement mode.
     /// </summary>
     public bool TryResolveSvgMarkup(string svgMarkup, out ImageSource.IImageSource source, out double naturalWidthPoints, out double naturalHeightPoints)
     {
@@ -140,40 +145,50 @@ internal sealed class ImageResolver
         }
 
         var bytes = System.Text.Encoding.UTF8.GetBytes(svgMarkup);
-        return TryRasterizeSvg(bytes, "(inline svg)", ref source, ref naturalWidthPoints, ref naturalHeightPoints);
+        return TryPlaceSvg(bytes, "(inline svg)", ref source, ref naturalWidthPoints, ref naturalHeightPoints);
     }
 
-    private bool TryRasterizeSvg(byte[] svgBytes, string reference, ref ImageSource.IImageSource source, ref double naturalWidthPoints, ref double naturalHeightPoints)
+    private bool TryPlaceSvg(byte[] svgBytes, string reference, ref ImageSource.IImageSource source, ref double naturalWidthPoints, ref double naturalHeightPoints)
     {
-        // Per-glyph font fallback for SVG text: characters the styled face lacks are
-        // wrapped in tspans naming the covering fallback family before rasterization;
-        // what nothing covers renders as missing-glyph shapes and warns.
-        svgBytes = SvgTextFallback.Process(svgBytes, Truncate(reference), _warnings);
+        var loaded = SvgDocumentLoader.Load(svgBytes, Truncate(reference), _warnings);
+        if (loaded == null) { return false; }
 
-        byte[] pngBytes;
-        try
-        {
-            pngBytes = SvgImageRasterizer.RasterizeToPng(svgBytes, _svgRasterScale, out naturalWidthPoints, out naturalHeightPoints);
-        }
-        catch (SkiaNativeLibraryMissingException ex)
-        {
-            // Deliberately no image reference in the message: every SVG in the document
-            // fails for this one environmental reason, so an unqualified message collapses
-            // to a single collected warning whose Occurrences count reports how many were
-            // skipped, instead of repeating the guidance once per image.
-            _warnings.Add(RenderWarnings.CategoryImage, ex.Message, "image.svg.nativemissing");
-            return false;
-        }
-        catch (Exception ex)
-        {
-            _warnings.Add(RenderWarnings.CategoryImage,
-                $"SVG image '{Truncate(reference)}' could not be rendered and was skipped ({ex.GetType().Name}).", "image.svg.failed");
-            return false;
-        }
-
+        naturalWidthPoints = loaded.NaturalWidthPoints;
+        naturalHeightPoints = loaded.NaturalHeightPoints;
         var name = $"html2pdf-img-{++_counter}";
-        source = ImageSource.FromBinary(name, () => pngBytes, quality: 90);
+
+        if (_svgPlacement == SvgPlacementMode.Raster)
+        {
+            byte[] pngBytes;
+            try
+            {
+                pngBytes = RasterizeWholeSvg(loaded);
+            }
+            catch (Exception ex)
+            {
+                _warnings.Add(RenderWarnings.CategoryImage,
+                    $"SVG image '{Truncate(reference)}' could not be rendered and was skipped ({ex.GetType().Name}).", "image.svg.failed");
+                return false;
+            }
+
+            source = ImageSource.FromBinary(name, () => pngBytes, quality: 90);
+            return true;
+        }
+
+        source = new SvgVectorImageSource(loaded, name, Truncate(reference), _svgRasterScale, _warnings);
         return true;
+    }
+
+    /// <summary>
+    /// Raster placement: the whole picture at the raster scale, on a transparent
+    /// background, entirely in managed code. The scale never leaks into layout - the
+    /// placed size comes from the document, not from the pixels.
+    /// </summary>
+    private byte[] RasterizeWholeSvg(LoadedSvg loaded)
+    {
+        var bounds = loaded.Document.Bounds;
+        var effectiveScale = Math.Min(_svgRasterScale, MaxPixelsPerSide / Math.Max(bounds.Width, bounds.Height));
+        return loaded.Document.RasterizeToPng((float)effectiveScale);
     }
 
     private byte[] ReadLocalFile(string reference)

@@ -28,6 +28,7 @@
 #endregion
 
 using System.Collections.Generic;
+using CodeBrix.PdfDocuments.Drawing;
 
 namespace CodeBrix.PdfDocuments.Pdf.Advanced; //Was previously: namespace PdfSharpCore.Pdf.Advanced;
 
@@ -89,6 +90,29 @@ public sealed class PdfExtGStateTable : PdfResourceTable
         return extGState;
     }
 
+    /// <summary>
+    /// Gets a state that sets both alphas and the blend mode at once - what a transparency
+    /// group is drawn with. States are shared by value.
+    /// </summary>
+    public PdfExtGState GetExtGState(double strokeAlpha, double nonStrokeAlpha, XBlendMode blendMode)
+    {
+        string key = ((int)(1000 * strokeAlpha)).ToString(System.Globalization.CultureInfo.InvariantCulture) + "/" +
+                     ((int)(1000 * nonStrokeAlpha)).ToString(System.Globalization.CultureInfo.InvariantCulture) + "/" +
+                     blendMode.ToString();
+        PdfExtGState extGState;
+        if (!_compositeStates.TryGetValue(key, out extGState))
+        {
+            extGState = new PdfExtGState(Owner);
+            extGState.StrokeAlpha = strokeAlpha;
+            extGState.NonStrokeAlpha = nonStrokeAlpha;
+            if (blendMode != XBlendMode.Normal)
+                extGState.BlendMode = blendMode;
+            _compositeStates[key] = extGState;
+        }
+        return extGState;
+    }
+
+    readonly Dictionary<string, PdfExtGState> _compositeStates = new Dictionary<string, PdfExtGState>();
     readonly Dictionary<string, PdfExtGState> _strokeAlphaValues = new Dictionary<string, PdfExtGState>();
     readonly Dictionary<string, PdfExtGState> _nonStrokeStates = new Dictionary<string, PdfExtGState>();
 }

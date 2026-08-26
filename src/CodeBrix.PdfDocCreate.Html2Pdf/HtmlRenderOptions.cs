@@ -50,10 +50,20 @@ public sealed class HtmlRenderOptions
     public bool GenerateOutline { get; set; } = true;
 
     /// <summary>
-    /// Scale factor for rasterizing SVG images, relative to the SVG's natural CSS-pixel
-    /// size. The default of 2.0 is roughly 192 DPI when the image is placed at its
-    /// natural size; raise it for sharper print output at the cost of a larger PDF.
-    /// Values are clamped to the range 0.25 - 8.0 at render time.
+    /// How SVG images are placed: as PDF vector content (the default) or as a rasterized
+    /// bitmap. See <see cref="SvgPlacementMode"/> for what each mode does and when the
+    /// vector mode falls back to a raster for part of a picture.
+    /// </summary>
+    public SvgPlacementMode SvgPlacement { get; set; } = SvgPlacementMode.Vector;
+
+    /// <summary>
+    /// Scale factor for rasterizing SVG content, relative to the SVG's natural CSS-pixel
+    /// size. In <see cref="SvgPlacementMode.Raster"/> mode it decides the whole picture's
+    /// pixel density; in <see cref="SvgPlacementMode.Vector"/> mode it applies only to a
+    /// part PDF cannot express as vectors, which is rasterized on its own. The default of
+    /// 2.0 is roughly 192 DPI when the image is placed at its natural size; raise it for
+    /// sharper print output at the cost of a larger PDF. Values are clamped to the range
+    /// 0.25 - 8.0 at render time. It never changes the placed size.
     /// </summary>
     public double SvgRasterScale { get; set; } = 2.0;
 

@@ -17,7 +17,9 @@ namespace CodeBrix.PdfDocCreate.Html2Pdf.Svg;
 /// structured warning per code point with an occurrence count, so every coverage gap
 /// is baselined instead of invisible. Font selection mirrors
 /// <see cref="SvgFontResolution"/> exactly (attribute-based, with inheritance; the
-/// supported SVG dialect has no CSS).
+/// supported SVG dialect has no CSS). The same walk records every font the text asks
+/// for - family list, weight and style, fallback families included - so the SVG
+/// engine's registry can be filled with exactly those faces.
 /// </summary>
 internal static class SvgTextFallback
 {
@@ -26,7 +28,7 @@ internal static class SvgTextFallback
     /// Never throws: markup this pass cannot parse is returned unchanged and
     /// contributes no warnings (the rasterizer deals with it on its own terms).
     /// </summary>
-    public static byte[] Process(byte[] svgBytes, string reference, RenderWarnings warnings)
+    public static byte[] Process(byte[] svgBytes, string reference, RenderWarnings warnings, ISet<SvgFontRequest> fontRequests)
     {
         XDocument document;
         try
@@ -41,7 +43,7 @@ internal static class SvgTextFallback
 
         if (document.Root == null) { return svgBytes; }
 
-        var changed = ProcessElement(document.Root, "serif", 400, false, insideText: false, reference, warnings);
+        var changed = ProcessElement(document.Root, "serif", 400, false, insideText: false, reference, warnings, fontRequests);
         if (!changed) { return svgBytes; }
 
         using var output = new MemoryStream();
@@ -56,7 +58,8 @@ internal static class SvgTextFallback
         bool italic,
         bool insideText,
         string reference,
-        RenderWarnings warnings)
+        RenderWarnings warnings,
+        ISet<SvgFontRequest> fontRequests)
     {
         fontFamily = element.Attribute("font-family")?.Value ?? fontFamily;
         weight = ParseWeight(element.Attribute("font-weight")?.Value, weight);
@@ -74,13 +77,13 @@ internal static class SvgTextFallback
 
             foreach (var textNode in textNodes)
             {
-                changed |= ProcessTextNode(textNode, element.Name.Namespace, fontFamily, weight, italic, reference, warnings);
+                changed |= ProcessTextNode(textNode, element.Name.Namespace, fontFamily, weight, italic, reference, warnings, fontRequests);
             }
         }
 
         foreach (var child in new List<XElement>(element.Elements()))
         {
-            changed |= ProcessElement(child, fontFamily, weight, italic, insideText, reference, warnings);
+            changed |= ProcessElement(child, fontFamily, weight, italic, insideText, reference, warnings, fontRequests);
         }
 
         return changed;
@@ -93,10 +96,13 @@ internal static class SvgTextFallback
         int weight,
         bool italic,
         string reference,
-        RenderWarnings warnings)
+        RenderWarnings warnings,
+        ISet<SvgFontRequest> fontRequests)
     {
         var text = textNode.Value;
         if (string.IsNullOrWhiteSpace(text)) { return false; }
+
+        fontRequests?.Add(new SvgFontRequest(fontFamily, weight, italic));
 
         var primaryFace = SvgFontResolution.ResolveFaceNameOrDefault(fontFamily, weight, italic);
         var coverage = Html2PdfFonts.TryGetFaceCoverage(primaryFace);
@@ -141,6 +147,7 @@ internal static class SvgTextFallback
                 if (fallbackFamily != null)
                 {
                     anyFallback = true;
+                    fontRequests?.Add(new SvgFontRequest(fallbackFamily, weight, italic));
                 }
                 else
                 {

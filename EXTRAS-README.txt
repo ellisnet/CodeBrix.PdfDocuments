@@ -140,8 +140,10 @@ RULE THAT COMES WITH IT
 
 ONE STALE STATEMENT INSIDE THE DROP
     The drop's own README.txt says Html2Pdf places raster images only and skips
-    SVG. That was true when the inventory was measured; it is no longer true -
-    Html2Pdf rasterizes SVG through CodeBrix.SkiaSvg and places it. The rest of
+    SVG. That was true when the inventory was measured, and it has since been
+    overtaken twice: Html2Pdf first rasterized SVG, and now places it as PDF
+    vector content by default (rasterizing only on request, or for the part of
+    a picture PDF cannot express). Read that sentence as history. The rest of
     the document - the dialect vocabulary and the notes on millimetre sizing,
     currentColor inheritance, the "sans" generic family and invisible link
     rectangles - still describes what a renderer has to handle.

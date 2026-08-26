@@ -59,7 +59,19 @@ public sealed class PdfShadingPattern : PdfDictionaryWithContentStream
         PdfShading shading = new PdfShading(_document);
         shading.SetupFromBrush(brush, renderer);
         Elements[Keys.Shading] = shading;
-        //Elements[Keys.Matrix] = new PdfLiteral("[" + PdfEncoders.ToString(matrix) + "]");
+
+        // A shading brush's geometry is written raw in its own space. Pattern space maps to
+        // device space as: brush transform, then the user-to-content map the shading probed,
+        // then the CTM and default view the matrix already holds - each prepended so it
+        // applies first.
+        if (brush is XShadingBrush shadingBrush)
+        {
+            if (!shading.PatternSpaceTransform.IsIdentity)
+                matrix.Prepend(shading.PatternSpaceTransform);
+            if (!shadingBrush.Transform.IsIdentity)
+                matrix.Prepend(shadingBrush.Transform);
+        }
+
         Elements.SetMatrix(Keys.Matrix, matrix);
     }
 

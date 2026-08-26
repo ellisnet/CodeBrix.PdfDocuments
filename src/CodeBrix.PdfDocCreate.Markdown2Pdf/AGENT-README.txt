@@ -53,7 +53,7 @@ appears in a namespace, a using directive or a type name.
 See also (sibling packages in the same repository):
   - src/CodeBrix.PdfDocCreate.Html2Pdf/AGENT-README.txt - the renderer this
     package renders THROUGH: the supported HTML elements, the CSS dialect, font
-    registration, SVG handling, the warning codes and the Linux SVG rule
+    registration, SVG handling and the warning codes
   - src/CodeBrix.PdfDocCreate/AGENT-README.txt - the document object model
     underneath, for building PDFs programmatically instead of from Markdown
   - AGENT-README.txt (repository root) - CodeBrix.PdfDocuments, the low-level
@@ -81,54 +81,35 @@ NuGet dependencies (all pulled in automatically):
     CodeBrix.PdfDocuments, CodeBrix.Imaging and CodeBrix.Compression),
     CodeBrix.MarkupParse.MitLicenseForever,
     CodeBrix.StyleSheetParse.MitLicenseForever,
-    CodeBrix.SkiaSvg.MitLicenseForever, and the font packages
+    CodeBrix.Imaging.Drawing.NoSkia.ApacheLicenseForever (the fully managed
+    SVG engine), and the font packages
     CodeBrix.Platform.Fonts.Roboto / .Merriweather / .RobotoMono /
     .NotoMusic (all OFL-licensed)
 
-There is nothing else to install: no fonts, no native libraries on Windows or
-macOS, no browser engine, no Node runtime. The markdown-it port is source code
-inside this package, not a JavaScript dependency.
+There is nothing else to install: no fonts, no native libraries on ANY
+operating system, no browser engine, no Node runtime. The markdown-it port is
+source code inside this package, not a JavaScript dependency.
 
 License: MIT (the font packages are OFL-licensed).
 
 Requirements: .NET 10 or later.
 
 ################################################################################
-## IMPORTANT - LINUX ONLY: SVG RENDERING NEEDS A SkiaSharp NATIVE-ASSETS PACKAGE
+## NO NATIVE DEPENDENCIES - NOTHING TO INSTALL, ON ANY OPERATING SYSTEM
 ################################################################################
 
-Markdown2Pdf renders through Html2Pdf, so it inherits that package's Linux SVG
-requirement exactly. If your application runs on LINUX and your Markdown
-embeds SVG content - an <img src="diagram.svg">, a data:image/svg+xml URI or an
-inline <svg> block - the APPLICATION must reference ONE of these two NuGet
-packages itself:
+Markdown2Pdf renders through Html2Pdf, and that whole chain - Markdown, HTML,
+CSS, images, fonts and SVG - is managed code. Windows, macOS and Linux need
+NOTHING beyond the NuGet package: no native library, no runtime identifier, no
+native-assets package.
 
-    SkiaSharp.NativeAssets.Linux
-    SkiaSharp.NativeAssets.Linux.NoDependencies
-
-  dotnet add package SkiaSharp.NativeAssets.Linux
-    -- OR --
-  dotnet add package SkiaSharp.NativeAssets.Linux.NoDependencies
-
-EITHER package satisfies the renderer equally - neither is recommended over the
-other. Reference exactly ONE, whichever suits the application. If the
-application already references one of them for its own reasons, KEEP THAT ONE;
-nothing needs to change, and it must not be swapped for the other.
-
-WINDOWS and macOS need NOTHING extra - SkiaSharp's own package brings those
-natives transitively.
-
-WHY this is not just a package dependency: two mutually exclusive Linux
-variants exist, and only the consuming application can choose between them;
-declaring one here would force that choice on every consumer and break
-applications that already reference the other. This is a deliberate design
-decision - do NOT "fix" it by adding a dependency on either package.
-
-WHAT HAPPENS IF IT IS MISSING: nothing crashes. SVG images are skipped and the
-rest of the document renders normally. The skip is reported as a collected
-rendering warning with the code "image.svg.nativemissing", whose message names
-both packages. Check MarkdownRenderResult.Warnings when SVG content is silently
-absent from your output.
+UPGRADING FROM AN OLDER VERSION: releases before the vector SVG route asked
+Linux applications that embedded SVG content to reference
+SkiaSharp.NativeAssets.Linux or SkiaSharp.NativeAssets.Linux.NoDependencies
+themselves. That requirement is GONE, and the warning code
+"image.svg.nativemissing" is retired and can no longer be raised. If an
+application referenced one of those packages ONLY for this renderer, it can
+drop the reference.
 
 ################################################################################
 
@@ -143,8 +124,9 @@ KEY NAMESPACES / USINGS
 
     using CodeBrix.PdfDocCreate.Html2Pdf;
         // RenderWarnings, RenderWarning, RenderWarningCategory - the types of
-        // MarkdownRenderResult.Warnings; also HtmlPdfRenderer and
-        // HtmlRenderOptions for the restyling workflow
+        // MarkdownRenderResult.Warnings; SvgPlacementMode - the type of
+        // Options.SvgPlacement; also HtmlPdfRenderer and HtmlRenderOptions
+        // for the restyling workflow
 
     using CodeBrix.PdfDocCreate.Markdown2Pdf.MarkdownIt;
         // MarkdownParser, MarkdownPreset, MarkdownItOptions, Token, MdEnv,
@@ -254,7 +236,7 @@ directly.
         // BuildHtmlDocument(BodyHtml, replacementCss, Title) - your stylesheet
         // instead of the built-in one
 
---- MarkdownRenderOptions (sealed class; all five properties, with defaults) ---
+--- MarkdownRenderOptions (sealed class; all six properties, with defaults) ---
 
     renderer.Options.PageSize = "a4";
         // string; default "letter". Recognized names (case-insensitive):
@@ -272,9 +254,16 @@ directly.
         // string; default "{page} / {pages}". Set to null to remove the
         // footer. Tokens {page}, {pages} and {title} expand at render time.
 
+    renderer.Options.SvgPlacement = SvgPlacementMode.Raster;
+        // SvgPlacementMode; default Vector. Forwarded to Html2Pdf: Vector
+        // writes SVG into the page as PDF vector operators and embeds no
+        // bitmap; Raster embeds the whole picture as a transparent PNG.
+
     renderer.Options.SvgRasterScale = 3.0;
         // double; default 2.0. Forwarded to Html2Pdf; higher is sharper and
-        // larger.
+        // larger. It sets the whole picture's density in Raster placement,
+        // and in Vector placement applies only to a part that had to fall
+        // back to a raster.
 
     renderer.Options.KeepUncoveredCharacters = true;
         // bool; default false. Forwarded to Html2Pdf: keep characters no
@@ -374,7 +363,9 @@ stylesheet can recolor.
 Images support the same formats as Html2Pdf - PNG, JPEG, BMP, WebP, GIF, TIFF,
 TGA, PBM/PGM/PPM and SVG - referenced as relative or absolute paths (either
 separator style works on every OS) or as data: URIs. The data: URI allow-list
-admits exactly those image media types and rejects everything else.
+admits exactly those image media types and rejects everything else. SVG is
+placed as PDF vector content by default (Options.SvgPlacement) and behaves
+exactly as the Html2Pdf AGENT-README describes.
 
 --- THE markdown-it PORT (ADVANCED) ---
 
@@ -966,8 +957,7 @@ MINIMUM VIABLE PROJECT
     dotnet new console -n MdToPdf --framework net10.0
     cd MdToPdf
     dotnet add package CodeBrix.PdfDocCreate.Markdown2Pdf.MitLicenseForever
-    # On Linux, ONLY if your Markdown embeds SVG images:
-    # dotnet add package SkiaSharp.NativeAssets.Linux.NoDependencies
+    # That is the whole install - nothing extra on any operating system.
 
 MdToPdf.csproj:
 
@@ -1069,9 +1059,12 @@ PERFORMANCE TIPS
    network I/O for every remote image; it is false by default for that reason
    as well as for safety.
 
-8. LOWER SvgRasterScale FOR DRAFTS. It defaults to 2.0; SVG rasterization is
-   the most expensive step in an SVG-heavy document, and 1.0 is much faster
-   when you only need to check the layout.
+8. LEAVE SvgPlacement ON Vector. Vector placement embeds no bitmap at all, so
+   an SVG-heavy document is both smaller and faster than the raster route -
+   and stays sharp at any zoom. SvgRasterScale then matters only for the rare
+   part of a picture that had to fall back to a raster. If you do switch to
+   Raster placement, lowering SvgRasterScale from its 2.0 default to 1.0 makes
+   draft renders much faster when you only need to check the layout.
 
 ================================================================================
 
@@ -1098,9 +1091,10 @@ COMMON PITFALLS TO AVOID
    in result.Warnings.Items (each with Category, Code, Message, Occurrences).
 
 5. DO NOT look for styling options that are not there. MarkdownRenderOptions
-   has exactly five properties (PageSize, AllowRemoteImages, FooterText,
-   SvgRasterScale, KeepUncoveredCharacters). Margins, fonts and colors are
-   changed by intercepting the HTML/CSS with GenerateHtml*, not by a knob.
+   has exactly six properties (PageSize, AllowRemoteImages, FooterText,
+   SvgPlacement, SvgRasterScale, KeepUncoveredCharacters). Margins, fonts and
+   colors are changed by intercepting the HTML/CSS with GenerateHtml*, not by
+   a knob.
 
 6. DO NOT expect a plugin to affect RenderFile / RenderMarkdown. Those build
    their own parser internally. Parse with your own parser and hand the HTML
@@ -1144,9 +1138,8 @@ COMMON PITFALLS TO AVOID
     unless KeepUncoveredCharacters is true, which makes them .notdef boxes
     instead.
 
-15. DO NOT ship SVG-bearing Markdown to Linux without one of the SkiaSharp
-    native-assets packages in the APPLICATION. The SVGs silently vanish and
-    the only trace is the "image.svg.nativemissing" warning.
+15. DO NOT add a Skia or native-assets package "for SVG". Nothing in this
+    chain needs one on any operating system - see the notice near the top.
 
 16. DO NOT write a rule that returns true without advancing the state. An
     inline rule must move state.Pos, a block rule must move state.Line;
@@ -1164,7 +1157,7 @@ COMMON PITFALLS TO AVOID
 WHAT THIS PACKAGE DOES NOT DO
 =============================
 
-  - It does NOT give you a styling API. Five options, then the HTML/CSS
+  - It does NOT give you a styling API. Six options, then the HTML/CSS
     hand-off. That is deliberate.
   - It does NOT let you plug custom Markdown syntax into the one-call PDF path.
     Parse with your own MarkdownParser and render through Html2Pdf instead.
@@ -1221,6 +1214,9 @@ URL:
   unsafe or unknown types:
     -> https://github.com/ellisnet/CodeBrix.PdfDocuments/tree/main/tests/CodeBrix.PdfDocCreate.Markdown2Pdf.Tests/MarkdownImageFormatTests.cs
 
+  SVG placement defaulting to Vector and being forwarded to Html2Pdf:
+    -> https://github.com/ellisnet/CodeBrix.PdfDocuments/tree/main/tests/CodeBrix.PdfDocCreate.Markdown2Pdf.Tests/MarkdownSvgPlacementTests.cs
+
 HOW TO USE: Fetch the raw file content from GitHub using a URL like:
     https://raw.githubusercontent.com/ellisnet/CodeBrix.PdfDocuments/main/{path}
 For example:
@@ -1233,8 +1229,7 @@ QUICK REFERENCE CARD
 
 --- Install ---
     dotnet add package CodeBrix.PdfDocCreate.Markdown2Pdf.MitLicenseForever
-    Linux + SVG: also ONE of SkiaSharp.NativeAssets.Linux /
-                 SkiaSharp.NativeAssets.Linux.NoDependencies (app's choice)
+    Nothing else on any OS - no native library anywhere in the chain
 Namespaces:     CodeBrix.PdfDocCreate.Markdown2Pdf,
                 CodeBrix.PdfDocCreate.Markdown2Pdf.MarkdownIt (+ .RulesBlock,
                 .RulesInline, .RulesCore, .Common, .Helpers),
@@ -1251,14 +1246,17 @@ HTML from file: var g = r.GenerateHtmlFromFile("doc.md")
 HTML from text: var g = r.GenerateHtml(md, baseDir)
 Reassemble:     MarkdownPdfRenderer.BuildHtmlDocument(body, css, title)
 
---- Options (all five) ---
+--- Options (all six) ---
 Page size:      r.Options.PageSize = "a4"    // letter(def) legal ledger
                                              // a3 a4 a5 b4 b5
 Remote images:  r.Options.AllowRemoteImages = true      // default false
 Footer:         r.Options.FooterText = "Page {page} of {pages}"
                                              // default "{page} / {pages}";
                                              // null removes it
-SVG sharpness:  r.Options.SvgRasterScale = 3.0          // default 2.0
+SVG placement:  r.Options.SvgPlacement = SvgPlacementMode.Raster
+                                             // default Vector
+SVG sharpness:  r.Options.SvgRasterScale = 3.0          // default 2.0;
+                                             // raster parts only
 Tofu opt-in:    r.Options.KeepUncoveredCharacters = true // default false
 
 --- Results ---

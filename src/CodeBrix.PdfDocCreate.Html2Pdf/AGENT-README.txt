@@ -18,24 +18,25 @@ All text renders with the CodeBrix.Platform.Fonts package fonts (Roboto,
 Merriweather, RobotoMono - plus any fonts you register) and NEVER with
 operating-system fonts, so output is byte-comparable on every operating
 system. Images embed in every format CodeBrix.Imaging decodes; SVG (files,
-data: URIs and inline <svg>) rasterizes through CodeBrix.SkiaSvg identically on
-Windows, macOS and Linux.
+data: URIs and inline <svg>) is placed as PDF VECTOR CONTENT by default - or
+rasterized on request - identically on Windows, macOS and Linux, with NO native
+dependency of any kind.
 
 DESIGN SCOPE: this is for HTML/CSS an author writes FOR PDF generation. It is
 NOT a browser: floats, positioning, flexbox/grid, JavaScript, media queries,
 CSS variables and calc() are out of scope. Unsupported CSS never fails a
 render - it is ignored and reported in the result's Warnings collection.
 
-The public surface is seven types in two namespaces: HtmlPdfRenderer,
-HtmlRenderOptions, HtmlRenderResult, RenderWarnings, RenderWarning and
-RenderWarningCategory (CodeBrix.PdfDocCreate.Html2Pdf) and the static
-Html2PdfFonts (CodeBrix.PdfDocCreate.Html2Pdf.Fonts). The ".MitLicenseForever"
-suffix belongs to the PACKAGE ID only and never appears in a namespace, using
-directive or type name.
+The public surface is eight types in two namespaces: HtmlPdfRenderer,
+HtmlRenderOptions, HtmlRenderResult, SvgPlacementMode, RenderWarnings,
+RenderWarning and RenderWarningCategory (CodeBrix.PdfDocCreate.Html2Pdf) and
+the static Html2PdfFonts (CodeBrix.PdfDocCreate.Html2Pdf.Fonts). The
+".MitLicenseForever" suffix belongs to the PACKAGE ID only and never appears in
+a namespace, using directive or type name.
 
 See also (sibling packages in the same repository):
   - src/CodeBrix.PdfDocCreate.Markdown2Pdf/AGENT-README.txt - Markdown to PDF,
-    which renders THROUGH this package (and inherits its Linux SVG rule)
+    which renders THROUGH this package (and inherits its SVG behavior)
   - src/CodeBrix.PdfDocCreate/AGENT-README.txt - the document model this
     package composes onto
   - AGENT-README.txt (repository root) - CodeBrix.PdfDocuments, the low-level
@@ -69,9 +70,9 @@ NuGet dependencies (all pulled in automatically):
   - CodeBrix.Platform.Fonts.NotoMusic.OflLicenseForever     (music-notation
     glyphs; joins the per-glyph fallback chain automatically, never a
     body-text default)
-  - CodeBrix.SkiaSvg.MitLicenseForever (SVG rasterization; brings SkiaSharp
-    and HarfBuzzSharp, plus the Windows and macOS native assets they need - so
-    SVG rendering works on those two platforms with no extra packages)
+  - CodeBrix.Imaging.Drawing.NoSkia.ApacheLicenseForever (the fully managed SVG
+    engine; brings CodeBrix.SvgParse.MsplLicenseForever - all managed code, no
+    native library on any platform)
 
 License: MIT (the font packages are OFL-licensed).
 
@@ -90,47 +91,23 @@ copy is unwanted, opt out with this MSBuild property:
 (then make sure the fonts are still reachable - see FONTS below.)
 
 ################################################################################
-## IMPORTANT - LINUX ONLY: SVG RENDERING NEEDS A SkiaSharp NATIVE-ASSETS PACKAGE
+## NO NATIVE DEPENDENCIES - NOTHING TO INSTALL, ON ANY OPERATING SYSTEM
 ################################################################################
 
-If your application runs on LINUX and renders SVG content through
-CodeBrix.PdfDocCreate.Html2Pdf (or through CodeBrix.PdfDocCreate.Markdown2Pdf,
-which renders via this package), the APPLICATION must reference ONE of these
-two NuGet packages itself:
+Every part of this package is managed code: HTML, CSS, images, fonts AND SVG.
+There is no native library, no GPU, no window system and no system font
+anywhere in the chain, so Windows, macOS and Linux need NOTHING beyond the
+NuGet package itself - no apt/brew/msi step, no runtime identifier, no
+native-assets package.
 
-    SkiaSharp.NativeAssets.Linux
-    SkiaSharp.NativeAssets.Linux.NoDependencies
-
-  dotnet add package SkiaSharp.NativeAssets.Linux
-    -- OR --
-  dotnet add package SkiaSharp.NativeAssets.Linux.NoDependencies
-
-EITHER package satisfies Html2Pdf equally - neither is recommended over the
-other. Reference exactly ONE, whichever suits the application. If the
-application already references one of them for its own reasons, KEEP THAT ONE;
-nothing needs to change, and it must not be swapped for the other.
-
-The two differ only in how the native obtains font services - the plain variant
-links against the system libfontconfig, the ".NoDependencies" variant is
-self-contained - and that difference does not affect Html2Pdf, which never
-consults system fonts. Choose on the application's own deployment grounds.
-
-WINDOWS and macOS need NOTHING extra - SkiaSharp's own package brings those
-natives transitively.
-
-WHY this is not just a package dependency: Html2Pdf DELIBERATELY does not
-declare a dependency on either package. Two mutually exclusive Linux variants
-exist, and only the consuming application can choose between them; declaring
-one here would force that choice on every consumer and break applications that
-already reference the other. This is a deliberate design decision - do NOT
-"fix" it by adding a dependency on either package to the Html2Pdf library.
-
-WHAT HAPPENS IF IT IS MISSING: nothing crashes. SVG images are skipped and the
-rest of the document renders normally. The skip is reported as a collected
-rendering warning with the code "image.svg.nativemissing", whose message names
-both packages (one warning for the whole document; its Occurrences count says
-how many SVGs were skipped). Check HtmlRenderResult.Warnings when SVG content
-is silently absent from your output.
+UPGRADING FROM AN OLDER VERSION: releases before the vector SVG route
+rasterized SVG through a Skia-based engine, and asked Linux applications to
+reference SkiaSharp.NativeAssets.Linux or
+SkiaSharp.NativeAssets.Linux.NoDependencies themselves. That requirement is
+GONE. If an application referenced one of those packages ONLY for Html2Pdf, it
+can drop the reference; if it uses one for its own reasons, keeping it changes
+nothing here. The warning code "image.svg.nativemissing" is retired and can no
+longer be raised - remove any code that pattern-matches it.
 
 ################################################################################
 
@@ -140,8 +117,9 @@ KEY NAMESPACES / USINGS
 =======================
 
     using CodeBrix.PdfDocCreate.Html2Pdf;        // HtmlPdfRenderer, HtmlRenderOptions,
-                                                 // HtmlRenderResult, RenderWarnings,
-                                                 // RenderWarning, RenderWarningCategory
+                                                 // HtmlRenderResult, SvgPlacementMode,
+                                                 // RenderWarnings, RenderWarning,
+                                                 // RenderWarningCategory
     using CodeBrix.PdfDocCreate.Html2Pdf.Fonts;  // Html2PdfFonts (font discovery and
                                                  // consumer font registration)
 
@@ -210,6 +188,8 @@ fill OutputFilePath, RenderHtmlToBytes fills PdfBytes.
     renderer.Options.FooterText = "Page {page} of {pages}";  // string; default null
     renderer.Options.AllowRemoteImages = true; // bool; default false
     renderer.Options.GenerateOutline = false;  // bool; default true (h1-h6 -> bookmarks)
+    renderer.Options.SvgPlacement = SvgPlacementMode.Raster;
+                                               // SvgPlacementMode; default Vector
     renderer.Options.SvgRasterScale = 3.0;     // double; default 2.0
     renderer.Options.KeepUncoveredCharacters = true;  // bool; default false
     renderer.Options.DocumentTitle = "Override Title"; // string; default null
@@ -231,11 +211,28 @@ Metadata: the PDF title is Options.DocumentTitle, else the <title> element.
 The PDF author is Options.DocumentAuthor, else a <meta name="author"
 content="..."> element if present.
 
+SvgPlacement decides how SVG content reaches the page:
+
+    public enum SvgPlacementMode { Vector = 0, Raster = 1 }
+
+  Vector (the default) writes the picture's drawing commands into the page as
+    PDF operators - paths, fills, strokes, dashes, clips, transforms, text as
+    REAL PDF text in the embedded face (glyph outlines only where a run
+    cannot be text), gradients as PDF shading patterns and group opacity as a
+    PDF transparency group - so it stays sharp at any zoom and adds NO
+    image XObject to the file. Only a part PDF cannot express falls back to a
+    raster; see IMAGES AND SVG below.
+  Raster rasterizes the whole picture to a transparent PNG in managed code and
+    embeds it as a bitmap - the placement every release before the vector
+    route used.
+
 SvgRasterScale is relative to the SVG's natural CSS-pixel size (2.0 is about
 192 DPI at natural size); raise it for sharper print output at the cost of a
 larger PDF. It is clamped to 0.25 - 8.0 at render time, and additionally
 capped so that no raster side exceeds 10,000 pixels. It never changes the
-PLACED size of the image.
+PLACED size of the image. In Raster mode it sets the whole picture's density;
+in Vector mode it applies ONLY to a part that had to fall back to a raster, and
+has no effect at all on a picture that stays entirely vector.
 
 @page rules in the document's CSS override the configured size and margins:
 
@@ -291,8 +288,22 @@ carries one of these):
     image.load.failed            the image bytes could not be read/downloaded
     image.format.unsupported     bytes are not a format CodeBrix.Imaging decodes
     image.svg.empty              <svg> element without usable content; skipped
-    image.svg.nativemissing      SkiaSharp native missing (Linux; see notice)
     image.svg.failed             the SVG could not be rendered; skipped
+    image.svg.rasterized         Vector mode: a part PDF cannot express as
+                                 vectors was rasterized on its own (the message
+                                 names the reason); the rest stays vector
+    image.svg.filter-unsupported an exotic filter primitive, or feTurbulence,
+                                 was dropped by the SVG engine
+    image.svg.text-unsupported   SVG text on a path, or a glyph-id text run;
+                                 not drawn
+    image.svg.fonts-missing      tripwire: the SVG engine had no font
+                                 registered. Should not occur - report it
+    image.svg.degraded           catch-all for any other SVG-engine warning
+
+  RETIRED (can no longer be raised; listed so pattern-matching code is cleaned
+  up rather than left dead):
+    image.svg.nativemissing      required a SkiaSharp native on Linux; there is
+                                 no native in the chain any more
 
   Category Font
     font.family.unresolved       font-family matched no registered font; the
@@ -330,32 +341,109 @@ enabled - http(s) URLs. Every format CodeBrix.Imaging decodes embeds: PNG,
 JPEG, BMP, WebP, GIF, TIFF, TGA, PBM/PGM/PPM. Alpha-capable formats keep their
 transparency losslessly.
 
-SVG is fully supported and renders through an offscreen CPU rasterizer
-(CodeBrix.SkiaSvg) to a transparent PNG - identical output on Windows, macOS
-and Linux, no GPU or window system involved:
+SVG is fully supported and goes through a fully managed SVG engine
+(CodeBrix.Imaging.Drawing.NoSkia) - identical output on Windows, macOS and
+Linux, no native library, GPU or window system involved:
   - <img src="figure.svg">, data:image/svg+xml URIs (base64 or percent-encoded),
     and inline <svg>...</svg> elements (block or inside a paragraph) all render.
-  - The SVG's own width/height/viewBox decides its natural size (1 CSS px =
-    0.75 pt); CSS width/height on the element (including physical units like
-    mm) override it.
-  - Options.SvgRasterScale (default 2.0, about 192 DPI at natural size) sets
-    the raster sharpness; it never changes the placed size.
+  - PLACEMENT: Options.SvgPlacement decides. Vector (the default) writes the
+    picture into the page as PDF operators and adds NO image XObject to the
+    file; Raster embeds the whole picture as a transparent PNG at
+    Options.SvgRasterScale.
+  - NATURAL SIZE: when the SVG root declares its width/height in ABSOLUTE
+    units (mm, cm, in, pt, pc, px) those values are used EXACTLY, converted to
+    points - 80mm places at 226.77 pt, not at a rounded pixel count.
+    Otherwise the CSS-pixel drawing bounds are used at 1 CSS px = 0.75 pt. CSS
+    width/height on the element (including physical units like mm) override
+    the natural size either way.
+  - WHAT VECTOR MODE EMITS: save/restore, matrix concatenation, paths (fills
+    with nonzero or even-odd winding, strokes with caps, joins, miter limit
+    and dash patterns), rectangle and path clips (intersecting), nested
+    pictures (<use> and groups), embedded images written from their ORIGINAL
+    PNG/JPEG bytes, and text as REAL PDF TEXT. Each run is drawn as one string
+    at its anchor-resolved baseline origin, in the same face the SVG engine
+    measured it with, embedded as a SUBSET with a ToUnicode map - so the text
+    is selectable, searchable and extractable as words (pdftotext returns it),
+    and no glyph geometry is written for it. The page lays the run's glyphs
+    out from that same font file's advance widths; only kerning can differ
+    from the engine's own measurement, and it stays inside the run. Text the
+    SVG itself positions per character (an x or y LIST on <text>/<tspan>) is
+    placed glyph by glyph, where the document put each one.
+  - WHERE VECTOR TEXT STAYS GLYPH OUTLINES: a run PDF cannot express as text
+    is drawn as outline paths instead, with no font embedded for it. That is:
+    a STROKED run (PDF text cannot be stroked with the SVG's pen), including
+    stroke-and-fill; a run whose fill is a GRADIENT; and a run in a family no
+    registered face provides - the engine drew missing-glyph boxes for it, and
+    outlines keep the coverage gap visible. Such text is correct on the page
+    but is not selectable. Text on a path is not drawn at all (below).
+  - GRADIENTS ARE VECTOR: linear, radial and focal (two-point conical)
+    gradients become PDF shading patterns - axial (type 2) or radial (type 3)
+    - with any number of stops (three or more are stitched into one function).
+    Fills and strokes both take them (a stroke gets a shading pen),
+    gradientUnits="objectBoundingBox" is honoured on non-square shapes so the
+    gradient keeps its direction, and spreadMethod="pad" becomes PDF /Extend.
+    A fill-opacity is folded into the stop colours by the SVG engine, and one
+    alpha shared by every stop becomes a transparency group around the draw,
+    so a translucent gradient still composites correctly.
+  - GROUP OPACITY IS VECTOR: <g opacity="..."> becomes a PDF transparency
+    group (a form XObject carrying /Group /S /Transparency) drawn under an
+    ExtGState with ca/CA, so overlapping children composite ONCE - what an SVG
+    viewer shows. No bitmap is embedded and no warning is raised.
+  - BLEND MODES: the emitter maps the W3C separable and non-separable modes
+    (multiply, screen, overlay, darken, lighten, color-dodge, color-burn,
+    hard-light, soft-light, difference, exclusion, hue, saturation, color,
+    luminosity) to PDF /BM on a transparency group, and a single draw carrying
+    a blend mode goes into a group of one.
+    ⚠ NO SVG REACHES THAT PATH TODAY: the SVG engine (CodeBrix.SvgParse) does
+    not parse the CSS mix-blend-mode property, so a picture never arrives
+    carrying a blend mode. The mapping is exercised by the
+    CodeBrix.PdfDocuments tests instead. Treat blend modes as machinery that
+    is in place, not as a feature the HTML/SVG input can reach.
+  - WHERE VECTOR MODE FALLS BACK: only for what PDF cannot express, and only
+    for THAT part - the single command, or the layer or clip scope it governs.
+    The complete trigger list is: image filters (a blur, and so on), colour
+    filters, Porter-Duff compositing other than source-over, the "plus" and
+    "modulate" blends, difference clips, cropped images, image opacity,
+    repeating or reflecting gradients (spreadMethod="repeat" or "reflect"),
+    gradients whose stops DIFFER in alpha (per-stop stop-opacity - a PDF
+    shading carries no alpha, so those need a soft mask, which is future
+    work), and pattern fills (<pattern>). Such a part is rasterized on its own
+    at Options.SvgRasterScale, embedded as a transparent PNG, and reported
+    with the code "image.svg.rasterized" (the message names the reason).
+    The same code also covers the safety net: should the vector writer throw on a
+    picture (it never should - the case is a defect to report), the picture is
+    placed as the engine's own raster instead of the renderer's grey "Image could
+    not be read." box, and the message names the exception type and text.
+    Everything else on the page stays vector - group opacity and ordinary
+    gradients included.
   - SVG <text> renders with the registered document fonts only (see FONTS);
     system fonts are never consulted. font-family values are candidate LISTS
     ("Some Face,serif") tried in order; generic families map to the package
     defaults (including SVG-style spellings "sans" and "mono"), and a family
     no registered font provides falls back to the default sans face - the
-    same behavior as HTML text.
+    same behavior as HTML text. Internally the engine's per-document font
+    registry is filled with exactly the faces the picture's text asks for, and
+    each of those faces is recorded under its FONT FILE's own name-table
+    family names (typographic and legacy) with its weight and slant - which is
+    how a compiled run is mapped back to the exact face whose file the engine
+    measured with (nearest weight, matching slant) and that face, not a
+    lookalike, is what gets embedded. If you inspect the PDF, note that a bold
+    face is named "Roboto,Bold" in /BaseFont, not "Roboto-Bold".
   - SVG text has per-glyph font fallback, driven by the same fallback chain
     HTML text uses (AddFallbackFamily / includeInFallback; Noto Music joins
-    automatically): before rasterization, characters the styled face lacks
-    are wrapped in tspans naming the covering fallback family. A character NO
-    registered font covers renders as its missing-glyph shape - and WARNS,
-    one structured item per distinct code point (code "font.svg-text.notdef",
-    with the code point and an occurrence count), so coverage gaps are
-    baselined instead of invisible.
+    automatically): before the picture is compiled, characters the styled face
+    lacks are wrapped in tspans naming the covering fallback family. A
+    character NO registered font covers renders as its missing-glyph shape -
+    and WARNS, one structured item per distinct code point (code
+    "font.svg-text.notdef", with the code point and an occurrence count), so
+    coverage gaps are baselined instead of invisible.
+  - Text on a path and glyph-id text runs are not drawn; they warn with
+    "image.svg.text-unsupported". Exotic filter primitives and feTurbulence
+    are dropped with "image.svg.filter-unsupported".
   - A broken or unrenderable SVG degrades to a collected warning, never an
     exception.
+  - THREAD SAFETY: the SVG engine is per-document, so concurrent renders do
+    not serialize on it. There is nothing for a consumer to do.
 
 --- SUPPORTED CSS DIALECT ---
 
@@ -588,8 +676,7 @@ MINIMUM VIABLE PROJECT
     dotnet new console -n MyHtmlPdfApp --framework net10.0
     cd MyHtmlPdfApp
     dotnet add package CodeBrix.PdfDocCreate.Html2Pdf.MitLicenseForever
-    # Linux only, and only if the HTML contains SVG (pick exactly one):
-    dotnet add package SkiaSharp.NativeAssets.Linux.NoDependencies
+    # That is the whole install - nothing extra on any operating system.
 
 MyHtmlPdfApp.csproj:
 
@@ -601,9 +688,6 @@ MyHtmlPdfApp.csproj:
       </PropertyGroup>
       <ItemGroup>
         <PackageReference Include="CodeBrix.PdfDocCreate.Html2Pdf.MitLicenseForever" />
-        <!-- Linux + SVG only; either variant, exactly one:
-        <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" />
-        -->
       </ItemGroup>
       <ItemGroup>
         <None Update="index.html" CopyToOutputDirectory="PreserveNewest" />
@@ -662,10 +746,17 @@ PERFORMANCE TIPS
    Html2PdfFonts.HasDefaultFamilies) during application startup so the
    one-time font directory scan does not land inside the first request.
 
-3. KEEP SvgRasterScale AT ITS DEFAULT UNLESS PRINTING: the raster grows with
-   the square of the scale; 2.0 (about 192 DPI at natural size) is the
-   default, values are clamped to 0.25 - 8.0 and each raster side is capped
-   at 10,000 pixels. Raise it only for print-quality output.
+3. LEAVE SvgPlacement ON Vector: vector placement adds no bitmap to the file,
+   so a page of engravings or diagrams costs a fraction of the equivalent
+   raster and stays sharp at any zoom. Raster mode is for the rare document
+   that genuinely needs a flattened picture.
+
+   KEEP SvgRasterScale AT ITS DEFAULT UNLESS PRINTING: it only matters in
+   Raster mode, or for a part of a vector picture that fell back to a raster.
+   The raster grows with the square of the scale; 2.0 (about 192 DPI at
+   natural size) is the default, values are clamped to 0.25 - 8.0 and each
+   raster side is capped at 10,000 pixels. Raise it only for print-quality
+   output.
 
 4. RENDER TO BYTES FOR WEB SCENARIOS: RenderHtmlToBytes produces the PDF in
    memory (HtmlRenderResult.PdfBytes) with no temp file.
@@ -683,11 +774,10 @@ PERFORMANCE TIPS
 COMMON PITFALLS TO AVOID
 ========================
 
-1. DO NOT forget the Linux SVG rule. On Linux an application that renders SVG
-   must itself reference SkiaSharp.NativeAssets.Linux OR
-   SkiaSharp.NativeAssets.Linux.NoDependencies (exactly one). Without it the
-   render still succeeds but every SVG is skipped, with one
-   "image.svg.nativemissing" warning. See the IMPORTANT notice above.
+1. DO NOT add a Skia or native-assets package "for SVG". Nothing in this
+   package needs one on any operating system, and no version of it ever will
+   again - see the notice above. ⚠ The same rule binds the library itself:
+   Html2Pdf must never reacquire a Skia or native dependency.
 
 2. DO NOT read PdfBytes after RenderFile/RenderHtml, or OutputFilePath after
    RenderHtmlToBytes - each is null in the other mode. RenderFile and
@@ -745,6 +835,24 @@ COMMON PITFALLS TO AVOID
 14. DO NOT rely on Landscape = true flipping an already-wide page. The swap
     only happens when height > width.
 
+15. ⚠ DO NOT expect PERCENTAGE rgba() colours in SVG to render. A colour
+    written as rgba(r%, g%, b%, a%) is mis-parsed as opaque black by the
+    CodeBrix.SvgParse the SVG engine currently brings in, so such fills and
+    strokes come out black. This is a pre-existing parser limitation, not a
+    vector-placement one - Raster mode is black too. The fix already exists in
+    the SvgParse repository; once it is published, Html2Pdf will pin the newer
+    SvgParse directly. Until then, rewrite those colours in the numeric or hex
+    form (LilyPond's SVG backend is a known source of the percentage form).
+
+16. DO NOT assume EVERY SVG text run is selectable. Vector mode writes SVG
+    <text> as real PDF text in the embedded face, so it copies, searches and
+    extracts - except where PDF has no way to say it: a STROKED (or stroked-
+    and-filled) run, a run filled with a GRADIENT, and a run in a family no
+    registered face provides all stay glyph outlines, correct on the page but
+    not text. Fill SVG text with a solid colour, and register the fonts it
+    names, to keep it selectable. Raster placement has no text at all - the
+    whole picture becomes a bitmap - and text on a path is never drawn.
+
 ================================================================================
 
 WHAT THIS PACKAGE DOES NOT DO
@@ -755,8 +863,12 @@ WHAT THIS PACKAGE DOES NOT DO
     stylesheets. It does not convert live websites to PDF.
   - It does NOT use operating-system fonts, ever - only the package fonts and
     fonts you register (this is what makes output identical everywhere).
-  - It does NOT declare a Linux SkiaSharp native-assets dependency (see the
-    IMPORTANT notice); the application chooses one of the two packages.
+  - It does NOT depend on Skia, or on any other native library, on any
+    operating system - and it never will again; see the notice above.
+  - It does NOT make EVERY SVG text run selectable: vector placement emits
+    real PDF text, but a stroked or gradient-filled run, and a run no
+    registered face covers, stay glyph outlines. Raster placement, which turns
+    the whole picture into a bitmap, has no text at all.
   - It does NOT render forms as fillable fields, play audio/video, or embed
     iframes/canvas - those elements are ignored with a warning.
   - It does NOT expose the composed CodeBrix.PdfDocCreate Document for
@@ -801,9 +913,31 @@ is the reference for every feature area. Base URL:
   paragraph <svg>, CSS physical sizing:
     -> https://github.com/ellisnet/CodeBrix.PdfDocuments/tree/main/tests/CodeBrix.PdfDocCreate.Html2Pdf.Tests/SvgSupportTests.cs
 
+  Vector SVG placement: Vector as the default, no image XObject embedded,
+  nested transforms and rotation, absolute dash intervals, zero-width strokes,
+  declared physical units sizing the picture exactly, <use> through nested
+  pictures, SVG text as real text in the embedded face the engine measured
+  with (a font subset with a ToUnicode map), stroked text staying glyph
+  outlines, an x list placing each glyph where the document put it, group
+  opacity emitted as a transparency group rather than a raster, and the raster
+  fallback for an image filter:
+    -> https://github.com/ellisnet/CodeBrix.PdfDocuments/tree/main/tests/CodeBrix.PdfDocCreate.Html2Pdf.Tests/SvgVectorPlacementTests.cs
+
+  Vector SVG fidelity: two-stop and multi-stop gradients as shadings, a
+  bounding-box gradient keeping its diagonal on a wide shape, radial and focal
+  gradients, a gradient stroke, group opacity compositing overlapping children
+  once, fill-opacity on a gradient becoming a group of one, and the raster
+  fallback for a translucent-stop gradient and for a repeating gradient:
+    -> https://github.com/ellisnet/CodeBrix.PdfDocuments/tree/main/tests/CodeBrix.PdfDocCreate.Html2Pdf.Tests/SvgVectorFidelityTests.cs
+
   SVG dialect produced by music engravers (viewBox offsets, currentColor,
   invisible link rectangles, generic font families in SVG text):
     -> https://github.com/ellisnet/CodeBrix.PdfDocuments/tree/main/tests/CodeBrix.PdfDocCreate.Html2Pdf.Tests/LilyPortSvgDialectTests.cs
+
+  The engraved-music corpus gate: every picture in a real engraving-engine SVG
+  corpus placed as vectors with no fallback and no embedded bitmap (skips
+  unless HTML2PDF_LILYPORT_SVG_CORPUS points at a folder of .svg files):
+    -> https://github.com/ellisnet/CodeBrix.PdfDocuments/tree/main/tests/CodeBrix.PdfDocCreate.Html2Pdf.Tests/LilyPortCorpusGateTests.cs
 
   Every raster image format as local file and data: URI, alpha preserved
   through the PDF:
@@ -812,9 +946,6 @@ is the reference for every feature area. Base URL:
   Relative paths with forward or back slashes, percent-encoded names and
   absolute paths resolving on every OS:
     -> https://github.com/ellisnet/CodeBrix.PdfDocuments/tree/main/tests/CodeBrix.PdfDocCreate.Html2Pdf.Tests/CrossPlatformPathTests.cs
-
-  The missing-SkiaSharp-native detection and the wording of its warning:
-    -> https://github.com/ellisnet/CodeBrix.PdfDocuments/tree/main/tests/CodeBrix.PdfDocCreate.Html2Pdf.Tests/SkiaNativeLibraryTests.cs
 
 HOW TO USE: Fetch the raw file content from GitHub using a URL like:
     https://raw.githubusercontent.com/ellisnet/CodeBrix.PdfDocuments/main/{path}
@@ -828,8 +959,7 @@ QUICK REFERENCE CARD
 
 --- Install ---
     dotnet add package CodeBrix.PdfDocCreate.Html2Pdf.MitLicenseForever
-    Linux + SVG: also ONE of SkiaSharp.NativeAssets.Linux /
-                 SkiaSharp.NativeAssets.Linux.NoDependencies (app's choice)
+    Nothing else on any OS - no native library anywhere in the chain
 Namespaces:     CodeBrix.PdfDocCreate.Html2Pdf, CodeBrix.PdfDocCreate.Html2Pdf.Fonts
 
 --- HtmlPdfRenderer ---
@@ -843,7 +973,9 @@ Furniture:      r.Options.HeaderText = "{title}"; r.Options.FooterText = "Page {
 Metadata:       r.Options.DocumentTitle / DocumentAuthor  (else <title> / <meta name="author">)
 Remote images:  r.Options.AllowRemoteImages = true       // default false
 Outline:        r.Options.GenerateOutline = false        // default true (h1-h6)
+SVG placement:  r.Options.SvgPlacement = SvgPlacementMode.Raster  // default Vector
 SVG sharpness:  r.Options.SvgRasterScale = 3.0           // default 2.0; 0.25-8.0
+                                                         // raster parts only
 Tofu opt-in:    r.Options.KeepUncoveredCharacters = true
 Render file:    var res = r.RenderFile("in.html", "out.pdf")
 Render string:  r.RenderHtml(html, "out.pdf", baseDir)
@@ -871,7 +1003,9 @@ css.*     stylesheet.unparseable, stylesheet.remote, stylesheet.missing,
           inline-style.unparseable, background.partial, page-rule.unsupported,
           page-margin.invalid
 image.*   src.missing, remote.disabled, load.failed, format.unsupported,
-          svg.empty, svg.nativemissing, svg.failed
+          svg.empty, svg.failed, svg.rasterized, svg.filter-unsupported,
+          svg.text-unsupported, svg.fonts-missing, svg.degraded
+          (retired: svg.nativemissing - can no longer be raised)
 font.*    family.unresolved, uncovered.removed, uncovered.kept, svg-text.notdef
 html.*    element.ignored, table.nested
 

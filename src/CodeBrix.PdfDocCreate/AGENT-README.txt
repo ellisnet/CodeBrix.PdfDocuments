@@ -1011,6 +1011,28 @@ with a soft mask; alpha-free input (JPEG, PBM) re-encodes as JPEG at the
 quality you pass. Set Document.ImagePath to give relative image names an extra
 search root.
 
+VECTOR IMAGE SOURCES. An image source may draw itself as page content instead
+of supplying pixels:
+
+    public interface IVectorImageSource : IImageSource    // nested in ImageSource
+        double WidthPoints { get; }      // natural size, in POINTS
+        double HeightPoints { get; }
+        void Draw(XGraphics graphics, XRect destination)
+
+Add one with the same AddImage call. The image renderer lays it out at its
+natural size in POINTS (Width, Height, ScaleWidth/ScaleHeight and
+LockAspectRatio all behave as usual; Resolution is meaningless and ignored),
+then calls Draw at render time with the graphics state saved and restored
+around the call - so NOTHING is embedded as a bitmap and the implementation
+may transform and clip freely. PictureFormat cropping does NOT apply to a
+vector source, and its SaveAsJpeg / SaveAsPdfBitmap members are never called
+(an implementation may throw NotSupportedException from them).
+
+This package parses no vector format itself - it provides the seam, and the
+caller supplies the drawing. SVG in particular is NOT a feature here: it
+belongs to CodeBrix.PdfDocCreate.Html2Pdf, which implements
+IVectorImageSource over its own SVG engine.
+
 TEXT FRAMES AND SHAPE POSITIONING
 ---------------------------------
 A TextFrame is a free-floating box that holds its own paragraphs, tables,
@@ -2214,6 +2236,11 @@ The repository's test project exercises this package end to end. Base URL:
     -> https://github.com/ellisnet/CodeBrix.PdfDocuments/tree/main/tests/CodeBrix.PdfDocuments.Tests/Rendering/TestLayout.cs
     -> https://github.com/ellisnet/CodeBrix.PdfDocuments/tree/main/tests/CodeBrix.PdfDocuments.Tests/Rendering/TestParagraphRenderer.cs
     -> https://github.com/ellisnet/CodeBrix.PdfDocuments/tree/main/tests/CodeBrix.PdfDocuments.Tests/Rendering/TestParagraphIterator.cs
+
+  A vector image source: laid out at its natural size in points, honouring an
+  explicit width with the aspect ratio locked, drawn once, and embedding no
+  image XObject at all:
+    -> https://github.com/ellisnet/CodeBrix.PdfDocuments/tree/main/tests/CodeBrix.PdfDocuments.Tests/Rendering/VectorImageSourceTests.cs
 
   Document outlines (the bookmarks OutlineLevel produces), verified on the
   rendered PdfDocument:

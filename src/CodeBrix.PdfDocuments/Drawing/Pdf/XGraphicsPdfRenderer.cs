@@ -667,6 +667,42 @@ internal class XGraphicsPdfRenderer : IXGraphicsRenderer
         }
     }
 
+    /// <summary>
+    /// Draws a form as a transparency group with a constant alpha and a blend mode, exactly as
+    /// DrawImage places a form but with an ExtGState set inside the q/Q bracket.
+    /// </summary>
+    public void DrawTransparencyGroup(XForm form, XRect rect, double opacity, XBlendMode blendMode)
+    {
+        const string format = Config.SignificantFigures4;
+
+        string name = Realize(form);
+        BeginPage();
+        form.Finish();
+        Owner.FormTable.GetForm(form);
+
+        double cx = rect.Width / form.PointWidth;
+        double cy = rect.Height / form.PointHeight;
+        if (cx == 0 || cy == 0)
+            return;
+
+        opacity = Math.Max(0, Math.Min(1, opacity));
+        PdfExtGState extGState = Owner.ExtGStateTable.GetExtGState(opacity, opacity, blendMode);
+        string gs = Resources.AddExtGState(extGState);
+        if (_page != null && (opacity < 1 || blendMode != XBlendMode.Normal))
+            _page.TransparencyUsed = true;
+
+        if (_gfx.PageDirection == XPageDirection.Downwards)
+        {
+            AppendFormatImage("q " + gs + " gs {2:" + format + "} 0 0 {3:" + format + "} {0:" + format + "} {1:" + format + "} cm {4} Do Q\n",
+                rect.X, rect.Y + rect.Height, cx, cy, name);
+        }
+        else
+        {
+            AppendFormatImage("q " + gs + " gs {2:" + format + "} 0 0 {3:" + format + "} {0:" + format + "} {1:" + format + "} cm {4} Do Q\n",
+                rect.X, rect.Y, cx, cy, name);
+        }
+    }
+
     // TODO: incomplete - srcRect not used
     public void DrawImage(XImage image, XRect destRect, XRect srcRect, XGraphicsUnit srcUnit)
     {

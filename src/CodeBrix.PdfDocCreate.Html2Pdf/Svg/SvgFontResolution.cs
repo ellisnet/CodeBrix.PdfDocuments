@@ -39,7 +39,10 @@ internal static class SvgFontResolution
         => TryResolveFaceName(fontFamilyList, weight, italic)
            ?? Html2PdfFonts.TryResolveFaceName("sans-serif", weight, italic);
 
-    private static IEnumerable<string> SplitList(string fontFamilyList)
+    /// <summary>
+    /// Splits a font-family attribute value into its trimmed, unquoted candidates, in order.
+    /// </summary>
+    internal static IEnumerable<string> SplitList(string fontFamilyList)
     {
         foreach (var part in fontFamilyList.Split(','))
         {

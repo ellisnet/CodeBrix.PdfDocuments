@@ -52,7 +52,7 @@
     <Authors>Jeremy Ellis</Authors>
     <Product>CodeBrix.PdfDocCreate.Html2Pdf</Product>
     <Title>CodeBrix.PdfDocCreate.Html2Pdf</Title>
-    <Description>Renders author-created HTML pages with CSS styling into PDF documents via the CodeBrix.PdfDocCreate document object model. Applies a documented subset of CSS - inline style attributes, style blocks, and linked local stylesheets - with real selector matching, cascade, specificity, and inheritance. Embeds every image format CodeBrix.Imaging decodes plus SVG (referenced files, data: URIs, and inline svg elements, rasterized identically on Windows, macOS, and Linux). All text is rendered with the CodeBrix.Platform.Fonts Roboto (sans-serif), Merriweather (serif), and Roboto Mono (monospace) font packages - plus any fonts the consumer registers - so output is identical on every operating system. Designed for HTML/CSS written for PDF generation, not for repurposing arbitrary web pages.</Description>
+    <Description>Renders author-created HTML pages with CSS styling into PDF documents via the CodeBrix.PdfDocCreate document object model. Applies a documented subset of CSS - inline style attributes, style blocks, and linked local stylesheets - with real selector matching, cascade, specificity, and inheritance. Embeds every image format CodeBrix.Imaging decodes plus SVG (referenced files, data: URIs, and inline svg elements, placed as PDF vector content by default, or rasterized on request - identically on Windows, macOS, and Linux, with no native dependency). All text is rendered with the CodeBrix.Platform.Fonts Roboto (sans-serif), Merriweather (serif), and Roboto Mono (monospace) font packages - plus any fonts the consumer registers - so output is identical on every operating system. Designed for HTML/CSS written for PDF generation, not for repurposing arbitrary web pages.</Description>
     <PackageProjectUrl>https://github.com/ellisnet/CodeBrix.PdfDocuments</PackageProjectUrl>
     <RepositoryUrl>https://github.com/ellisnet/CodeBrix.PdfDocuments</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
@@ -62,7 +62,7 @@
     <Copyright>Copyright (c) 2026 Jeremy Ellis and contributors</Copyright>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <PackageTags>Html2Pdf;HTML;CSS;PDF;document;rendering;CodeBrix</PackageTags>
+    <PackageTags>Html2Pdf;HTML;CSS;PDF;SVG;vector;document;rendering;CodeBrix</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
@@ -76,7 +76,7 @@
 
   <ItemGroup>
     <PackageReference Include="CodeBrix.MarkupParse.MitLicenseForever" Version="1.0.164.1248" />
-    <PackageReference Include="CodeBrix.StyleSheetParse.MitLicenseForever" Version="1.0.165.124" />
+    <PackageReference Include="CodeBrix.StyleSheetParse.MitLicenseForever" Version="1.0.238.81" />
     <PackageReference Include="CodeBrix.Platform.Fonts.Roboto.OflLicenseForever" Version="1.0.209.315" />
     <PackageReference Include="CodeBrix.Platform.Fonts.Merriweather.OflLicenseForever" Version="1.0.209.309" />
     <PackageReference Include="CodeBrix.Platform.Fonts.RobotoMono.OflLicenseForever" Version="1.0.216.1150" />
@@ -87,25 +87,14 @@
     -->
     <PackageReference Include="CodeBrix.Platform.Fonts.NotoMusic.OflLicenseForever" Version="1.0.231.1184" />
     <!--
-      SVG placement: CodeBrix.SkiaSvg renders SVG to an offscreen CPU raster that is
-      embedded as a transparent PNG. SkiaSharp's own nuspec brings the Windows and
-      macOS native assets transitively, but never a Linux one (two variants exist),
-      so the self-contained NoDependencies variant is referenced explicitly - it does
-      not require libfontconfig at runtime and cannot reach system fonts.
+      SVG placement: the fully managed SVG engine. It parses SVG into a display list
+      that is written into the page as vector operators (the default), or rasterized in
+      managed code when a consumer asks for bitmaps. No SkiaSharp, no native library,
+      no system font: identical output on Windows, macOS and Linux, and nothing for a
+      consuming application to install. It shares CodeBrix.SvgParse with the rest of
+      the family; the StyleSheetParse pin below matches the version that package brings.
     -->
-    <PackageReference Include="CodeBrix.SkiaSvg.MitLicenseForever" Version="1.0.214.1201" />
-    <!--
-      IMPORTANT NOTE: CodeBrix.PdfDocCreate.Html2Pdf *cannot* have a declared dependency on 
-      SkiaSharp.NativeAssets.Linux or SkiaSharp.NativeAssets.Linux.NoDependencies - even though
-      it *does* require one of these, when running on Linux.
-      Having the package reference - and declared dependency for the nuget package - here will
-      likely cause problems with CodeBrix.PdfDocCreate.Html2Pdf.MitLicenseForever nuget package
-      consumers who have their own SkiaSharp-on-Linux-native-assets dependency.
-      So, for the CodeBrix.PdfDocCreate.Html2Pdf.MitLicenseForever nuget package to be used on
-      Linux, the consuming application *must* have its own dependency on either
-      SkiaSharp.NativeAssets.Linux or SkiaSharp.NativeAssets.Linux.NoDependencies.
-    -->
-    <!--<PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.151.0" />-->
+    <PackageReference Include="CodeBrix.Imaging.Drawing.NoSkia.ApacheLicenseForever" Version="1.0.238.425" />
   </ItemGroup>
 
   <ItemGroup>

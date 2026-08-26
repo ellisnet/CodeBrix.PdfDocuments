@@ -116,6 +116,7 @@ public sealed class MarkdownPdfRenderer
         var htmlRenderer = new HtmlPdfRenderer();
         htmlRenderer.Options.SetPageSize(Options.PageSize);
         htmlRenderer.Options.AllowRemoteImages = Options.AllowRemoteImages;
+        htmlRenderer.Options.SvgPlacement = Options.SvgPlacement;
         htmlRenderer.Options.SvgRasterScale = Options.SvgRasterScale;
         htmlRenderer.Options.KeepUncoveredCharacters = Options.KeepUncoveredCharacters;
         htmlRenderer.Options.FooterText = Options.FooterText;

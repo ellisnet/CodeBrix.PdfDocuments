@@ -96,9 +96,27 @@ internal class ImageRenderer : ShapeRenderer
         {
             try
             {
-                XRect srcRect = new XRect(formatInfo.CropX, formatInfo.CropY, formatInfo.CropWidth, formatInfo.CropHeight);
-                using (var xImage = XImage.FromImageSource(formatInfo.ImageSource))
-                    this.gfx.DrawImage(xImage, destRect, srcRect, XGraphicsUnit.Point); //Pixel.
+                if (formatInfo.ImageSource is ImageSource.IVectorImageSource vectorSource)
+                {
+                    // Vector content draws itself into the page; nothing is embedded as a
+                    // bitmap. The state is bracketed here so the source may transform and
+                    // clip freely. (PictureFormat cropping does not apply to vector sources.)
+                    XGraphicsState state = this.gfx.Save();
+                    try
+                    {
+                        vectorSource.Draw(this.gfx, destRect);
+                    }
+                    finally
+                    {
+                        this.gfx.Restore(state);
+                    }
+                }
+                else
+                {
+                    XRect srcRect = new XRect(formatInfo.CropX, formatInfo.CropY, formatInfo.CropWidth, formatInfo.CropHeight);
+                    using (var xImage = XImage.FromImageSource(formatInfo.ImageSource))
+                        this.gfx.DrawImage(xImage, destRect, srcRect, XGraphicsUnit.Point); //Pixel.
+                }
             }
             catch (Exception)
             {
@@ -149,9 +167,12 @@ internal class ImageRenderer : ShapeRenderer
         if (formatInfo.Failure == ImageFailure.None)
         {
             XImage xImage = null;
+            ImageSource.IVectorImageSource vectorSource = formatInfo.ImageSource as ImageSource.IVectorImageSource;
             try
             {
-                xImage = XImage.FromImageSource(formatInfo.ImageSource);
+                // A vector source has no pixels to decode; its natural size is read directly.
+                if (vectorSource == null)
+                    xImage = XImage.FromImageSource(formatInfo.ImageSource);
             }
             catch (InvalidOperationException ex)
             {
@@ -169,13 +190,27 @@ internal class ImageRenderer : ShapeRenderer
                 XUnit resultWidth = usrWidth;
                 XUnit resultHeight = usrHeight;
 
-                double xPixels = xImage.PixelWidth;
                 bool usrResolutionSet = !image.IsNull("Resolution");
 
-                double horzRes = usrResolutionSet ? (double)image.Resolution : xImage.HorizontalResolution;
+                double xPixels, yPixels, horzRes, vertRes;
+                if (vectorSource != null)
+                {
+                    // Points are the "pixels" of a vector source, so 72 per inch makes the
+                    // arithmetic below place it at exactly its natural size; the Resolution
+                    // property is meaningful for bitmaps only and is ignored here.
+                    xPixels = vectorSource.WidthPoints;
+                    yPixels = vectorSource.HeightPoints;
+                    horzRes = 72;
+                    vertRes = 72;
+                }
+                else
+                {
+                    xPixels = xImage.PixelWidth;
+                    horzRes = usrResolutionSet ? (double)image.Resolution : xImage.HorizontalResolution;
+                    yPixels = xImage.PixelHeight;
+                    vertRes = usrResolutionSet ? (double)image.Resolution : xImage.VerticalResolution;
+                }
                 XUnit inherentWidth = XUnit.FromInch(xPixels / horzRes);
-                double yPixels = xImage.PixelHeight;
-                double vertRes = usrResolutionSet ? (double)image.Resolution : xImage.VerticalResolution;
                 XUnit inherentHeight = XUnit.FromInch(yPixels / vertRes);
 
                 bool lockRatio = this.image.IsNull("LockAspectRatio") ? true : image.LockAspectRatio;
