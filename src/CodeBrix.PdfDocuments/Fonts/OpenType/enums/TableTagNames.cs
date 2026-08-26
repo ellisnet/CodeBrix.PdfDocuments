@@ -110,7 +110,7 @@ static class TableTagNames
     /// <summary>
     /// PostScript font program (compact font format).
     /// </summary>
-    public const string Cff = "CFF";
+    public const string Cff = "CFF "; //was previously: "CFF" - three characters, which no four-byte table tag can ever equal; unused until CffTable (2026-08-26).
 
     /// <summary>
     /// Vertical Origin.

@@ -70,9 +70,18 @@ SUPPORTING DATA THEY CARRY
                                                     several password-protected
                                                     ones from different
                                                     producers, plus test images
-    tests/CodeBrix.PdfDocuments.Tests/SampleFiles/  a Roboto face and three
-                                                    small images, embedded as
-                                                    resources
+    tests/CodeBrix.PdfDocuments.Tests/SampleFiles/  a Roboto face, a MathJax
+                                                    AMS face (CFF outlines, for
+                                                    the CFF subsetting tests;
+                                                    Apache-2.0, see its
+                                                    NOTICE.txt), a CID-keyed
+                                                    variant of it made by
+                                                    make-mathjax-cid.py, and
+                                                    three small images, all
+                                                    embedded as resources; the
+                                                    MathJax face is also linked
+                                                    into the Html2Pdf tests as
+                                                    a file
     tests/CodeBrix.PdfDocCreate.Markdown2Pdf.Tests/Fixtures/
                                                     the CommonMark
                                                     specification test corpus

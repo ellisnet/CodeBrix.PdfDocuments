@@ -1,3 +1,5 @@
+using CodeBrix.PdfDocuments.Pdf;
+
 namespace CodeBrix.PdfDocCreate.Html2Pdf;
 
 /// <summary>
@@ -82,6 +84,18 @@ public sealed class HtmlRenderOptions
 
     /// <summary>Document author written to the PDF metadata; optional.</summary>
     public string DocumentAuthor { get; set; }
+
+    /// <summary>
+    /// How fonts with PostScript (CFF) outlines - OpenType faces added through
+    /// <see cref="Fonts.Html2PdfFonts.AddFontFile(string, bool)"/> whose glyphs live in a
+    /// <c>CFF </c> table - are embedded. The default, <see cref="PdfCffSubsetMode.None"/>,
+    /// embeds such a face whole, as every earlier version did; <see cref="PdfCffSubsetMode.Sparse"/>
+    /// opts in to a subset that keeps only the glyphs the document uses and declares the
+    /// program as an OpenType <c>/FontFile3</c> (PDF 1.6). The packaged TrueType fonts are
+    /// subset either way and are not affected. Passed to
+    /// <see cref="PdfDocumentOptions.CffSubsetMode"/> on the document being written.
+    /// </summary>
+    public PdfCffSubsetMode CffSubsetMode { get; set; } = PdfCffSubsetMode.None;
 
     /// <summary>Applies a named page size ("letter", "legal", "a4", "a5", ...).</summary>
     public void SetPageSize(string name)

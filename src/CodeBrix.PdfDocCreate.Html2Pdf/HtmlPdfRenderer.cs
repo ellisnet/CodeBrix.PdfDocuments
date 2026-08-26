@@ -140,6 +140,10 @@ public sealed class HtmlPdfRenderer
             var renderer = new PdfDocumentRenderer(unicode: true) { Document = document };
             renderer.RenderDocument();
 
+            // Read at Save time by the font table, so setting it after the render and
+            // before the save is exactly right. The default leaves the output as it was.
+            renderer.PdfDocument.Options.CffSubsetMode = options.CffSubsetMode;
+
             if (outputPdfPath != null)
             {
                 var fullPath = Path.GetFullPath(outputPdfPath);

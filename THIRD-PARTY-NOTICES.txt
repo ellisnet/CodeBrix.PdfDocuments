@@ -684,4 +684,24 @@ handling is provided by the CodeBrix.Imaging and CodeBrix.Compression packages.
 
 ================================================================================
 
+15. MathJax AMS font (MathJax 2.7.x, MathJax_AMS-Regular.otf) - tests only
+    https://www.mathjax.org/
+
+    The CodeBrix.PdfDocuments.Tests project embeds MathJax_AMS-Regular.otf as
+    a test fixture - a real OpenType font with PostScript (CFF) outlines, which
+    the CFF font subsetting tests need and which none of the CodeBrix.Platform
+    font packages provide - and the CodeBrix.PdfDocCreate.Html2Pdf.Tests
+    project copies the same file beside its tests. The font is copyright
+    2009-2020 The MathJax Consortium and is licensed under the Apache License,
+    Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0). It is used only by
+    the test projects and is not distributed in any NuGet package. Its
+    provenance is recorded beside it in
+    tests/CodeBrix.PdfDocuments.Tests/SampleFiles/MathJax_AMS-Regular.NOTICE.txt.
+    MathJax_AMS-CID.otf in the same folder is a derived work of that font
+    (the same glyphs re-expressed as a CID-keyed CFF program by the script
+    make-mathjax-cid.py beside it), under the same licence and the same
+    test-only use.
+
+================================================================================
+
 END OF THIRD-PARTY SOFTWARE NOTICES AND INFORMATION

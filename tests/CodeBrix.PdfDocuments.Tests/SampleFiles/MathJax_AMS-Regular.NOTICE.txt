@@ -1,0 +1,25 @@
+MathJax_AMS-Regular.otf - a TEST FIXTURE, never packed into any NuGet package
+============================================================================
+
+What it is:  the AMS symbol font of MathJax 2.x, an OpenType font with PostScript
+             (CFF) outlines - 261 glyphs, 55 local subroutines, no global
+             subroutines, not CID-keyed, 58,528 bytes.
+Where from:  the Debian package fonts-mathjax (MathJax 2.7.x),
+             /usr/share/fonts/opentype/mathjax/MathJax_AMS-Regular.otf, copied
+             verbatim on 2026-08-26.
+Copyright:   2009-2020 The MathJax Consortium.
+Licence:     Apache License, Version 2.0 - http://www.apache.org/licenses/LICENSE-2.0
+             THIRD-PARTY-NOTICES.txt section 15 in the repository root records it.
+
+Why it is here: the CFF subsetting tests (Fonts/CffSubsetTests.cs in this project,
+CffSubsetModeTests.cs in the Html2Pdf test project) need a real CFF-outline font,
+and every font the CodeBrix.Platform.Fonts packages carry has TrueType outlines.
+It is embedded in CodeBrix.PdfDocuments.Tests.dll as a resource (and copied beside
+the Html2Pdf tests as a file) and reaches no shipped assembly.
+
+MathJax_AMS-CID.otf beside it is DERIVED from that file by make-mathjax-cid.py
+(fontTools): the same glyphs, charstrings and subroutines re-expressed as a
+CID-keyed CFF program (one Font DICT, FDSelect format 3, ROS Adobe-Identity-0,
+identity CIDs, family renamed MathJaxAMSCid so the two cannot be confused). It
+exists only so the subsetter's CID branch has a fixture; it is Apache-2.0 like
+its source, test-only, and embedded in the same test assembly.

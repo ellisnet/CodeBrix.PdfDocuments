@@ -155,6 +155,19 @@ unconditionally. Special prep and non-obvious wiring:
     Unset, or pointing at a folder with no .svg files, the test skips. The
     corpus is GFDL/GPL-3 material that lives outside this repository and is
     never committed.
+  - CFF FONT SUBSETTING (opt-in, PdfDocumentOptions.CffSubsetMode; 2026-08-26).
+    tests/CodeBrix.PdfDocuments.Tests/Fonts/CffSubsetTests.cs checks the CFF
+    parser against figures fontTools measured on the fixture, the sparse
+    subset's structure, the default's whole-font /FontFile2 output, the opt-in's
+    /FontFile3 /OpenType output, and that PDFium renders the two identically;
+    tests/CodeBrix.PdfDocCreate.Html2Pdf.Tests/CffSubsetModeTests.cs checks the
+    option reaches the document through HtmlRenderOptions. The fixture is
+    SampleFiles/MathJax_AMS-Regular.otf (Apache-2.0, test-only) - see its
+    NOTICE.txt and THIRD-PARTY-NOTICES section 15. The subsetter's CID-keyed
+    branch (FDArray / FDSelect / per-FD Private DICT) is covered by
+    SampleFiles/MathJax_AMS-CID.otf, the same face re-expressed as a CID-keyed
+    program by SampleFiles/make-mathjax-cid.py (fontTools); regenerate it with
+    that script if the source fixture ever changes.
   - WHERE THE VECTOR-SVG COVERAGE LIVES. It is split across three files because
     the machinery is split across two packages:
       tests/CodeBrix.PdfDocuments.Tests/Drawing/TransparencyGroupTests.cs

@@ -8,6 +8,8 @@
 
   <ItemGroup>
     <None Remove="SampleFiles\Roboto-Regular.ttf" />
+    <None Remove="SampleFiles\MathJax_AMS-Regular.otf" />
+    <None Remove="SampleFiles\MathJax_AMS-CID.otf" />
     <None Remove="SampleFiles\test-image-01.bmp" />
     <None Remove="SampleFiles\test-image-01.jpg" />
     <None Remove="SampleFiles\test-image-01.png" />
@@ -15,6 +17,10 @@
 
   <ItemGroup>
     <EmbeddedResource Include="SampleFiles\Roboto-Regular.ttf" />
+    <!-- A CFF-outline face for the CFF subsetting tests; test-only, see SampleFiles\MathJax_AMS-Regular.NOTICE.txt -->
+    <EmbeddedResource Include="SampleFiles\MathJax_AMS-Regular.otf" />
+    <!-- The same face re-expressed as a CID-keyed CFF program by SampleFiles\make-mathjax-cid.py; test-only -->
+    <EmbeddedResource Include="SampleFiles\MathJax_AMS-CID.otf" />
     <EmbeddedResource Include="SampleFiles\test-image-01.bmp" />
     <EmbeddedResource Include="SampleFiles\test-image-01.jpg" />
     <EmbeddedResource Include="SampleFiles\test-image-01.png" />

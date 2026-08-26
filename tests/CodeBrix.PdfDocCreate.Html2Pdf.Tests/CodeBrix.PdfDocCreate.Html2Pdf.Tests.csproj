@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -17,6 +17,15 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\CodeBrix.PdfDocCreate.Html2Pdf\CodeBrix.PdfDocCreate.Html2Pdf.csproj" />
     <ProjectReference Include="..\..\src\CodeBrix.PdfRasterizer\CodeBrix.PdfRasterizer.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The CFF-outline test face lives with the PdfDocuments tests (as an embedded
+         resource there); Html2PdfFonts.AddFontFile wants a FILE, so it is linked here
+         and copied beside the tests. Test-only; see its NOTICE.txt beside it. -->
+    <None Include="..\CodeBrix.PdfDocuments.Tests\SampleFiles\MathJax_AMS-Regular.otf"
+          Link="SampleFiles\MathJax_AMS-Regular.otf"
+          CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <!--

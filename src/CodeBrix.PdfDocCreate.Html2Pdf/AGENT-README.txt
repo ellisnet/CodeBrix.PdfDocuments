@@ -194,6 +194,9 @@ fill OutputFilePath, RenderHtmlToBytes fills PdfBytes.
     renderer.Options.KeepUncoveredCharacters = true;  // bool; default false
     renderer.Options.DocumentTitle = "Override Title"; // string; default null
     renderer.Options.DocumentAuthor = "Jane Doe";      // string; default null
+    renderer.Options.CffSubsetMode = PdfCffSubsetMode.Sparse;
+                                               // PdfCffSubsetMode (CodeBrix.PdfDocuments.Pdf);
+                                               // default None - see CFF FONTS below
 
     public void SetPageSize(string name)
         // Recognized names (case-insensitive): letter, legal, ledger, a3, a4,
@@ -225,6 +228,19 @@ SvgPlacement decides how SVG content reaches the page:
   Raster rasterizes the whole picture to a transparent PNG in managed code and
     embeds it as a bitmap - the placement every release before the vector
     route used.
+
+CFF FONTS. The packaged fonts all have TrueType outlines and are embedded as
+subsets. A face you add through Html2PdfFonts.AddFontFile whose glyphs live in
+a CFF table (an OpenType .otf with PostScript outlines) is embedded WHOLE by
+default - every version has done that - so a single such face costs its
+entire program per PDF (about 60 KB for a typical text face, compressed).
+Options.CffSubsetMode = PdfCffSubsetMode.Sparse opts in to a subset: the
+charstrings of unused glyphs are dropped (glyph numbering, cmap, metrics and
+subroutines are kept), and the program is declared as PDF 32000-1 section 9.9
+asks for an OpenType CFF font - /FontFile3 /Subtype /OpenType on a
+/CIDFontType0 - which raises the file to PDF 1.6 when it was lower. The value
+is handed to PdfDocumentOptions.CffSubsetMode on the document being written;
+nothing else changes, and None leaves the output byte for byte as it was.
 
 SvgRasterScale is relative to the SVG's natural CSS-pixel size (2.0 is about
 192 DPI at natural size); raise it for sharper print output at the cost of a
@@ -977,6 +993,7 @@ SVG placement:  r.Options.SvgPlacement = SvgPlacementMode.Raster  // default Vec
 SVG sharpness:  r.Options.SvgRasterScale = 3.0           // default 2.0; 0.25-8.0
                                                          // raster parts only
 Tofu opt-in:    r.Options.KeepUncoveredCharacters = true
+CFF subsetting: r.Options.CffSubsetMode = PdfCffSubsetMode.Sparse  // default None (whole)
 Render file:    var res = r.RenderFile("in.html", "out.pdf")
 Render string:  r.RenderHtml(html, "out.pdf", baseDir)
 Render bytes:   r.RenderHtmlToBytes(html, baseDir)

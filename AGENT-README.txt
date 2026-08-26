@@ -513,9 +513,26 @@ RECOMMENDATIONS:
   - When output must be reproducible across machines, assert on
     XFont.FontFamily.Name in a test rather than trusting the name you asked for.
 
-FONT EMBEDDING AND ENCODING: every font used is embedded in the PDF as a
-subset (TrueType/OpenType via the resolved .ttf data). There is no option to
-not embed. What you can choose is the encoding:
+FONT EMBEDDING AND ENCODING: every font used is embedded in the PDF. A font
+with TrueType outlines (.ttf; glyf/loca tables) is embedded as a SUBSET of the
+glyphs the document uses. A font with PostScript outlines (an OpenType .otf
+whose glyphs live in a CFF table) is embedded WHOLE by default - that is what
+every version has done - unless the document opts in to CFF subsetting:
+
+    document.Options.CffSubsetMode = PdfCffSubsetMode.Sparse;   // default None
+
+    PdfCffSubsetMode.None    embed the whole CFF program, declared as a TrueType
+                             program (/FontFile2 on a /CIDFontType2) - unchanged
+    PdfCffSubsetMode.Sparse  keep only the used glyphs' charstrings (unused ones
+                             become a one-byte endchar; glyph numbering, cmap,
+                             metrics and subroutines stay), declared as PDF
+                             32000-1 section 9.9 asks - /FontFile3 /Subtype
+                             /OpenType on a /CIDFontType0 - which makes the
+                             file PDF 1.6 if it was lower. TrueType fonts are
+                             not affected. A program the subsetter does not
+                             handle (CFF2) is embedded exactly as None does.
+
+There is no option to not embed. What you can choose is the encoding:
 
     public class XPdfFontOptions
         public XPdfFontOptions(PdfFontEncoding encoding)
@@ -1153,10 +1170,12 @@ DOCUMENT OPTIONS (COMPRESSION, COLOR MODE)
         public PdfFlateEncodeMode FlateEncodeMode       // Default | BestSpeed | BestCompression
         public bool EnableCcittCompressionForBilevelImages   // default false
         public PdfUseFlateDecoderForJpegImages UseFlateDecoderForJpegImages // Automatic | Never (default) | Always
+        public PdfCffSubsetMode CffSubsetMode           // None (default) | Sparse - see FONT EMBEDDING
 
     document.Options.ColorMode = PdfColorMode.Cmyk;              // XColor.FromCmyk colours written as CMYK
     document.Options.FlateEncodeMode = PdfFlateEncodeMode.BestCompression;
     document.Options.NoCompression = true;                        // human-readable output for debugging
+    document.Options.CffSubsetMode = PdfCffSubsetMode.Sparse;     // subset CFF-outline (.otf) fonts too
 
 SECURITY AND ENCRYPTION
 -----------------------
@@ -2197,6 +2216,7 @@ Custom size:    page.Width = XUnit.FromInch(8.5); page.Height = XUnit.FromMillim
 Rotate:         page.Rotate = 90                         // multiples of 90
 Metadata:       document.Info.Title = "..."; .Author; .Subject; .Keywords; .Creator
 Options:        document.Options.ColorMode / .CompressContentStreams / .NoCompression
+CFF subsetting: document.Options.CffSubsetMode = PdfCffSubsetMode.Sparse  // default None
 Viewer:         document.PageLayout / .PageMode / .ViewerPreferences.FitWindow
 Save file:      document.Save("file.pdf")
 Save stream:    document.Save(ms)  // stream left open, Position = 0

@@ -107,4 +107,21 @@ public sealed class PdfDocumentOptions
         set { _useFlateDecoderForJpegImages = value; }
     }
     PdfUseFlateDecoderForJpegImages _useFlateDecoderForJpegImages = PdfUseFlateDecoderForJpegImages.Never;
+
+    /// <summary>
+    /// Gets or sets how fonts with PostScript (CFF) outlines are embedded. The default,
+    /// <see cref="PdfCffSubsetMode.None"/>, embeds such a font whole exactly as every
+    /// earlier version did; <see cref="PdfCffSubsetMode.Sparse"/> opts in to a subset
+    /// that drops the charstrings of unused glyphs and declares the program as an
+    /// OpenType <c>/FontFile3</c>. TrueType-outline fonts are subset either way and
+    /// are not affected by this setting. Read when the document is saved.
+    /// </summary>
+    /// <remarks>Added 2026-08-26; see <see cref="PdfCffSubsetMode"/> for the details of
+    /// what each mode writes.</remarks>
+    public PdfCffSubsetMode CffSubsetMode
+    {
+        get { return _cffSubsetMode; }
+        set { _cffSubsetMode = value; }
+    }
+    PdfCffSubsetMode _cffSubsetMode = PdfCffSubsetMode.None;
 }
