@@ -52,7 +52,7 @@
     <Authors>Jeremy Ellis</Authors>
     <Product>CodeBrix.PdfDocCreate.Html2Pdf</Product>
     <Title>CodeBrix.PdfDocCreate.Html2Pdf</Title>
-    <Description>Renders author-created HTML pages with CSS styling into PDF documents via the CodeBrix.PdfDocCreate document object model. Applies a documented subset of CSS - inline style attributes, style blocks, and linked local stylesheets - with real selector matching, cascade, specificity, and inheritance. Embeds every image format CodeBrix.Imaging decodes plus SVG (referenced files, data: URIs, and inline svg elements, placed as PDF vector content by default, or rasterized on request - identically on Windows, macOS, and Linux, with no native dependency). All text is rendered with the CodeBrix.Platform.Fonts Roboto (sans-serif), Merriweather (serif), and Roboto Mono (monospace) font packages - plus any fonts the consumer registers - so output is identical on every operating system. Designed for HTML/CSS written for PDF generation, not for repurposing arbitrary web pages.</Description>
+    <Description>Renders author-created HTML pages with CSS styling into PDF documents via the CodeBrix.PdfDocCreate document object model. Applies a documented subset of CSS - inline style attributes, style blocks, and linked local stylesheets - with real selector matching, cascade, specificity, and inheritance. Embeds every image format CodeBrix.Imaging decodes plus SVG (referenced files, data: URIs, and inline svg elements, placed as PDF vector content by default, or rasterized on request - identically on Windows, macOS, and Linux, with no native dependency). All text is rendered with the CodeBrix.Platform.Fonts Roboto (sans-serif), Merriweather (serif), and Roboto Mono (monospace) font packages - plus the Noto companion families they bundle, which extend coverage to polytonic (ancient) Greek, Armenian, Georgian and music notation, and any fonts the consumer registers - so output is identical on every operating system. Designed for HTML/CSS written for PDF generation, not for repurposing arbitrary web pages.</Description>
     <PackageProjectUrl>https://github.com/ellisnet/CodeBrix.PdfDocuments</PackageProjectUrl>
     <RepositoryUrl>https://github.com/ellisnet/CodeBrix.PdfDocuments</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
@@ -77,13 +77,21 @@
   <ItemGroup>
     <PackageReference Include="CodeBrix.MarkupParse.MitLicenseForever" Version="1.0.238.561" />
     <PackageReference Include="CodeBrix.StyleSheetParse.MitLicenseForever" Version="1.0.238.81" />
-    <PackageReference Include="CodeBrix.Platform.Fonts.Roboto.OflLicenseForever" Version="1.0.238.528" />
+    <PackageReference Include="CodeBrix.Platform.Fonts.Roboto.OflLicenseForever" Version="1.0.240.51" />
     <PackageReference Include="CodeBrix.Platform.Fonts.Merriweather.OflLicenseForever" Version="1.0.238.511" />
     <PackageReference Include="CodeBrix.Platform.Fonts.RobotoMono.OflLicenseForever" Version="1.0.238.534" />
     <!--
-      Noto Music joins the per-glyph fallback chain automatically at discovery: it
-      renders the musical characters the text families lack, and is never a body-text
-      default.
+      Every companion family these packages ship joins the per-glyph fallback chain
+      automatically at discovery - see Html2PdfFonts.ScanFontDirectories. Noto Music is
+      one of them: it renders the musical characters the text families lack, and is
+      never a body-text default.
+
+      The Roboto pin is >= 1.0.240.51 for a reason: that is the first version carrying
+      the Noto Sans companion, which is the only sans-serif source of polytonic
+      (ancient) Greek in the family. Roboto itself has just ONE code point of the Greek
+      Extended block, and Greek Extended sits inside GlyphSafety's legacy allow-list -
+      so before that version polytonic Greek rendered as tofu with no warning at all.
+      Do not float this pin backwards.
     -->
     <PackageReference Include="CodeBrix.Platform.Fonts.NotoMusic.OflLicenseForever" Version="1.0.238.517" />
     <!--

@@ -68,8 +68,14 @@ NuGet dependencies (all pulled in automatically):
   - CodeBrix.Platform.Fonts.Merriweather.OflLicenseForever  (serif)
   - CodeBrix.Platform.Fonts.RobotoMono.OflLicenseForever    (monospace)
   - CodeBrix.Platform.Fonts.NotoMusic.OflLicenseForever     (music-notation
-    glyphs; joins the per-glyph fallback chain automatically, never a
-    body-text default)
+    glyphs; never a body-text default)
+
+  Each of those font packages ships COMPANION families alongside its primary
+  face - Noto Sans / Noto Serif (polytonic Greek), Noto Sans/Serif Armenian,
+  Noto Sans/Serif Georgian, Iosevka and Noto Sans Mono, plus Noto Music. Every
+  companion joins the per-glyph fallback chain automatically at discovery; none
+  of them is ever a body-text default. Nothing has to be registered or
+  configured to get them.
   - CodeBrix.Imaging.Drawing.NoSkia.ApacheLicenseForever (the fully managed SVG
     engine; brings CodeBrix.SvgParse.MsplLicenseForever - all managed code, no
     native library on any platform)
@@ -446,8 +452,9 @@ Linux, no native library, GPU or window system involved:
     lookalike, is what gets embedded. If you inspect the PDF, note that a bold
     face is named "Roboto,Bold" in /BaseFont, not "Roboto-Bold".
   - SVG text has per-glyph font fallback, driven by the same fallback chain
-    HTML text uses (AddFallbackFamily / includeInFallback; Noto Music joins
-    automatically): before the picture is compiled, characters the styled face
+    HTML text uses (the font packages' companion families are wired in
+    automatically; AddFallbackFamily / includeInFallback append to them):
+    before the picture is compiled, characters the styled face
     lacks are wrapped in tspans naming the covering fallback family. A
     character NO registered font covers renders as its missing-glyph shape -
     and WARNS, one structured item per distinct code point (code
@@ -543,7 +550,8 @@ next render:
     Html2PdfFonts.AddFontFilesFromDirectory(dir);
 
     // Per-glyph fallback: pass includeInFallback: true on the Add* calls, or
-    // name an already-registered family:
+    // name an already-registered family. The companions of the built-in font
+    // packages are already in the chain; these APPEND after them.
     Html2PdfFonts.AddFallbackFamily("Family Name");
 
 A registered font is usable everywhere at once: CSS font-family values, SVG
@@ -566,9 +574,34 @@ font package or file extends what renders with no code change:
 Supplementary-plane characters (above U+FFFF, e.g. musical notation) are
 handled as single code points end to end and embed correctly when a
 registered font provides them through a cmap format 12 table.
-Music notation families (CodeBrix.Platform.Fonts.NotoMusic*) are wired into
-the fallback chain automatically when discovered, and are never a body-text
-default.
+COMPANION FAMILIES AND THE FALLBACK CHAIN. A CodeBrix.Platform.Fonts.* package
+ships one primary family plus the companions that cover the scripts the primary
+lacks. Every companion is wired into the per-glyph fallback chain automatically
+when discovered; the three body-text defaults (Roboto, Merriweather, RobotoMono)
+never are, so a sans document cannot silently pick up serif or monospace prose.
+
+The chain is ordered by the package a companion came from - the sans package
+first, then serif, then a special-purpose package such as Noto Music, and the
+monospace package last. That order matters because several packages cover the
+same scripts: Noto Sans, Noto Serif, Noto Sans Mono and Iosevka ALL carry the
+Greek Extended block, and body text is sans by default, so ancient Greek must
+resolve to the sans companion rather than the serif one. The monospace package
+ranks last because a monospaced glyph is the most jarring substitution inside
+proportional text, and because Iosevka's very wide repertoire would otherwise
+shadow purpose-built families such as Noto Music.
+
+What this buys you, with no code at all: polytonic (ancient) Greek, Armenian,
+Georgian and music notation all render, in a face that matches the surrounding
+text. Roboto itself carries just ONE code point of the Greek Extended block, so
+before the companions were auto-wired, polytonic Greek was admitted against
+Roboto by the legacy allow-list and rendered as tofu boxes with NO warning -
+a silent wrong answer. Rendering polytonic Greek requires
+CodeBrix.Platform.Fonts.Roboto.OflLicenseForever 1.0.240.51 or later, the first
+version carrying the Noto Sans companion.
+
+A consumer can still extend the chain with AddFallbackFamily(...) or
+AddFontFile(..., includeInFallback: true); those append AFTER the automatic
+companions.
 
 ================================================================================
 
@@ -918,7 +951,9 @@ is the reference for every feature area. Base URL:
     -> https://github.com/ellisnet/CodeBrix.PdfDocuments/tree/main/tests/CodeBrix.PdfDocCreate.Html2Pdf.Tests/Html2PdfFontsTests.cs
 
   Glyph coverage from real cmap tables, loose font-file registration,
-  uncovered-character removal vs KeepUncoveredCharacters, fallback families:
+  uncovered-character removal vs KeepUncoveredCharacters, fallback families,
+  the automatic companion wiring and its chain order (polytonic Greek,
+  Armenian and Georgian resolving to the SANS companions, not the serif ones):
     -> https://github.com/ellisnet/CodeBrix.PdfDocuments/tree/main/tests/CodeBrix.PdfDocCreate.Html2Pdf.Tests/FontCoverageTests.cs
 
   Noto Music joining the fallback chain; BMP and supplementary-plane music
@@ -1012,6 +1047,8 @@ Package dir:    Html2PdfFonts.AddFontDirectory(dir)
 Loose fonts:    Html2PdfFonts.AddFontFile(path[, includeInFallback: true])
                 .AddFontFiles(paths[, ...]) / .AddFontFilesFromDirectory(dir[, ...])
 Fallback:       Html2PdfFonts.AddFallbackFamily("Family Name")
+                (package companions are auto-wired; chain order is
+                 sans pkg -> serif pkg -> Noto Music -> mono pkg)
 Opt out copy:   <CodeBrixHtml2PdfDisableFontCopy>true</CodeBrixHtml2PdfDisableFontCopy>
 
 --- Warning codes ---

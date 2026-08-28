@@ -213,35 +213,116 @@ public static class Html2PdfFonts
 
     private static void ScanFontDirectories()
     {
+        // Companion families found this pass, with the rank of the package they came
+        // from. They join the fallback chain after the whole scan rather than during
+        // it, because the chain is consulted in order and directory enumeration order
+        // is not the order we want - see PackageFallbackRank.
+        var companions = new List<(int Rank, string FamilyName)>();
+
         foreach (var fontDirectory in EnumerateFontDirectories())
         {
             if (!ProcessedFontDirectories.Add(fontDirectory)) { continue; }
+
+            var packageFamilies = new List<string>();
 
             foreach (var manifestPath in SafeEnumerateFiles(fontDirectory, "*.ttf.manifest"))
             {
                 var familyName = Path.GetFileNameWithoutExtension(
                     Path.GetFileNameWithoutExtension(manifestPath));
                 var key = NormalizeFamilyKey(familyName);
-                if (Families.ContainsKey(key)) { continue; }
 
-                var faces = FontManifest.ReadFaces(manifestPath);
-                if (faces.Count == 0) { continue; }
-
-                var family = new PackageFontFamily(familyName, faces);
-                Families.Add(key, family);
-                RegisterFamily(family);
-
-                // Music notation families are fallback faces by design: they render the
-                // music characters other families lack, but are never a body-text
-                // default. Discovering one wires it into the fallback chain silently.
-                if (key.StartsWith("notomusic", StringComparison.Ordinal))
+                if (!Families.ContainsKey(key))
                 {
-                    AddFallbackFamilyLocked(familyName);
+                    var faces = FontManifest.ReadFaces(manifestPath);
+                    if (faces.Count == 0) { continue; }
+
+                    var family = new PackageFontFamily(familyName, faces);
+                    Families.Add(key, family);
+                    RegisterFamily(family);
                 }
+
+                // Record the family against this package even when another package
+                // already registered it. Noto Sans Georgian ships in BOTH the sans and
+                // the monospace package, so attributing it only to whichever directory
+                // the filesystem enumerated first would rank it arbitrarily - and rank
+                // it as monospace half the time, putting the SERIF Georgian companion
+                // ahead of it for Georgian text in a sans document. Listing it under
+                // every package that ships it lets the best rank win; the chain itself
+                // de-duplicates.
+                packageFamilies.Add(familyName);
+            }
+
+            // A CodeBrix.Platform.Fonts.* package ships one primary family plus the
+            // companion families that cover the scripts the primary lacks - polytonic
+            // Greek, Armenian, Georgian, music notation. Every family in the package
+            // that is NOT one of the three defaults is such a companion, which
+            // reproduces each package's own CODEBRIX-DEVELOP.json fallbackFontUris list
+            // exactly, without this code having to read that file or know any family
+            // name. A new font package therefore extends the fallback chain with no
+            // change here.
+            var rank = PackageFallbackRank(packageFamilies);
+            foreach (var familyName in packageFamilies)
+            {
+                if (IsDefaultFamily(familyName)) { continue; }
+                companions.Add((rank, familyName));
             }
         }
 
+        // OrderBy is stable, so within one package the families keep discovery order.
+        foreach (var (_, familyName) in companions.OrderBy(c => c.Rank))
+        {
+            AddFallbackFamilyLocked(familyName);
+        }
+
         _registrationVersion++;
+    }
+
+    /// <summary>
+    /// Orders the packages whose companions feed the fallback chain: the sans package
+    /// first, then the serif package, then a special-purpose package (one carrying none
+    /// of the three body defaults, such as the Noto Music package), and the monospace
+    /// package last.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Order matters wherever two companions cover the same character, and body text is
+    /// sans by default. Polytonic Greek is the case that forced the sans-first rule: the
+    /// sans package's Noto Sans, the serif package's Noto Serif, and the monospace
+    /// package's Noto Sans Mono and Iosevka ALL cover the Greek Extended block, so
+    /// without a rank the directory-enumeration order would put the serif Noto Serif
+    /// first and render ancient Greek in a serif face inside sans paragraphs.
+    /// </para>
+    /// <para>
+    /// The monospace package ranks LAST rather than third because a monospaced glyph is
+    /// the most jarring substitution inside proportional text, and because Iosevka's
+    /// very wide repertoire (some 7,500 code points, including a few musical symbols)
+    /// would otherwise shadow the special-purpose families whose whole reason to exist
+    /// is those characters - Noto Music being exactly that case.
+    /// </para>
+    /// </remarks>
+    private static int PackageFallbackRank(List<string> packageFamilies)
+    {
+        if (packageFamilies.Any(f => Matches(f, DefaultSansFamily))) { return 0; }
+        if (packageFamilies.Any(f => Matches(f, DefaultSerifFamily))) { return 1; }
+        if (packageFamilies.Any(f => Matches(f, DefaultMonoFamily))) { return 3; }
+        return 2;
+
+        static bool Matches(string familyName, string defaultFamily)
+            => NormalizeFamilyKey(familyName) == NormalizeFamilyKey(defaultFamily);
+    }
+
+    /// <summary>
+    /// True for the three body-text defaults. They are never auto-added to the fallback
+    /// chain: a document styled sans must not silently pick up serif or monospace
+    /// glyphs. A consumer that wants one can still add it with
+    /// <see cref="AddFallbackFamily"/>.
+    /// </summary>
+    private static bool IsDefaultFamily(string familyName)
+    {
+        var key = NormalizeFamilyKey(familyName);
+        return key == NormalizeFamilyKey(DefaultSansFamily)
+            || key == NormalizeFamilyKey(DefaultSerifFamily)
+            || key == NormalizeFamilyKey(DefaultMonoFamily);
     }
 
     private static void AddFallbackFamilyLocked(string familyName)

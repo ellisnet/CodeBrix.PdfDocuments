@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Text;
 using CodeBrix.PdfDocCreate.Html2Pdf.Composition;
 using CodeBrix.PdfDocCreate.Html2Pdf.Fonts;
 using SilverAssertions;
@@ -135,7 +136,11 @@ public class FontCoverageTests
     public void fallback_family_supplies_glyphs_the_styled_font_lacks()
     {
         //Arrange - find a code point the sans font lacks but the serif font covers,
-        // outside the legacy ranges so the fallback is provably what admits it.
+        // outside the legacy ranges so a cmap-driven fallback is provably what admits
+        // it. Which family ends up supplying it is deliberately NOT pinned: every
+        // companion family joins the chain automatically at discovery, so more than one
+        // registered family may cover the character and the chain order decides. What
+        // must hold is that SOME fallback face covers it and nothing is dropped.
         var sansFace = Html2PdfFonts.TryResolveFaceName("sans-serif", 400, false);
         var serifFace = Html2PdfFonts.TryResolveFaceName("serif", 400, false);
         var sansCoverage = Html2PdfFonts.TryGetFaceCoverage(sansFace);
@@ -146,7 +151,7 @@ public class FontCoverageTests
 
         Html2PdfFonts.AddFallbackFamily(Html2PdfFonts.DefaultSerifFamily);
 
-        //Act - unit level: the segmenter must route the character to the serif face.
+        //Act - unit level: the segmenter must route the character off the styled face.
         var warnings = new RenderWarnings();
         var segments = GlyphSafety.Segment(
             "x" + char.ConvertFromUtf32(codePoint.Value) + "y",
@@ -156,8 +161,10 @@ public class FontCoverageTests
         warnings.Count.Should().Be(0);
         segments.Count.Should().Be(3);
         segments[0].FaceName.Should().BeNull();
-        segments[1].FaceName.Should().Be(serifFace);
         segments[2].FaceName.Should().BeNull();
+        segments[1].FaceName.Should().NotBeNull();
+        segments[1].FaceName.Should().NotBe(sansFace);
+        Html2PdfFonts.FaceCovers(segments[1].FaceName, codePoint.Value).Should().BeTrue();
 
         //Act - end to end: the same text renders with no warnings.
         var renderer = new HtmlPdfRenderer();
@@ -166,6 +173,105 @@ public class FontCoverageTests
 
         //Assert
         result.Warnings.Count.Should().Be(0);
+    }
+
+    [Fact]
+    public void companion_families_join_the_fallback_chain_without_registration()
+    {
+        //Arrange - U+1F00 GREEK SMALL LETTER ALPHA WITH PSILI. Roboto carries exactly
+        // ONE code point of the Greek Extended block, so polytonic Greek has to come
+        // from a companion. No AddFallbackFamily call here: discovery must have wired
+        // the companions in on its own.
+        Html2PdfFonts.EnsureRegistered();
+        var sansFace = Html2PdfFonts.TryResolveFaceName("sans-serif", 400, false);
+        Html2PdfFonts.TryGetFaceCoverage(sansFace).Covers(0x1F00).Should().BeFalse();
+
+        //Act
+        var (familyName, faceName) = Html2PdfFonts.TryResolveFallback(0x1F00, 400, false);
+
+        //Assert
+        faceName.Should().NotBeNull();
+        familyName.Should().NotBeNull();
+        Html2PdfFonts.FaceCovers(faceName, 0x1F00).Should().BeTrue();
+    }
+
+    [Fact]
+    public void polytonic_greek_prefers_the_sans_companion_over_the_serif_one()
+    {
+        //Arrange - the sans, serif and monospace packages ALL ship a companion covering
+        // the Greek Extended block, so this is a genuine preference and not the only
+        // option available. Body text is sans by default, so the sans package's
+        // companion has to win; otherwise ancient Greek renders serif inside sans
+        // paragraphs. Guard the premise first.
+        Html2PdfFonts.EnsureRegistered();
+        var serifCompanionFace = Html2PdfFonts.TryResolveFaceName("NotoSerif", 400, false);
+        Assert.SkipWhen(serifCompanionFace == null, "The serif package's Greek companion is not present.");
+        Html2PdfFonts.FaceCovers(serifCompanionFace, 0x1F00).Should().BeTrue();
+
+        //Act
+        var (familyName, faceName) = Html2PdfFonts.TryResolveFallback(0x1F00, 400, false);
+
+        //Assert
+        familyName.Should().Be("NotoSans");
+        faceName.Should().Be(Html2PdfFonts.TryResolveFaceName("NotoSans", 400, false));
+    }
+
+    [Theory]
+    [InlineData(0x0531, "NotoSansArmenian", "NotoSerifArmenian")]  // Armenian capital Ayb
+    [InlineData(0x10D0, "NotoSansGeorgian", "NotoSerifGeorgian")]  // Georgian An
+    public void script_companions_resolve_to_the_sans_package_not_the_serif_one(
+        int codePoint, string expectedFamily, string serifCounterpart)
+    {
+        //Arrange - both the sans and the serif package ship a companion for these
+        // scripts, so the sans one has to win for sans body text. Noto Sans Georgian is
+        // the sharp edge here: it ships in the monospace package TOO, so if a family
+        // were ranked by whichever package the filesystem enumerated first, this would
+        // pass or fail depending on directory order. Guard the premise first.
+        Html2PdfFonts.EnsureRegistered();
+        var serifFace = Html2PdfFonts.TryResolveFaceName(serifCounterpart, 400, false);
+        Assert.SkipWhen(serifFace == null, $"{serifCounterpart} is not present.");
+        Html2PdfFonts.FaceCovers(serifFace, codePoint).Should().BeTrue();
+
+        //Act
+        var (familyName, faceName) = Html2PdfFonts.TryResolveFallback(codePoint, 400, false);
+
+        //Assert
+        familyName.Should().Be(expectedFamily);
+        Html2PdfFonts.FaceCovers(faceName, codePoint).Should().BeTrue();
+    }
+
+    [Fact]
+    public void polytonic_greek_renders_with_no_warnings_and_keeps_its_characters()
+    {
+        //Arrange - Iliad 1.1, which exercises psili, dasia, perispomeni, oxia, varia
+        // and an iota subscript. Greek Extended sits INSIDE GlyphSafety's legacy
+        // allow-list, so before the companions were wired in this text was admitted
+        // against Roboto and rendered as tofu with no warning at all - a silent wrong
+        // answer rather than a loud one. This test is what keeps that fixed.
+        const string polytonic = "\u03BC\u1FC6\u03BD\u03B9\u03BD \u1F04\u03B5\u03B9\u03B4\u03B5 \u03B8\u03B5\u1F70";
+        var renderer = new HtmlPdfRenderer();
+
+        //Act
+        var result = renderer.RenderHtmlToBytes($"<body><p>{polytonic}</p></body>");
+
+        //Assert
+        result.PdfBytes.Should().NotBeNull();
+        result.Warnings.Count.Should().Be(0);
+
+        //Assert - and the characters really are routed to a covering face, not dropped
+        // or silently left on a face with no glyph.
+        var sansFace = Html2PdfFonts.TryResolveFaceName("sans-serif", 400, false);
+        var warnings = new RenderWarnings();
+        var segments = GlyphSafety.Segment(polytonic, sansFace, 400, false, keepUncovered: false, warnings);
+        warnings.Count.Should().Be(0);
+        string.Concat(segments.Select(s => s.Text)).Should().Be(polytonic);
+        foreach (var segment in segments.Where(s => s.FaceName != null))
+        {
+            foreach (var rune in segment.Text.EnumerateRunes())
+            {
+                Html2PdfFonts.FaceCovers(segment.FaceName, rune.Value).Should().BeTrue();
+            }
+        }
     }
 
     [Fact]
