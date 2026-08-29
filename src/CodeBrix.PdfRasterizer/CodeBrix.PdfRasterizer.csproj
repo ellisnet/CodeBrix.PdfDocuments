@@ -77,25 +77,25 @@
   <!-- PDFium native binaries (BSD-licensed, from Docnet.Core / https://github.com/GowenGit/docnet) -->
   <ItemGroup>
     <None Include="runtimes\linux\native\pdfium.so" Pack="true" PackagePath="runtimes\linux-x64\native" Link="runtimes\linux-x64\native\pdfium.so" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="runtimes\linux\native\LICENSE" Pack="true" PackagePath="runtimes\linux-x64\native" Link="runtimes\linux-x64\native\LICENSE" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="runtimes\linux\native\LICENSE-Pdfium.txt" Pack="true" PackagePath="runtimes\linux-x64\native" Link="runtimes\linux-x64\native\LICENSE-Pdfium.txt" CopyToOutputDirectory="PreserveNewest" />
     <None Include="runtimes\linux-arm64\native\pdfium.so" Pack="true" PackagePath="runtimes\linux-arm64\native" Link="runtimes\linux-arm64\native\pdfium.so" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="runtimes\linux-arm64\native\LICENSE" Pack="true" PackagePath="runtimes\linux-arm64\native" Link="runtimes\linux-arm64\native\LICENSE" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="runtimes\linux-arm64\native\LICENSE-Pdfium.txt" Pack="true" PackagePath="runtimes\linux-arm64\native" Link="runtimes\linux-arm64\native\LICENSE-Pdfium.txt" CopyToOutputDirectory="PreserveNewest" />
     <None Include="runtimes\linux-arm\native\pdfium.so" Pack="true" PackagePath="runtimes\linux-arm\native" Link="runtimes\linux-arm\native\pdfium.so" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="runtimes\linux-arm\native\LICENSE" Pack="true" PackagePath="runtimes\linux-arm\native" Link="runtimes\linux-arm\native\LICENSE" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="runtimes\linux-arm\native\LICENSE-Pdfium.txt" Pack="true" PackagePath="runtimes\linux-arm\native" Link="runtimes\linux-arm\native\LICENSE-Pdfium.txt" CopyToOutputDirectory="PreserveNewest" />
     <None Include="runtimes\linux-riscv64\native\pdfium.so" Pack="true" PackagePath="runtimes\linux-riscv64\native" Link="runtimes\linux-riscv64\native\pdfium.so" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="runtimes\linux-riscv64\native\LICENSE" Pack="true" PackagePath="runtimes\linux-riscv64\native" Link="runtimes\linux-riscv64\native\LICENSE" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="runtimes\linux-riscv64\native\LICENSE-Pdfium.txt" Pack="true" PackagePath="runtimes\linux-riscv64\native" Link="runtimes\linux-riscv64\native\LICENSE-Pdfium.txt" CopyToOutputDirectory="PreserveNewest" />
     <None Include="runtimes\osx-x64\native\pdfium.dylib" Pack="true" PackagePath="runtimes\osx-x64\native" Link="runtimes\osx-x64\native\pdfium.dylib" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="runtimes\osx-x64\native\LICENSE" Pack="true" PackagePath="runtimes\osx-x64\native" Link="runtimes\osx-x64\native\LICENSE" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="runtimes\osx-x64\native\LICENSE-Pdfium.txt" Pack="true" PackagePath="runtimes\osx-x64\native" Link="runtimes\osx-x64\native\LICENSE-Pdfium.txt" CopyToOutputDirectory="PreserveNewest" />
     <None Include="runtimes\osx-arm64\native\pdfium.dylib" Pack="true" PackagePath="runtimes\osx-arm64\native" Link="runtimes\osx-arm64\native\pdfium.dylib" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="runtimes\osx-arm64\native\LICENSE" Pack="true" PackagePath="runtimes\osx-arm64\native" Link="runtimes\osx-arm64\native\LICENSE" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="runtimes\osx-arm64\native\LICENSE-Pdfium.txt" Pack="true" PackagePath="runtimes\osx-arm64\native" Link="runtimes\osx-arm64\native\LICENSE-Pdfium.txt" CopyToOutputDirectory="PreserveNewest" />
     <None Include="runtimes\win-arm64\native\pdfium.dll" Pack="true" PackagePath="runtimes\win-arm64\native" Link="runtimes\win-arm64\native\pdfium.dll" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="runtimes\win-arm64\native\LICENSE" Pack="true" PackagePath="runtimes\win-arm64\native" Link="runtimes\win-arm64\native\LICENSE" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="runtimes\win-arm64\native\LICENSE-Pdfium.txt" Pack="true" PackagePath="runtimes\win-arm64\native" Link="runtimes\win-arm64\native\LICENSE-Pdfium.txt" CopyToOutputDirectory="PreserveNewest" />
     <None Include="runtimes\win-x64\native\pdfium.dll" Pack="true" PackagePath="runtimes\win-x64\native" Link="runtimes\win-x64\native\pdfium.dll" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="runtimes\win-x64\native\LICENSE" Pack="true" PackagePath="runtimes\win-x64\native" Link="runtimes\win-x64\native\LICENSE" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="runtimes\win-x64\native\LICENSE-Pdfium.txt" Pack="true" PackagePath="runtimes\win-x64\native" Link="runtimes\win-x64\native\LICENSE-Pdfium.txt" CopyToOutputDirectory="PreserveNewest" />
     <None Include="runtimes\win-x86\native\pdfium.dll" Pack="true" PackagePath="runtimes\win-x86\native" Link="runtimes\win-x86\native\pdfium.dll" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="runtimes\win-x86\native\LICENSE" Pack="true" PackagePath="runtimes\win-x86\native" Link="runtimes\win-x86\native\LICENSE" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="runtimes\win-x86\native\LICENSE-Pdfium.txt" Pack="true" PackagePath="runtimes\win-x86\native" Link="runtimes\win-x86\native\LICENSE-Pdfium.txt" CopyToOutputDirectory="PreserveNewest" />
     <None Include="runtimes\android-arm64\native\pdfium.so" Pack="true" PackagePath="runtimes\android-arm64\native" Link="runtimes\android-arm64\native\pdfium.so" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="runtimes\android-arm64\native\LICENSE" Pack="true" PackagePath="runtimes\android-arm64\native" Link="runtimes\android-arm64\native\LICENSE" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="runtimes\android-arm64\native\LICENSE-Pdfium.txt" Pack="true" PackagePath="runtimes\android-arm64\native" Link="runtimes\android-arm64\native\LICENSE-Pdfium.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CodeBrix.Imaging.ApacheLicenseForever" Version="1.0.238.393" />

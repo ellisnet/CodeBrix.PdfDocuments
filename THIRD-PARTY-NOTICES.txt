@@ -266,7 +266,7 @@ handling is provided by the CodeBrix.Imaging and CodeBrix.Compression packages.
    The linux-riscv64 binary was extracted from the pypdfium2 Python package
    (version 5.6.0, manylinux_2_38_riscv64), which uses the pdfium-binaries
    build infrastructure to compile PDFium from source. That binary statically
-   links several third-party libraries; see runtimes/linux-riscv64/native/LICENSE
+   links several third-party libraries; see runtimes/linux-riscv64/native/LICENSE-Pdfium.txt
    for the complete list of bundled components and their licenses.
 
    The bblanchon packaging/build scripts are licensed under the MIT License.

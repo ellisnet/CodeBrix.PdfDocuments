@@ -9,7 +9,7 @@
 // the PDFium functions needed for rendering PDF pages to bitmaps.
 //
 // PDFium itself is copyright 2014 The PDFium Authors, BSD License.
-// See runtimes/*/native/LICENSE for the full PDFium license text.
+// See runtimes/*/native/LICENSE-Pdfium.txt for the full PDFium license text.
 // ============================================================================
 
 using System;
