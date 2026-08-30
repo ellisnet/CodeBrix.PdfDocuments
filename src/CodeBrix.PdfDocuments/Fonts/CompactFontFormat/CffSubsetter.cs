@@ -79,13 +79,9 @@ internal sealed class CffSubsetter
         if (font == null)
             return null;
 
-        HashSet<int> keep = new HashSet<int> { 0 };
-        foreach (int glyph in usedGlyphs)
-        {
-            if (glyph >= 0 && glyph < font.GlyphCount)
-                keep.Add(glyph);
-        }
-        return new CffSubsetter(cff).Write(font, keep);
+        CffSubsetter subsetter = new CffSubsetter(cff);
+        HashSet<int> keep = subsetter.KeptGlyphs(font, usedGlyphs);
+        return subsetter.Write(font, keep);
     }
 
     /// <summary>
@@ -159,42 +155,69 @@ internal sealed class CffSubsetter
 
     // ----- writing -----
 
+    /// <summary>
+    /// The byte blocks a subset program is laid out from. Every one of them is finished -
+    /// laying out only chooses where each goes and re-encodes the offsets that name them.
+    /// </summary>
+    sealed class SubsetPieces
+    {
+        /// <summary>The header, copied verbatim.</summary>
+        public byte[] Header;
+        /// <summary>The Name INDEX, copied verbatim.</summary>
+        public byte[] NameIndex;
+        /// <summary>The String INDEX.</summary>
+        public byte[] StringIndex;
+        /// <summary>The Global Subr INDEX.</summary>
+        public byte[] GlobalSubrIndex;
+        /// <summary>The charset, or null when the Top DICT names a predefined one.</summary>
+        public byte[] Charset;
+        /// <summary>The Encoding, or null when the Top DICT names a predefined one.</summary>
+        public byte[] Encoding;
+        /// <summary>The FDSelect (CID-keyed fonts), or null.</summary>
+        public byte[] FdSelect;
+        /// <summary>The CharStrings, one item per glyph of the subset.</summary>
+        public List<byte[]> CharStrings;
+        /// <summary>Each Private DICT with its local Subrs INDEX, one span each; entries may be null.</summary>
+        public List<byte[]> PrivateSpans;
+    }
+
     byte[] Write(CffFont font, HashSet<int> keep)
     {
-        // The pieces whose bytes are copied verbatim, with their lengths.
-        byte[] header = Slice(0, font.HeaderSize);
-        byte[] nameIndex = Slice(font.NameIndex.Start, font.NameIndex.End);
-        byte[] stringIndex = Slice(font.StringIndex.Start, font.StringIndex.End);
-        byte[] globalSubrIndex = Slice(font.GlobalSubrIndex.Start, font.GlobalSubrIndex.End);
-        byte[] charset = font.CharsetOffset > 2 ? Slice(font.CharsetOffset, font.CharsetOffset + CharsetLength(font.CharsetOffset, font.GlyphCount)) : null;
-        byte[] encoding = font.EncodingOffset > 1 ? Slice(font.EncodingOffset, font.EncodingOffset + EncodingLength(font.EncodingOffset)) : null;
-        byte[] fdSelect = font.IsCidKeyed ? Slice(font.FdSelectOffset, font.FdSelectOffset + FdSelectLength(font.FdSelectOffset, font.GlyphCount)) : null;
+        SubsetPieces pieces = new SubsetPieces
+        {
+            Header = Slice(0, font.HeaderSize),
+            NameIndex = Slice(font.NameIndex.Start, font.NameIndex.End),
+            StringIndex = Slice(font.StringIndex.Start, font.StringIndex.End),
+            GlobalSubrIndex = Slice(font.GlobalSubrIndex.Start, font.GlobalSubrIndex.End),
+            Charset = font.CharsetOffset > 2 ? Slice(font.CharsetOffset, font.CharsetOffset + CharsetLength(font.CharsetOffset, font.GlyphCount)) : null,
+            Encoding = font.EncodingOffset > 1 ? Slice(font.EncodingOffset, font.EncodingOffset + EncodingLength(font.EncodingOffset)) : null,
+            FdSelect = font.IsCidKeyed ? Slice(font.FdSelectOffset, font.FdSelectOffset + FdSelectLength(font.FdSelectOffset, font.GlyphCount)) : null,
+        };
 
         // The rebuilt CharStrings INDEX: kept glyphs verbatim, the rest a bare endchar.
-        List<byte[]> charStrings = new List<byte[]>(font.GlyphCount);
+        pieces.CharStrings = new List<byte[]>(font.GlyphCount);
         for (int glyph = 0; glyph < font.GlyphCount; glyph++)
         {
-            charStrings.Add(keep.Contains(glyph)
+            pieces.CharStrings.Add(keep.Contains(glyph)
                 ? Slice(font.CharStringsIndex.ItemStart(glyph), font.CharStringsIndex.ItemEnd(glyph))
                 : new[] { EndChar });
         }
-        byte[] charStringsIndex = BuildIndex(charStrings);
 
         // Private DICTs travel with their local subroutines as one span each.
-        List<byte[]> privateSpans = new List<byte[]>();
+        pieces.PrivateSpans = new List<byte[]>();
         if (font.IsCidKeyed)
         {
             foreach (FontDict fd in font.FontDicts)
             {
                 if (fd.Private == null)
                 {
-                    privateSpans.Add(null);
+                    pieces.PrivateSpans.Add(null);
                     continue;
                 }
                 byte[] span = PrivateSpan(fd.Private);
                 if (span == null)
                     return null;
-                privateSpans.Add(span);
+                pieces.PrivateSpans.Add(span);
             }
         }
         else if (font.Private != null)
@@ -202,11 +225,29 @@ internal sealed class CffSubsetter
             byte[] span = PrivateSpan(font.Private);
             if (span == null)
                 return null;
-            privateSpans.Add(span);
+            pieces.PrivateSpans.Add(span);
         }
 
-        // Sizes first. A rebuilt DICT's size does not depend on the offsets it will carry,
-        // because every offset operand is written in the five-byte form.
+        return Layout(font, pieces);
+    }
+
+    /// <summary>
+    /// Places the finished pieces one after another and writes the DICTs that name them.
+    /// </summary>
+    /// <param name="font">The parsed program the subset is built from.</param>
+    /// <param name="pieces">The finished byte blocks.</param>
+    /// <returns>The subset program.</returns>
+    /// <remarks>
+    /// The pieces are emitted in the order CFF readers expect: header, Name INDEX, Top DICT
+    /// INDEX, String INDEX, Global Subr INDEX, charset, Encoding, FDSelect, CharStrings
+    /// INDEX, FDArray INDEX, then each Private DICT with its local Subrs INDEX. Sizes are
+    /// settled before offsets, which the five-byte integer form makes possible: a DICT's
+    /// size does not depend on the values its offset operands will carry.
+    /// </remarks>
+    byte[] Layout(CffFont font, SubsetPieces pieces)
+    {
+        byte[] charStringsIndex = BuildIndex(pieces.CharStrings);
+
         int topDictSize = BuildTopDict(font, 0, 0, 0, 0, 0, 0).Length;
         int topDictIndexSize = IndexSize(new[] { topDictSize });
 
@@ -220,24 +261,25 @@ internal sealed class CffSubsetter
         }
 
         // Now the layout.
-        int pos = header.Length + nameIndex.Length + topDictIndexSize + stringIndex.Length + globalSubrIndex.Length;
+        int pos = pieces.Header.Length + pieces.NameIndex.Length + topDictIndexSize
+            + pieces.StringIndex.Length + pieces.GlobalSubrIndex.Length;
         int charsetOffset = font.CharsetOffset;
-        if (charset != null) { charsetOffset = pos; pos += charset.Length; }
+        if (pieces.Charset != null) { charsetOffset = pos; pos += pieces.Charset.Length; }
         int encodingOffset = font.EncodingOffset;
-        if (encoding != null) { encodingOffset = pos; pos += encoding.Length; }
+        if (pieces.Encoding != null) { encodingOffset = pos; pos += pieces.Encoding.Length; }
         int fdSelectOffset = 0;
-        if (fdSelect != null) { fdSelectOffset = pos; pos += fdSelect.Length; }
+        if (pieces.FdSelect != null) { fdSelectOffset = pos; pos += pieces.FdSelect.Length; }
         int charStringsOffset = pos;
         pos += charStringsIndex.Length;
         int fdArrayOffset = 0;
         if (font.IsCidKeyed) { fdArrayOffset = pos; pos += fdArrayIndexSize; }
-        int[] privateOffsets = new int[privateSpans.Count];
-        for (int idx = 0; idx < privateSpans.Count; idx++)
+        int[] privateOffsets = new int[pieces.PrivateSpans.Count];
+        for (int idx = 0; idx < pieces.PrivateSpans.Count; idx++)
         {
-            if (privateSpans[idx] == null)
+            if (pieces.PrivateSpans[idx] == null)
                 continue;
             privateOffsets[idx] = pos;
-            pos += privateSpans[idx].Length;
+            pos += pieces.PrivateSpans[idx].Length;
         }
 
         // The DICTs with their real offsets.
@@ -268,17 +310,17 @@ internal sealed class CffSubsetter
 
         // Emit.
         MemoryStream output = new MemoryStream(pos);
-        output.Write(header, 0, header.Length);
-        output.Write(nameIndex, 0, nameIndex.Length);
+        output.Write(pieces.Header, 0, pieces.Header.Length);
+        output.Write(pieces.NameIndex, 0, pieces.NameIndex.Length);
         output.Write(topDictIndex, 0, topDictIndex.Length);
-        output.Write(stringIndex, 0, stringIndex.Length);
-        output.Write(globalSubrIndex, 0, globalSubrIndex.Length);
-        if (charset != null) output.Write(charset, 0, charset.Length);
-        if (encoding != null) output.Write(encoding, 0, encoding.Length);
-        if (fdSelect != null) output.Write(fdSelect, 0, fdSelect.Length);
+        output.Write(pieces.StringIndex, 0, pieces.StringIndex.Length);
+        output.Write(pieces.GlobalSubrIndex, 0, pieces.GlobalSubrIndex.Length);
+        if (pieces.Charset != null) output.Write(pieces.Charset, 0, pieces.Charset.Length);
+        if (pieces.Encoding != null) output.Write(pieces.Encoding, 0, pieces.Encoding.Length);
+        if (pieces.FdSelect != null) output.Write(pieces.FdSelect, 0, pieces.FdSelect.Length);
         output.Write(charStringsIndex, 0, charStringsIndex.Length);
         if (fdArrayIndex != null) output.Write(fdArrayIndex, 0, fdArrayIndex.Length);
-        foreach (byte[] span in privateSpans)
+        foreach (byte[] span in pieces.PrivateSpans)
         {
             if (span != null)
                 output.Write(span, 0, span.Length);
@@ -287,6 +329,450 @@ internal sealed class CffSubsetter
             throw new InvalidOperationException("The subset program's layout and its bytes disagree.");
         return output.ToArray();
     }
+
+    /// <summary>
+    /// Writes a COMPACT subset of a CFF program: the sparse subset, plus the subroutines
+    /// no kept glyph calls and the strings no kept glyph names removed.
+    /// </summary>
+    /// <param name="cff">The complete CFF program (the bytes of an OpenType <c>CFF </c> table).</param>
+    /// <param name="usedGlyphs">The glyph indices whose charstrings are kept. Glyph 0 is always kept.</param>
+    /// <returns>The subset program, or null when the program is one this class does not handle.</returns>
+    /// <exception cref="ArgumentNullException">Either argument is null.</exception>
+    /// <exception cref="InvalidDataException">The program is structurally not a CFF.</exception>
+    /// <remarks>
+    /// <para>
+    /// GLYPH NUMBERING IS PRESERVED, exactly as <see cref="CreateSparseSubset"/> preserves
+    /// it, and for the same reason: the PDF that embeds this program has already been
+    /// written with the original glyph indices, and for a <c>/CIDFontType0</c> whose
+    /// program is not CID-keyed, PDF 32000-1:2008 section 9.7.4.2 says the CIDs "shall be
+    /// used directly as glyph indices". Renumbering such a font would move every glyph.
+    /// </para>
+    /// <para>
+    /// What it removes instead are the two things that do not depend on numbering. The
+    /// SUBROUTINES a subset keeps are only those the kept charstrings reach, transitively;
+    /// dropping the rest changes the bias every <c>callsubr</c> and <c>callgsubr</c>
+    /// operand is written against, so the kept charstrings and subroutines are rewritten
+    /// to match. The STRINGS a subset keeps are only those still named - by the charset
+    /// entry of a kept glyph, by a DICT, or by an Encoding supplement; the rest become
+    /// empty strings, which keeps every SID valid and the charset untouched, and is
+    /// smaller than rewriting the charset would be.
+    /// </para>
+    /// <para>
+    /// The kept set also grows by the <c>seac</c> closure: the four-operand form of
+    /// <c>endchar</c> draws an accented glyph as two others, named by StandardEncoding
+    /// code, and a document that uses the composite uses those two without naming them.
+    /// </para>
+    /// </remarks>
+    public static byte[] CreateCompactSubset(byte[] cff, IEnumerable<int> usedGlyphs)
+    {
+        if (cff == null)
+            throw new ArgumentNullException(nameof(cff));
+        if (usedGlyphs == null)
+            throw new ArgumentNullException(nameof(usedGlyphs));
+
+        CffFont font = Parse(cff);
+        if (font == null)
+            return null;
+
+        CffSubsetter subsetter = new CffSubsetter(cff);
+        return subsetter.WriteCompact(font, subsetter.KeptGlyphs(font, usedGlyphs));
+    }
+
+    /// <summary>
+    /// The glyphs a subset keeps: glyph 0, the ones the document asked for, and the ones a
+    /// <c>seac</c> composite among them draws with.
+    /// </summary>
+    /// <param name="font">The parsed program.</param>
+    /// <param name="usedGlyphs">The glyph indices the document asked for.</param>
+    /// <returns>The glyphs to keep.</returns>
+    /// <remarks>
+    /// BOTH subsets need this. The four-operand form of <c>endchar</c> draws an accented
+    /// glyph out of two others named by StandardEncoding code, and nothing else in the
+    /// document names those two - so a subset that kept only what was asked for would keep
+    /// the composite's own charstring and blank the two glyphs it is made of, and the
+    /// accented glyph would render as nothing at all.
+    /// </remarks>
+    HashSet<int> KeptGlyphs(CffFont font, IEnumerable<int> usedGlyphs)
+    {
+        HashSet<int> keep = new HashSet<int> { 0 };
+        foreach (int glyph in usedGlyphs)
+        {
+            if (glyph >= 0 && glyph < font.GlyphCount)
+                keep.Add(glyph);
+        }
+        // A scan that fails leaves the asked-for set alone, which is what this subsetter
+        // did before it looked for composites at all.
+        ScanClosure(font, keep, ReadCharsetIds(font));
+        return keep;
+    }
+
+    byte[] WriteCompact(CffFont font, HashSet<int> keep)
+    {
+        int[] charsetIds = ReadCharsetIds(font);
+
+        // Re-walked over the final kept set, so the subroutine closure covers the glyphs
+        // the seac expansion added as well.
+        CffCharStringScanner scanner = ScanClosure(font, keep, charsetIds);
+        if (scanner.Failed)
+            return null;
+
+        SubsetPieces pieces = new SubsetPieces
+        {
+            Header = Slice(0, font.HeaderSize),
+            NameIndex = Slice(font.NameIndex.Start, font.NameIndex.End),
+            Charset = font.CharsetOffset > 2 ? Slice(font.CharsetOffset, font.CharsetOffset + CharsetLength(font.CharsetOffset, font.GlyphCount)) : null,
+            Encoding = font.EncodingOffset > 1 ? Slice(font.EncodingOffset, font.EncodingOffset + EncodingLength(font.EncodingOffset)) : null,
+            FdSelect = font.IsCidKeyed ? Slice(font.FdSelectOffset, font.FdSelectOffset + FdSelectLength(font.FdSelectOffset, font.GlyphCount)) : null,
+            GlobalSubrIndex = EmptyUnusedSubrs(font.GlobalSubrIndex, scanner.UsedGlobalSubrs),
+        };
+
+        // The CharStrings, exactly as the sparse subset builds them: a kept glyph verbatim,
+        // everything else a bare endchar.
+        pieces.CharStrings = new List<byte[]>(font.GlyphCount);
+        for (int glyph = 0; glyph < font.GlyphCount; glyph++)
+        {
+            pieces.CharStrings.Add(keep.Contains(glyph)
+                ? Slice(font.CharStringsIndex.ItemStart(glyph), font.CharStringsIndex.ItemEnd(glyph))
+                : new[] { EndChar });
+        }
+
+        // Each Private DICT verbatim, with the slots of its unreached local subroutines emptied.
+        pieces.PrivateSpans = new List<byte[]>();
+        foreach (PrivateDict privateDict in PrivateDicts(font))
+        {
+            if (privateDict == null)
+            {
+                pieces.PrivateSpans.Add(null);
+                continue;
+            }
+            byte[] span = CompactPrivateSpan(privateDict, scanner.UsedLocalSubrs(privateDict.Subrs));
+            if (span == null)
+                return null;
+            pieces.PrivateSpans.Add(span);
+        }
+
+        pieces.StringIndex = CompactStringIndex(font, keep, charsetIds);
+        return Layout(font, pieces);
+    }
+
+    /// <summary>
+    /// An INDEX with the same number of items, in which every item nothing reaches is now
+    /// zero-length.
+    /// </summary>
+    /// <param name="index">The INDEX to compact.</param>
+    /// <param name="used">The items to carry over verbatim.</param>
+    /// <returns>The compacted INDEX.</returns>
+    /// <remarks>
+    /// Keeping the COUNT is the whole point: a subroutine operand is written as its index
+    /// less a bias taken from that count, so removing items would move the bias and every
+    /// operand in every charstring and surviving subroutine would have to be re-encoded -
+    /// which cannot be done reliably, because a subroutine's own parse depends on the stack
+    /// its caller left (see <see cref="CffCharStringScanner"/>). Emptying the slots instead
+    /// leaves every operand meaning exactly what it meant. It costs one offset per dropped
+    /// subroutine, which is one or two bytes against the dozens the subroutine held.
+    /// </remarks>
+    byte[] EmptyUnusedSubrs(CffIndex index, HashSet<int> used)
+    {
+        if (index.Count == 0)
+            return Slice(index.Start, index.End);
+        List<byte[]> items = new List<byte[]>(index.Count);
+        for (int idx = 0; idx < index.Count; idx++)
+        {
+            items.Add(used.Contains(idx)
+                ? Slice(index.ItemStart(idx), index.ItemEnd(idx))
+                : Array.Empty<byte>());
+        }
+        return BuildIndex(items);
+    }
+
+    /// <summary>
+    /// Walks the kept glyphs, then the glyphs their <c>seac</c> composites draw with, until
+    /// nothing new is reached.
+    /// </summary>
+    CffCharStringScanner ScanClosure(CffFont font, HashSet<int> keep, int[] charsetIds)
+    {
+        CffCharStringScanner scanner = new CffCharStringScanner(_data, font.GlobalSubrIndex);
+        HashSet<int> walked = new HashSet<int>();
+        // A seac component may itself be a composite, so this settles rather than assuming
+        // one round; the bound is there because a font could name itself.
+        for (int round = 0; round < 8; round++)
+        {
+            List<int> pending = new List<int>();
+            foreach (int glyph in keep)
+            {
+                if (!walked.Contains(glyph))
+                    pending.Add(glyph);
+            }
+            if (pending.Count == 0)
+                break;
+            foreach (int glyph in pending)
+            {
+                walked.Add(glyph);
+                scanner.Collect(font.CharStringsIndex.ItemStart(glyph), font.CharStringsIndex.ItemEnd(glyph),
+                    LocalSubrsFor(font, glyph));
+            }
+            // seac names its components by StandardEncoding code; the charset turns the
+            // SID that names into the glyph that draws.
+            if (charsetIds == null || font.IsCidKeyed)
+                continue;
+            foreach (int code in scanner.SeacCodes)
+            {
+                if (code < 0 || code > 255)
+                    continue;
+                int sid = CffCharStringScanner.StandardEncodingSids[code];
+                if (sid == 0)
+                    continue;
+                for (int glyph = 0; glyph < charsetIds.Length; glyph++)
+                {
+                    if (charsetIds[glyph] == sid)
+                    {
+                        keep.Add(glyph);
+                        break;
+                    }
+                }
+            }
+        }
+        return scanner;
+    }
+
+    /// <summary>The Private DICTs of the program, in FDArray order for a CID-keyed font.</summary>
+    static IEnumerable<PrivateDict> PrivateDicts(CffFont font)
+    {
+        if (font.IsCidKeyed)
+        {
+            foreach (FontDict fd in font.FontDicts)
+                yield return fd.Private;
+        }
+        else if (font.Private != null)
+        {
+            yield return font.Private;
+        }
+    }
+
+    /// <summary>The Local Subr INDEX that applies to a glyph, or null when there is none.</summary>
+    CffIndex LocalSubrsFor(CffFont font, int glyph)
+    {
+        if (!font.IsCidKeyed)
+            return font.Private != null ? font.Private.Subrs : null;
+        int fd = FdForGlyph(font, glyph);
+        if (fd < 0 || fd >= font.FontDicts.Count)
+            return null;
+        PrivateDict privateDict = font.FontDicts[fd].Private;
+        return privateDict != null ? privateDict.Subrs : null;
+    }
+
+    /// <summary>Reads the Font DICT index a glyph uses from the FDSelect table.</summary>
+    int FdForGlyph(CffFont font, int glyph)
+    {
+        if (_fdSelect == null)
+            _fdSelect = ReadFdSelect(font);
+        return glyph >= 0 && glyph < _fdSelect.Length ? _fdSelect[glyph] : 0;
+    }
+    int[] _fdSelect;
+
+    int[] ReadFdSelect(CffFont font)
+    {
+        int[] map = new int[font.GlyphCount];
+        int offset = font.FdSelectOffset;
+        int format = _data[offset];
+        if (format == 0)
+        {
+            for (int glyph = 0; glyph < font.GlyphCount; glyph++)
+                map[glyph] = _data[offset + 1 + glyph];
+        }
+        else if (format == 3)
+        {
+            int ranges = ReadUInt16(offset + 1);
+            int pos = offset + 3;
+            for (int idx = 0; idx < ranges; idx++)
+            {
+                int first = ReadUInt16(pos);
+                int fd = _data[pos + 2];
+                // A range entry is three bytes, and the sentinel that closes the last one
+                // sits exactly where the next range's first glyph would: one read serves both.
+                int next = ReadUInt16(pos + 3);
+                for (int glyph = first; glyph < next && glyph < map.Length; glyph++)
+                    map[glyph] = fd;
+                pos += 3;
+            }
+        }
+        else
+        {
+            throw new InvalidDataException("A CFF FDSelect has an unknown format.");
+        }
+        return map;
+    }
+
+    /// <summary>
+    /// The charset as an array of identifiers, one per glyph - SIDs for a font that is not
+    /// CID-keyed, CIDs for one that is - or null when the Top DICT names a predefined
+    /// charset this class does not carry a table for.
+    /// </summary>
+    int[] ReadCharsetIds(CffFont font)
+    {
+        int[] ids = new int[font.GlyphCount];
+        int offset = font.CharsetOffset;
+        if (offset == 0)
+        {
+            // ISOAdobe: glyph n is SID n, which is what an identity charset looks like.
+            for (int glyph = 0; glyph < ids.Length; glyph++)
+                ids[glyph] = glyph;
+            return ids;
+        }
+        if (offset == 1 || offset == 2)
+            return null;    // Expert and ExpertSubset; no table here, so nothing is compacted.
+
+        int format = _data[offset];
+        int pos = offset + 1;
+        int covered = 1;    // glyph 0 is .notdef, never listed
+        if (format == 0)
+        {
+            while (covered < font.GlyphCount)
+            {
+                ids[covered++] = ReadUInt16(pos);
+                pos += 2;
+            }
+            return ids;
+        }
+        if (format == 1 || format == 2)
+        {
+            while (covered < font.GlyphCount)
+            {
+                int first = ReadUInt16(pos);
+                int left = format == 1 ? _data[pos + 2] : ReadUInt16(pos + 2);
+                pos += format == 1 ? 3 : 4;
+                for (int idx = 0; idx <= left && covered < font.GlyphCount; idx++)
+                    ids[covered++] = first + idx;
+            }
+            return ids;
+        }
+        throw new InvalidDataException("A CFF charset has an unknown format.");
+    }
+
+    /// <summary>
+    /// The Private DICT verbatim, followed by its local Subrs INDEX with the slots of the
+    /// subroutines no kept glyph reaches emptied.
+    /// </summary>
+    /// <param name="privateDict">The Private DICT.</param>
+    /// <param name="usedLocalSubrs">The local subroutines the kept glyphs reach.</param>
+    /// <returns>The span, or null when the subroutines do not follow the DICT.</returns>
+    /// <remarks>
+    /// The Subrs operand inside a Private DICT is an offset RELATIVE to the DICT, and the
+    /// DICT is copied byte for byte, so the compacted INDEX has to begin at the same
+    /// distance the original one did - which is what the padding is for. A DICT whose
+    /// subroutines do not follow it is refused, exactly as the sparse subset refuses it.
+    /// </remarks>
+    byte[] CompactPrivateSpan(PrivateDict privateDict, HashSet<int> usedLocalSubrs)
+    {
+        if (privateDict.Subrs == null)
+            return Slice(privateDict.Offset, privateDict.Offset + privateDict.Size);
+
+        int relative = privateDict.SubrsRelativeOffset.Value;
+        if (relative < privateDict.Size)
+            return null;
+
+        byte[] subrsIndex = EmptyUnusedSubrs(privateDict.Subrs, usedLocalSubrs);
+        MemoryStream span = new MemoryStream(relative + subrsIndex.Length);
+        span.Write(_data, privateDict.Offset, privateDict.Size);
+        for (int pad = privateDict.Size; pad < relative; pad++)
+            span.WriteByte(0);
+        span.Write(subrsIndex, 0, subrsIndex.Length);
+        return span.ToArray();
+    }
+
+    /// <summary>
+    /// The String INDEX with every string no longer named replaced by an empty one, which
+    /// leaves every SID meaning what it meant and the charset untouched.
+    /// </summary>
+    byte[] CompactStringIndex(CffFont font, HashSet<int> keep, int[] charsetIds)
+    {
+        int count = font.StringIndex.Count;
+        if (count == 0)
+            return Slice(font.StringIndex.Start, font.StringIndex.End);
+
+        // An Encoding SUPPLEMENT names glyphs by SID as well. Rather than carry a parser
+        // for a structure no font on hand uses - and so no test could exercise - a program
+        // that has one keeps every string.
+        if (HasEncodingSupplement(font))
+            return Slice(font.StringIndex.Start, font.StringIndex.End);
+
+        HashSet<int> live = new HashSet<int>();
+        CollectDictSids(font.TopDict, live);
+        foreach (FontDict fd in font.FontDicts)
+            CollectDictSids(fd.Dict, live);
+        if (charsetIds != null && !font.IsCidKeyed)
+        {
+            foreach (int glyph in keep)
+            {
+                if (glyph >= 0 && glyph < charsetIds.Length)
+                    live.Add(charsetIds[glyph]);
+            }
+        }
+        else if (charsetIds == null)
+        {
+            // Nothing could be read, so nothing is claimed: keep every string.
+            return Slice(font.StringIndex.Start, font.StringIndex.End);
+        }
+
+        List<byte[]> strings = new List<byte[]>(count);
+        for (int idx = 0; idx < count; idx++)
+        {
+            strings.Add(live.Contains(StandardStringCount + idx)
+                ? Slice(font.StringIndex.ItemStart(idx), font.StringIndex.ItemEnd(idx))
+                : Array.Empty<byte>());
+        }
+        return BuildIndex(strings);
+    }
+
+    /// <summary>Adds the SID operands a DICT carries to the live set.</summary>
+    static void CollectDictSids(CffDict dict, HashSet<int> live)
+    {
+        if (dict == null)
+            return;
+        foreach (DictEntry entry in dict.Entries)
+        {
+            int operandCount = SidOperandCount(entry.Operator);
+            for (int idx = 0; idx < operandCount && idx < entry.Operands.Length; idx++)
+            {
+                double operand = entry.Operands[idx];
+                if (!double.IsNaN(operand))
+                    live.Add((int)operand);
+            }
+        }
+    }
+
+    /// <summary>How many of a DICT operator's leading operands are SIDs.</summary>
+    static int SidOperandCount(int op)
+    {
+        switch (op)
+        {
+            case 0:                     // version
+            case 1:                     // Notice
+            case 2:                     // FullName
+            case 3:                     // FamilyName
+            case 4:                     // Weight
+            case (OpEscape << 8) | 0:   // Copyright
+            case (OpEscape << 8) | 21:  // PostScript
+            case (OpEscape << 8) | 22:  // BaseFontName
+            case (OpEscape << 8) | 38:  // FontName (Font DICT)
+                return 1;
+            case OpRos:                 // ROS: registry and ordering, then a plain integer
+                return 2;
+            default:
+                return 0;
+        }
+    }
+
+    /// <summary>Whether the Encoding carries a supplement, which names glyphs by SID.</summary>
+    /// <param name="font">The parsed program.</param>
+    /// <returns>True when a supplement is present.</returns>
+    bool HasEncodingSupplement(CffFont font)
+    {
+        return font.EncodingOffset > 1 && (_data[font.EncodingOffset] & 0x80) != 0;
+    }
+
+    /// <summary>The number of standard strings; SIDs below this do not index the String INDEX.</summary>
+    const int StandardStringCount = 391;
 
     /// <summary>
     /// The Private DICT and its local Subrs INDEX as one verbatim span, or null when the
@@ -560,7 +1046,8 @@ internal sealed class CffSubsetter
         if (subrs != null)
         {
             privateDict.SubrsRelativeOffset = (int)subrs.Operands[0];
-            privateDict.LocalSubrCount = ReadIndex(offset + privateDict.SubrsRelativeOffset.Value).Count;
+            privateDict.Subrs = ReadIndex(offset + privateDict.SubrsRelativeOffset.Value);
+            privateDict.LocalSubrCount = privateDict.Subrs.Count;
         }
         return privateDict;
     }
@@ -762,6 +1249,8 @@ internal sealed class PrivateDict
     public int? SubrsRelativeOffset;
     /// <summary>The number of local subroutines.</summary>
     public int LocalSubrCount;
+    /// <summary>The local Subrs INDEX, or null when there are none.</summary>
+    public CffIndex Subrs;
 }
 
 /// <summary>A Font DICT of a CID-keyed font with its Private DICT.</summary>

@@ -23,3 +23,11 @@ CID-keyed CFF program (one Font DICT, FDSelect format 3, ROS Adobe-Identity-0,
 identity CIDs, family renamed MathJaxAMSCid so the two cannot be confused). It
 exists only so the subsetter's CID branch has a fixture; it is Apache-2.0 like
 its source, test-only, and embedded in the same test assembly.
+
+MathJax_AMS-Encoded.otf is DERIVED the same way, by make-mathjax-encoded.py: the
+same face given a custom Encoding table, a charset in format 1, one spare glyph
+renamed 'acute', and an added 'Aacute' whose charstring is the deprecated
+four-operand seac form of endchar. It is the only fixture here carrying any of
+those three structures - no font in the URW or MathJax families uses seac at all
+- and it exists so the subsetter's seac closure and Encoding handling are
+exercised. Apache-2.0 like its source, test-only, same test assembly.

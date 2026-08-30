@@ -37,6 +37,9 @@ public class CffSubsetTests
     private const string CidFamilyName = "MathJaxAMSCid";
     private const string CidFaceName = "MathJaxAMSCid-Regular";
     private const string CidResourceName = "CodeBrix.PdfDocuments.Tests.SampleFiles.MathJax_AMS-CID.otf";
+    private const string EncodedResourceName = "CodeBrix.PdfDocuments.Tests.SampleFiles.MathJax_AMS-Encoded.otf";
+    private const string EncodedFamilyName = "MathJaxAMSEnc";
+    private const string EncodedFaceName = "MathJaxAMSEnc-Regular";
     private static readonly string OutDir = "TestResults/CffSubsetTests";
 
     static CffSubsetTests()
@@ -58,6 +61,15 @@ public class CffSubsetTests
             ],
             fontEmbeddedResourceAssembly: typeof(CffSubsetTests).Assembly);
         MetaFontResolver.Instance.RegisterFontResolver(CidFaceName, cidResolver);
+
+        var encodedResolver = new EmbeddedFontResolver(
+            fontFamilyName: EncodedFamilyName,
+            fontFaceResources:
+            [
+                new EmbeddedResourceFontFace(FaceName: EncodedFaceName, EmbeddedResourceName: EncodedResourceName),
+            ],
+            fontEmbeddedResourceAssembly: typeof(CffSubsetTests).Assembly);
+        MetaFontResolver.Instance.RegisterFontResolver(EncodedFaceName, encodedResolver);
     }
 
     // ----- the parser against the measured fixture -----
@@ -225,6 +237,256 @@ public class CffSubsetTests
         File.ReadAllBytes(sparseFiles[0]).Should().Equal(File.ReadAllBytes(wholeFiles[0]));
     }
 
+
+    // ----- the compact subset -----
+
+    [Fact]
+    public void a_compact_subset_keeps_glyph_numbering_the_charset_and_every_subroutine_slot()
+    {
+        //Arrange
+        byte[] cff = CffProgramOf(FixtureBytes());
+        CffFont original = CffSubsetter.Parse(cff);
+        int[] wanted = { 2, 3, 4 };
+
+        //Act
+        byte[] subset = CffSubsetter.CreateCompactSubset(cff, wanted);
+        CffFont parsed = CffSubsetter.Parse(subset);
+
+        //Assert - nothing that a glyph index, a CID or an SID is measured against has moved.
+        parsed.GlyphCount.Should().Be(original.GlyphCount);
+        parsed.IsCidKeyed.Should().BeFalse();
+        parsed.LocalSubrCount.Should().Be(original.LocalSubrCount);
+        parsed.GlobalSubrCount.Should().Be(original.GlobalSubrCount);
+        parsed.StringIndex.Count.Should().Be(original.StringIndex.Count);
+        parsed.Private.Size.Should().Be(original.Private.Size);
+        Slice(subset, parsed.CharsetOffset, CharsetLengthOf(original))
+            .Should().Equal(Slice(cff, original.CharsetOffset, CharsetLengthOf(original)));
+        Slice(subset, parsed.Private.Offset, parsed.Private.Size)
+            .Should().Equal(Slice(cff, original.Private.Offset, original.Private.Size));
+
+        //...and the charstrings are exactly what a sparse subset writes.
+        for (int glyph = 0; glyph < original.GlyphCount; glyph++)
+        {
+            byte[] charstring = Item(subset, parsed.CharStringsIndex, glyph);
+            if (glyph == 0 || wanted.Contains(glyph))
+                charstring.Should().Equal(Item(cff, original.CharStringsIndex, glyph));
+            else
+                charstring.Should().Equal(new byte[] { 14 });
+        }
+    }
+
+    [Fact]
+    public void a_compact_subset_empties_the_subroutines_no_kept_glyph_calls_and_moves_no_other()
+    {
+        //Arrange
+        byte[] cff = CffProgramOf(FixtureBytes());
+        CffFont original = CffSubsetter.Parse(cff);
+
+        //Act
+        byte[] subset = CffSubsetter.CreateCompactSubset(cff, new[] { 2, 3, 4 });
+        CffFont parsed = CffSubsetter.Parse(subset);
+
+        //Assert - a subroutine is either byte-identical AT ITS OWN INDEX or gone entirely.
+        //Keeping the index is what lets every callsubr operand stand unaltered.
+        int kept = 0, emptied = 0;
+        for (int idx = 0; idx < original.LocalSubrCount; idx++)
+        {
+            byte[] item = Item(subset, parsed.Private.Subrs, idx);
+            if (item.Length == 0)
+            {
+                emptied++;
+            }
+            else
+            {
+                kept++;
+                item.Should().Equal(Item(cff, original.Private.Subrs, idx));
+            }
+        }
+        //The control: this only means anything if most of them really did go.
+        kept.Should().BeGreaterThan(0);
+        emptied.Should().BeGreaterThan(kept);
+        (kept + emptied).Should().Be(original.LocalSubrCount);
+    }
+
+    [Fact]
+    public void a_compact_subset_empties_the_strings_no_kept_glyph_is_named_by()
+    {
+        //Arrange - glyph 2 is 'A', whose name is a custom string in this face.
+        byte[] cff = CffProgramOf(FixtureBytes());
+        CffFont original = CffSubsetter.Parse(cff);
+
+        //Act
+        byte[] subset = CffSubsetter.CreateCompactSubset(cff, new[] { 2 });
+        CffFont parsed = CffSubsetter.Parse(subset);
+
+        //Assert - the COUNT is untouched, so every SID still names the same slot...
+        parsed.StringIndex.Count.Should().Be(original.StringIndex.Count);
+        int kept = 0, emptied = 0;
+        for (int idx = 0; idx < original.StringIndex.Count; idx++)
+        {
+            byte[] item = Item(subset, parsed.StringIndex, idx);
+            if (item.Length == 0)
+            {
+                emptied++;
+            }
+            else
+            {
+                kept++;
+                item.Should().Equal(Item(cff, original.StringIndex, idx));
+            }
+        }
+        //...and the ones still named - the kept glyph's, and the DICT's own - survive whole.
+        kept.Should().BeGreaterThan(0);
+        emptied.Should().BeGreaterThan(kept);
+    }
+
+    [Fact]
+    public void a_compact_subset_is_a_fraction_of_a_sparse_one()
+    {
+        //Arrange
+        byte[] cff = CffProgramOf(FixtureBytes());
+
+        //Act
+        byte[] sparse = CffSubsetter.CreateSparseSubset(cff, new[] { 2, 3, 4 });
+        byte[] compact = CffSubsetter.CreateCompactSubset(cff, new[] { 2, 3, 4 });
+
+        //Assert - the subroutines and strings a sparse subset leaves behind are most of
+        //what is left of this face once the unused charstrings have gone.
+        compact.Length.Should().BeLessThan(sparse.Length / 2);
+        sparse.Length.Should().BeLessThan(cff.Length / 4);
+    }
+
+    [Fact]
+    public void a_compact_subset_of_a_cid_keyed_program_keeps_its_fdarray_fdselect_and_charset()
+    {
+        //Arrange
+        byte[] cff = CffProgramOf(FixtureBytes(CidResourceName));
+        CffFont original = CffSubsetter.Parse(cff);
+        int[] wanted = { 2, 3, 4 };
+        int charsetLength = original.FdSelectOffset - original.CharsetOffset;
+        int fdSelectLength = original.CharStringsOffset - original.FdSelectOffset;
+
+        //Act
+        byte[] subset = CffSubsetter.CreateCompactSubset(cff, wanted);
+        CffFont parsed = CffSubsetter.Parse(subset);
+
+        //Assert - a CID-keyed program is not renumbered either, so the tables that map a
+        //CID to a glyph are the ones that went in.
+        parsed.IsCidKeyed.Should().BeTrue();
+        parsed.GlyphCount.Should().Be(original.GlyphCount);
+        parsed.FontDicts.Should().HaveCount(1);
+        parsed.FontDicts[0].Private.LocalSubrCount.Should().Be(original.FontDicts[0].Private.LocalSubrCount);
+        Slice(subset, parsed.CharsetOffset, charsetLength).Should().Equal(Slice(cff, original.CharsetOffset, charsetLength));
+        Slice(subset, parsed.FdSelectOffset, fdSelectLength).Should().Equal(Slice(cff, original.FdSelectOffset, fdSelectLength));
+        CffSubsetter.CreateCompactSubset(cff, wanted).Length
+            .Should().BeLessThan(CffSubsetter.CreateSparseSubset(cff, wanted).Length / 2);
+    }
+
+    [Fact]
+    public void a_cff2_program_is_declined_by_the_compact_subset_too()
+    {
+        //Arrange
+        byte[] cff2 = { 2, 0, 5, 0, 0 };
+
+        //Act
+        byte[] subset = CffSubsetter.CreateCompactSubset(cff2, new[] { 1 });
+
+        //Assert
+        subset.Should().BeNull();
+    }
+
+    // ----- the custom-Encoding and seac fixture -----
+
+    [Fact]
+    public void the_encoded_fixture_carries_the_two_structures_the_other_fixtures_do_not()
+    {
+        //Arrange - made by SampleFiles/make-mathjax-encoded.py; the figures are fontTools 4.57's.
+        byte[] cff = CffProgramOf(FixtureBytes(EncodedResourceName));
+
+        //Act
+        CffFont font = CffSubsetter.Parse(cff);
+
+        //Assert - a charset in format 1 and an Encoding TABLE rather than a predefined one,
+        //neither of which any other fixture here has.
+        font.GlyphCount.Should().Be(262);
+        font.IsCidKeyed.Should().BeFalse();
+        font.CharsetOffset.Should().Be(2216);
+        font.EncodingOffset.Should().Be(2259);
+        cff[font.CharsetOffset].Should().Be(1);
+        (cff[font.EncodingOffset] & 0x7f).Should().Be(1);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void both_subsets_keep_the_glyphs_a_seac_composite_draws_with(bool compact)
+    {
+        //Arrange - glyph 261 is 'Aacute', whose charstring is the four-operand endchar
+        //"0 0 65 194 endchar": it draws glyph 2 ('A', StandardEncoding 65) and glyph 260
+        //('acute', StandardEncoding 194), and nothing else in the document names either.
+        byte[] cff = CffProgramOf(FixtureBytes(EncodedResourceName));
+        CffFont original = CffSubsetter.Parse(cff);
+        const int Composite = 261, BaseGlyph = 2, Accent = 260, NotAComponent = 3;
+
+        //Act
+        byte[] subset = compact
+            ? CffSubsetter.CreateCompactSubset(cff, new[] { Composite })
+            : CffSubsetter.CreateSparseSubset(cff, new[] { Composite });
+        CffFont parsed = CffSubsetter.Parse(subset);
+
+        //Assert - the two components came along...
+        Item(subset, parsed.CharStringsIndex, Composite).Should().Equal(Item(cff, original.CharStringsIndex, Composite));
+        Item(subset, parsed.CharStringsIndex, BaseGlyph).Should().Equal(Item(cff, original.CharStringsIndex, BaseGlyph));
+        Item(subset, parsed.CharStringsIndex, Accent).Should().Equal(Item(cff, original.CharStringsIndex, Accent));
+
+        //...and the control, a glyph the composite does NOT draw with, did not.
+        Item(subset, parsed.CharStringsIndex, NotAComponent).Should().Equal(new byte[] { 14 });
+    }
+
+    [Fact]
+    public void a_compact_subset_of_the_encoded_fixture_copies_its_encoding_verbatim()
+    {
+        //Arrange
+        byte[] cff = CffProgramOf(FixtureBytes(EncodedResourceName));
+        CffFont original = CffSubsetter.Parse(cff);
+        int encodingLength = original.CharStringsOffset - original.EncodingOffset;
+
+        //Act
+        byte[] subset = CffSubsetter.CreateCompactSubset(cff, new[] { 2, 3, 4 });
+        CffFont parsed = CffSubsetter.Parse(subset);
+
+        //Assert
+        Slice(subset, parsed.EncodingOffset, encodingLength)
+            .Should().Equal(Slice(cff, original.EncodingOffset, encodingLength));
+    }
+
+    // ----- the document, in compact mode -----
+
+    [Fact]
+    public async Task compact_mode_writes_a_smaller_program_than_sparse_and_the_page_is_unchanged()
+    {
+        //Arrange
+        byte[] sparsePdf = Save(PdfCffSubsetMode.Sparse, "ABC");
+        byte[] compactPdf = Save(PdfCffSubsetMode.Compact, "ABC");
+        PdfDocument whole = Create(PdfCffSubsetMode.None, "ABC", FamilyName);
+        PdfDocument compact = Create(PdfCffSubsetMode.Compact, "ABC", FamilyName);
+
+        //Act
+        EmbeddedFont font = ReadEmbeddedFont(compactPdf);
+        var wholeFiles = await PdfHelper.WriteImageCollection(await PdfHelper.Rasterize(whole), OutDir, "compact-whole");
+        var compactFiles = await PdfHelper.WriteImageCollection(await PdfHelper.Rasterize(compact), OutDir, "compact-subset");
+
+        //Assert - declared the same way a sparse subset is, and smaller than one...
+        font.CidSubtype.Should().Be("/CIDFontType0");
+        font.FontFileKey.Should().Be("/FontFile3");
+        font.StreamSubtype.Should().Be("/OpenType");
+        Encoding.ASCII.GetString(font.Program, 0, 4).Should().Be("OTTO");
+        font.Program.Length.Should().BeLessThan(ReadEmbeddedFont(sparsePdf).Program.Length);
+
+        //...and the page it draws is the one the whole face drew, pixel for pixel.
+        File.ReadAllBytes(compactFiles[0]).Should().Equal(File.ReadAllBytes(wholeFiles[0]));
+    }
+
     // ----- the document, by default -----
 
     [Fact]
@@ -351,9 +613,13 @@ public class CffSubsetTests
         //Act
         File.WriteAllBytes(Path.Combine(OutDir, "mathjax-whole.pdf"), Save(PdfCffSubsetMode.None, "ABC MATHJAX"));
         File.WriteAllBytes(Path.Combine(OutDir, "mathjax-sparse.pdf"), Save(PdfCffSubsetMode.Sparse, "ABC MATHJAX"));
+        File.WriteAllBytes(Path.Combine(OutDir, "mathjax-compact.pdf"), Save(PdfCffSubsetMode.Compact, "ABC MATHJAX"));
+        File.WriteAllBytes(Path.Combine(OutDir, "mathjax-cid-compact.pdf"), Save(PdfCffSubsetMode.Compact, "ABC MATHJAX", CidFamilyName));
+        File.WriteAllBytes(Path.Combine(OutDir, "mathjax-encoded-compact.pdf"), Save(PdfCffSubsetMode.Compact, "ABC", EncodedFamilyName));
 
         //Assert
         File.Exists(Path.Combine(OutDir, "mathjax-sparse.pdf")).Should().BeTrue();
+        File.Exists(Path.Combine(OutDir, "mathjax-compact.pdf")).Should().BeTrue();
     }
 
     // ----- helpers -----
@@ -378,7 +644,7 @@ public class CffSubsetTests
     private static byte[] FixtureBytes(string resourceName = ResourceName)
     {
         using Stream stream = typeof(CffSubsetTests).Assembly.GetManifestResourceStream(resourceName)
-            ?? throw new InvalidOperationException("The MathJax fixture is not embedded.");
+            ?? throw new InvalidOperationException($"The fixture '{resourceName}' is not embedded.");
         using var memory = new MemoryStream();
         stream.CopyTo(memory);
         return memory.ToArray();

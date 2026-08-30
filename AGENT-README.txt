@@ -519,7 +519,7 @@ glyphs the document uses. A font with PostScript outlines (an OpenType .otf
 whose glyphs live in a CFF table) is embedded WHOLE by default - that is what
 every version has done - unless the document opts in to CFF subsetting:
 
-    document.Options.CffSubsetMode = PdfCffSubsetMode.Sparse;   // default None
+    document.Options.CffSubsetMode = PdfCffSubsetMode.Compact;  // default None
 
     PdfCffSubsetMode.None    embed the whole CFF program, declared as a TrueType
                              program (/FontFile2 on a /CIDFontType2) - unchanged
@@ -531,6 +531,21 @@ every version has done - unless the document opts in to CFF subsetting:
                              file PDF 1.6 if it was lower. TrueType fonts are
                              not affected. A program the subsetter does not
                              handle (CFF2) is embedded exactly as None does.
+    PdfCffSubsetMode.Compact everything Sparse does, and ALSO empties the
+                             subroutines no kept glyph calls and the strings no
+                             kept glyph is named by. On a text face those are
+                             most of what Sparse leaves behind: measured on
+                             C059-Roman keeping nine glyphs, the program is
+                             70,299 bytes whole, 24,728 sparse and 4,685
+                             compact. Falls back to Sparse if it cannot be done
+                             safely for a particular program.
+
+    Glyph indices are NEVER renumbered, in any mode. The document has already
+    been written with the original indices, and PDF 32000-1 section 9.7.4.2 says
+    that for a /CIDFontType0 whose program is not CID-keyed - which most text
+    faces are not - the CIDs are used directly as glyph indices, so renumbering
+    would move every glyph on the page. A compact subset does drop the NAME of a
+    glyph the document does not use; nothing in PDF rendering consults it.
 
 There is no option to not embed. What you can choose is the encoding:
 
@@ -1170,12 +1185,12 @@ DOCUMENT OPTIONS (COMPRESSION, COLOR MODE)
         public PdfFlateEncodeMode FlateEncodeMode       // Default | BestSpeed | BestCompression
         public bool EnableCcittCompressionForBilevelImages   // default false
         public PdfUseFlateDecoderForJpegImages UseFlateDecoderForJpegImages // Automatic | Never (default) | Always
-        public PdfCffSubsetMode CffSubsetMode           // None (default) | Sparse - see FONT EMBEDDING
+        public PdfCffSubsetMode CffSubsetMode           // None (default) | Sparse | Compact - see FONT EMBEDDING
 
     document.Options.ColorMode = PdfColorMode.Cmyk;              // XColor.FromCmyk colours written as CMYK
     document.Options.FlateEncodeMode = PdfFlateEncodeMode.BestCompression;
     document.Options.NoCompression = true;                        // human-readable output for debugging
-    document.Options.CffSubsetMode = PdfCffSubsetMode.Sparse;     // subset CFF-outline (.otf) fonts too
+    document.Options.CffSubsetMode = PdfCffSubsetMode.Compact;    // subset CFF-outline (.otf) fonts too
 
 SECURITY AND ENCRYPTION
 -----------------------

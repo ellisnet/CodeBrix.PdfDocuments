@@ -113,11 +113,14 @@ public sealed class PdfDocumentOptions
     /// <see cref="PdfCffSubsetMode.None"/>, embeds such a font whole exactly as every
     /// earlier version did; <see cref="PdfCffSubsetMode.Sparse"/> opts in to a subset
     /// that drops the charstrings of unused glyphs and declares the program as an
-    /// OpenType <c>/FontFile3</c>. TrueType-outline fonts are subset either way and
-    /// are not affected by this setting. Read when the document is saved.
+    /// OpenType <c>/FontFile3</c>; <see cref="PdfCffSubsetMode.Compact"/> additionally
+    /// empties the subroutines and strings the kept glyphs do not need, which on a text
+    /// face is most of what a sparse subset leaves behind. TrueType-outline fonts are
+    /// subset either way and are not affected by this setting. Read when the document is
+    /// saved.
     /// </summary>
-    /// <remarks>Added 2026-08-26; see <see cref="PdfCffSubsetMode"/> for the details of
-    /// what each mode writes.</remarks>
+    /// <remarks>Added 2026-08-26; <see cref="PdfCffSubsetMode.Compact"/> added 2026-08-30.
+    /// See <see cref="PdfCffSubsetMode"/> for the details of what each mode writes.</remarks>
     public PdfCffSubsetMode CffSubsetMode
     {
         get { return _cffSubsetMode; }

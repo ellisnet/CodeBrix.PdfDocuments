@@ -200,9 +200,10 @@ fill OutputFilePath, RenderHtmlToBytes fills PdfBytes.
     renderer.Options.KeepUncoveredCharacters = true;  // bool; default false
     renderer.Options.DocumentTitle = "Override Title"; // string; default null
     renderer.Options.DocumentAuthor = "Jane Doe";      // string; default null
-    renderer.Options.CffSubsetMode = PdfCffSubsetMode.Sparse;
+    renderer.Options.CffSubsetMode = PdfCffSubsetMode.Compact;
                                                // PdfCffSubsetMode (CodeBrix.PdfDocuments.Pdf);
-                                               // default None - see CFF FONTS below
+                                               // None (default) | Sparse | Compact
+                                               // - see CFF FONTS below
 
     public void SetPageSize(string name)
         // Recognized names (case-insensitive): letter, legal, ledger, a3, a4,
@@ -244,9 +245,21 @@ Options.CffSubsetMode = PdfCffSubsetMode.Sparse opts in to a subset: the
 charstrings of unused glyphs are dropped (glyph numbering, cmap, metrics and
 subroutines are kept), and the program is declared as PDF 32000-1 section 9.9
 asks for an OpenType CFF font - /FontFile3 /Subtype /OpenType on a
-/CIDFontType0 - which raises the file to PDF 1.6 when it was lower. The value
-is handed to PdfDocumentOptions.CffSubsetMode on the document being written;
-nothing else changes, and None leaves the output byte for byte as it was.
+/CIDFontType0 - which raises the file to PDF 1.6 when it was lower.
+
+PdfCffSubsetMode.Compact is the one to reach for on a text face. It does what
+Sparse does and ALSO empties the subroutines no kept glyph calls and the strings
+no kept glyph is named by, which on a URW-style face are together far larger
+than the charstrings Sparse already removed. Measured on C059-Roman keeping nine
+glyphs: 70,299 bytes whole, 24,728 sparse, 4,685 compact. A four-paragraph
+sample document embedding that face came out at 75,631 bytes with None, 31,346
+with Sparse and 19,808 with Compact, and poppler, MuPDF and PDFium each render
+all three to byte-identical images.
+
+The value is handed to PdfDocumentOptions.CffSubsetMode on the document being
+written; nothing else changes, and None leaves the output byte for byte as it
+was. No mode renumbers glyphs - see the CodeBrix.PdfDocuments AGENT-README for
+why that would be unsafe.
 
 SvgRasterScale is relative to the SVG's natural CSS-pixel size (2.0 is about
 192 DPI at natural size); raise it for sharper print output at the cost of a

@@ -155,7 +155,8 @@ unconditionally. Special prep and non-obvious wiring:
     Unset, or pointing at a folder with no .svg files, the test skips. The
     corpus is GFDL/GPL-3 material that lives outside this repository and is
     never committed.
-  - CFF FONT SUBSETTING (opt-in, PdfDocumentOptions.CffSubsetMode; 2026-08-26).
+  - CFF FONT SUBSETTING (opt-in, PdfDocumentOptions.CffSubsetMode; Sparse
+    2026-08-26, Compact 2026-08-30).
     tests/CodeBrix.PdfDocuments.Tests/Fonts/CffSubsetTests.cs checks the CFF
     parser against figures fontTools measured on the fixture, the sparse
     subset's structure, the default's whole-font /FontFile2 output, the opt-in's
@@ -168,6 +169,45 @@ unconditionally. Special prep and non-obvious wiring:
     SampleFiles/MathJax_AMS-CID.otf, the same face re-expressed as a CID-keyed
     program by SampleFiles/make-mathjax-cid.py (fontTools); regenerate it with
     that script if the source fixture ever changes.
+
+    ⚠ TWO THINGS ABOUT COMPACT MODE THAT ARE DECISIONS, NOT OVERSIGHTS.
+
+    IT DOES NOT RENUMBER GLYPHS OR SUBROUTINES, and it must not start. The
+    document is written before the font is subset, so it already carries the
+    original glyph indices, and PDF 32000-1 section 9.7.4.2 uses a CID directly
+    as a glyph index for a /CIDFontType0 whose program is not CID-keyed - which
+    every URW text face is. Renumbering SUBROUTINES is refused for a separate
+    reason worth keeping: callsubr pops only the subroutine number and leaves
+    the rest of the operand stack for the subroutine to use, so how many mask
+    bytes a subroutine's hintmask takes depends on the stack its CALLER left,
+    and one subroutine can be entered from two glyphs with two different stacks.
+    A pass that visited each subroutine once, out of context, could not parse it
+    reliably - measured: about seven calls in ten in the URW faces pass
+    arguments this way, and an attempt at renumbering produced wrong outlines on
+    7 of 37 faces. Emptying the slots and keeping the INDEX count leaves every
+    bias, and every operand written against it, meaning what it meant. It costs
+    one offset per dropped subroutine and buys a whole class of correctness.
+
+    THE SEAC CLOSURE IS LOAD-BEARING FOR BOTH MODES. The deprecated four-operand
+    form of endchar draws an accented glyph out of two others named by
+    StandardEncoding code, and nothing else in the document names those two, so
+    a subset that kept only what was asked for would blank the components and
+    the accented glyph would render as nothing. Sparse mode shipped without this
+    from 2026-08-26 to 2026-08-30; it is fenced now by
+    SampleFiles/MathJax_AMS-Encoded.otf, made by make-mathjax-encoded.py, which
+    also carries the only custom Encoding table and charset format 1 among the
+    fixtures. No font in the URW or MathJax families uses seac, which is why the
+    gap survived as long as it did - the fixture exists to make sure it does not
+    come back.
+
+    HOW THE SUBSETTER WAS VERIFIED BEYOND THE SUITE (2026-08-30): every one of
+    the 35 URW base-35 faces, the MathJax faces and FontAwesome - 62 in all -
+    was subset four ways each (248 subsets) and every kept glyph's outline was
+    drawn through fontTools and compared to the same glyph drawn from the
+    original, with every dropped glyph checked to be a bare endchar. All 248
+    matched. Reproduce it by dumping subsets from a throwaway test and drawing
+    them with fontTools; the system fonts under
+    /usr/share/fonts/opentype/urw-base35 are the material.
   - WHERE THE VECTOR-SVG COVERAGE LIVES. It is split across three files because
     the machinery is split across two packages:
       tests/CodeBrix.PdfDocuments.Tests/Drawing/TransparencyGroupTests.cs

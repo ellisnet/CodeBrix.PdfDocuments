@@ -700,7 +700,10 @@ handling is provided by the CodeBrix.Imaging and CodeBrix.Compression packages.
     MathJax_AMS-CID.otf in the same folder is a derived work of that font
     (the same glyphs re-expressed as a CID-keyed CFF program by the script
     make-mathjax-cid.py beside it), under the same licence and the same
-    test-only use.
+    test-only use. MathJax_AMS-Encoded.otf is a derived work in the same way
+    (the same glyphs given a custom Encoding table and a seac composite by the
+    script make-mathjax-encoded.py beside it), under the same licence and the
+    same test-only use.
 
 ================================================================================
 
