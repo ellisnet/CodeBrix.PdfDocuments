@@ -60,8 +60,9 @@ NuGet dependencies (pulled in automatically):
   - CodeBrix.Imaging.ApacheLicenseForever
   (CodeBrix.PdfDocuments in turn brings CodeBrix.Compression.MitLicenseForever.)
 
-License: MIT (the bundled PDFium binaries are BSD-licensed; their LICENSE file
-ships beside each native binary under runtimes/<rid>/native/ in the package).
+License: MIT (the bundled PDFium binaries are BSD-licensed; their
+LICENSE-Pdfium.txt file ships beside each native binary under
+runtimes/<rid>/native/ in the package).
 
 Requirements: .NET 10 or later.
 

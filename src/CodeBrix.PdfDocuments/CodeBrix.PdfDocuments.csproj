@@ -51,7 +51,7 @@
     <Authors>Jeremy Ellis</Authors>
     <Product>CodeBrix.PdfDocuments</Product>
     <Title>CodeBrix.PdfDocuments</Title>
-    <Description>CodeBrix.PdfDocuments is an Open Source .NET 10 (and higher) library that easily creates and processes PDF documents. The same drawing routines can be used to create PDF documents, draw on the screen, or send output to any printer.</Description>
+    <Description>CodeBrix.PdfDocuments is an Open Source .NET 10 (and higher) library that creates, reads, merges and encrypts PDF documents, and draws text, images, shapes, gradients and transparency groups onto a page at exact coordinates. Pure managed code, with no native dependencies.</Description>
     <PackageProjectUrl>https://github.com/ellisnet/CodeBrix.PdfDocuments</PackageProjectUrl>
     <RepositoryUrl>https://github.com/ellisnet/CodeBrix.PdfDocuments</RepositoryUrl>
     <RepositoryType>git</RepositoryType>

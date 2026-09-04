@@ -19,7 +19,7 @@ every page break goes. For structured documents (paragraphs, tables, headers
 that flow across pages) use the companion CodeBrix.PdfDocCreate package, which
 is built on top of this one (see OTHER PACKAGES IN THIS REPOSITORY below).
 
-PROVENANCE: CodeBrix.PdfDocuments is a port of PdfSharpCore 1.3.67. If you know
+PROVENANCE: CodeBrix.PdfDocuments is a port of PdfSharpCore. If you know
 PdfSharp / PdfSharpCore, the API is very similar - but EVERY namespace is
 CodeBrix.PdfDocuments.* (for example CodeBrix.PdfDocuments.Pdf and
 CodeBrix.PdfDocuments.Drawing). Do NOT write "using PdfSharp..." or
@@ -530,7 +530,9 @@ every version has done - unless the document opts in to CFF subsetting:
                              /OpenType on a /CIDFontType0 - which makes the
                              file PDF 1.6 if it was lower. TrueType fonts are
                              not affected. A program the subsetter does not
-                             handle (CFF2) is embedded exactly as None does.
+                             handle - a CFF2 program, or one whose Private DICT
+                             and local subroutines are not laid out
+                             contiguously - is embedded exactly as None does.
     PdfCffSubsetMode.Compact everything Sparse does, and ALSO empties the
                              subroutines no kept glyph calls and the strings no
                              kept glyph is named by. On a text face those are
@@ -546,6 +548,13 @@ every version has done - unless the document opts in to CFF subsetting:
     faces are not - the CIDs are used directly as glyph indices, so renumbering
     would move every glyph on the page. A compact subset does drop the NAME of a
     glyph the document does not use; nothing in PDF rendering consults it.
+
+    HOW A CFF FACE REACHES A DOCUMENT AT ALL: not through system-font
+    discovery. The built-in resolver considers only .ttf files (see
+    INSTALLATION above), so an .otf with CFF outlines has to be supplied by an
+    IFontResolver you write and assign to GlobalFontSettings.FontResolver (see
+    FONTS AND FONT RESOLUTION), or - in the CodeBrix.PdfDocCreate.Html2Pdf
+    package - registered with Html2PdfFonts.AddFontFile.
 
 There is no option to not embed. What you can choose is the encoding:
 
@@ -2186,6 +2195,14 @@ Feature-to-test-file mapping:
   and a three-stop XShadingBrush with a brush matrix painting a stitched
   gradient:
     https://github.com/ellisnet/CodeBrix.PdfDocuments/tree/main/tests/CodeBrix.PdfDocuments.Tests/Drawing/TransparencyGroupTests.cs
+
+  CFF font subsetting (PdfDocumentOptions.CffSubsetMode): the CFF parser
+  checked against a real PostScript-outline face, the sparse and compact
+  subsets' structure, the default's whole-font /FontFile2 output against the
+  opt-in's /FontFile3 /OpenType output, and a sweep that subsets every
+  CFF-outline face in a directory and asserts nothing moved:
+    https://github.com/ellisnet/CodeBrix.PdfDocuments/tree/main/tests/CodeBrix.PdfDocuments.Tests/Fonts/CffSubsetTests.cs
+    https://github.com/ellisnet/CodeBrix.PdfDocuments/tree/main/tests/CodeBrix.PdfDocuments.Tests/Fonts/CffSubsetFontSweepTests.cs
 
   Security: creating 40-bit and 128-bit protected files, opening AES-encrypted
   files, password failures, reading files encrypted by several tools:

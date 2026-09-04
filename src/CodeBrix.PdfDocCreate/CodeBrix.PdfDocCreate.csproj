@@ -51,7 +51,7 @@
     <Authors>Jeremy Ellis</Authors>
     <Product>CodeBrix.PdfDocCreate</Product>
     <Title>CodeBrix.PdfDocCreate</Title>
-    <Description>CodeBrix PdfDocCreate - the Open Source .NET library that easily creates documents based on an object model with paragraphs, tables, styles, etc. and renders them into PDF or RTF.</Description>
+    <Description>CodeBrix.PdfDocCreate is an Open Source .NET 10 (and higher) library that builds documents from an object model - sections, paragraphs, styles, tables, charts, headers and footers - lays them out with automatic pagination, and renders them to PDF. Pure managed code, with no native dependencies.</Description>
     <PackageProjectUrl>https://github.com/ellisnet/CodeBrix.PdfDocuments</PackageProjectUrl>
     <RepositoryUrl>https://github.com/ellisnet/CodeBrix.PdfDocuments</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
@@ -61,7 +61,7 @@
     <Copyright>Copyright (c) 2026 Jeremy Ellis and contributors</Copyright>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <PackageTags>PdfDocCreate;PDF;RTF;document;creation;CodeBrix</PackageTags>
+    <PackageTags>PdfDocCreate;PDF;document;creation;CodeBrix</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

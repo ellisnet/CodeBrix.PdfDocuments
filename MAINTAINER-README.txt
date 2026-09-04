@@ -133,14 +133,17 @@ Things to know before you build:
 TESTING
 =======
 Three test projects, all xunit.v3 with xunit.runner.visualstudio,
-Microsoft.NET.Test.Sdk and SilverAssertions. global.json selects the
-Microsoft.Testing.Platform runner for the whole repository.
+Microsoft.NET.Test.Sdk and SilverAssertions. There is no coverage collector in
+any of them. global.json carries a "test" block only - it selects the
+Microsoft.Testing.Platform runner for the whole repository and pins NO SDK
+version, so the machine's installed .NET 10 SDK is used.
 
     dotnet test CodeBrix.PdfDocuments.slnx
     dotnet test tests/CodeBrix.PdfDocCreate.Html2Pdf.Tests
 
-One optional environment variable gates ONE test; everything else runs
-unconditionally. Special prep and non-obvious wiring:
+TWO optional environment variables gate one test each
+(HTML2PDF_LILYPORT_SVG_CORPUS and CODEBRIX_CFF_FONT_SWEEP, both below);
+everything else runs unconditionally. Special prep and non-obvious wiring:
 
   - NO NATIVE PREP OF ANY KIND. The whole chain, SVG included, is managed code,
     so the suite needs nothing installed on any operating system. The test
@@ -169,6 +172,19 @@ unconditionally. Special prep and non-obvious wiring:
     SampleFiles/MathJax_AMS-CID.otf, the same face re-expressed as a CID-keyed
     program by SampleFiles/make-mathjax-cid.py (fontTools); regenerate it with
     that script if the source fixture ever changes.
+
+    tests/CodeBrix.PdfDocuments.Tests/Fonts/CffSubsetFontSweepTests.cs is the
+    VOLUME check beside those structure checks, and it is the second gated test
+    in the repository: set CODEBRIX_CFF_FONT_SWEEP to a directory of real
+    CFF-outline fonts (/usr/share/fonts/opentype/urw-base35 is the material) and
+    it subsets every face in it several glyph sets each; unset, it skips. What it
+    fences is the property the whole design rests on - that a subset MOVES
+    NOTHING: every kept charstring, every surviving subroutine and the charset
+    are byte-identical AT THEIR ORIGINAL INDEX, and each subroutine INDEX still
+    holds the same item COUNT, so every callsubr operand written against that
+    count's bias still names what it named. It is the check that found the defect
+    that made subroutine renumbering impossible, on 7 of 37 faces that the three
+    vendored fixtures between them did not show.
 
     ⚠ TWO THINGS ABOUT COMPACT MODE THAT ARE DECISIONS, NOT OVERSIGHTS.
 
@@ -208,8 +224,8 @@ unconditionally. Special prep and non-obvious wiring:
     matched. Reproduce it by dumping subsets from a throwaway test and drawing
     them with fontTools; the system fonts under
     /usr/share/fonts/opentype/urw-base35 are the material.
-  - WHERE THE VECTOR-SVG COVERAGE LIVES. It is split across three files because
-    the machinery is split across two packages:
+  - WHERE THE VECTOR-SVG COVERAGE LIVES. It is split across FIVE files in three
+    test projects, because the machinery is split across three packages:
       tests/CodeBrix.PdfDocuments.Tests/Drawing/TransparencyGroupTests.cs
           the core primitives: XForm.MakeTransparencyGroup plus
           XGraphics.DrawTransparencyGroup compositing an overlap once, a
@@ -227,8 +243,17 @@ unconditionally. Special prep and non-obvious wiring:
           a wide shape, radial, focal, a gradient stroke, fill-opacity becoming
           a group of one, and the two gradient cases that still rasterize
           (stops differing in alpha, repeating spread).
-    All three rasterize their own output with PdfRasterizer and assert on
-    pixels, so a change that writes syntactically valid but wrong PDF is caught.
+      tests/CodeBrix.PdfDocuments.Tests/Rendering/VectorImageSourceTests.cs
+          the ImageSource.IVectorImageSource seam that PdfDocCreate's
+          ImageRenderer honours: a source laid out at its natural size in
+          points and drawn exactly once into the page, an explicit width with
+          the aspect ratio locked, and no image XObject in the file at all.
+      tests/CodeBrix.PdfDocCreate.Markdown2Pdf.Tests/MarkdownSvgPlacementTests.cs
+          that MarkdownRenderOptions.SvgPlacement defaults to Vector and is
+          forwarded to Html2Pdf - Vector embeds no image XObject, Raster does.
+    The first three rasterize their own output with PdfRasterizer and assert on
+    pixels, so a change that writes syntactically valid but wrong PDF is caught;
+    the last two assert on the objects the writer emitted.
     ⚠ Blend modes have NO SVG-level coverage on purpose: CodeBrix.SvgParse does
     not parse mix-blend-mode, so no picture can carry one. The PDF /BM mapping
     is covered through TransparencyGroupTests instead.
@@ -252,7 +277,11 @@ unconditionally. Special prep and non-obvious wiring:
     unless the optional inventory folder is present (EXTRAS-README.txt).
   - CANCELLATION. Tests pass TestContext.Current.CancellationToken to async
     calls, which is what satisfies xUnit1051.
-  - INTERNALS ACCESS. Three InternalsVisibleTo.cs files grant it:
+  - INTERNALS ACCESS. FOUR InternalsVisibleTo.cs files grant it:
+      src/CodeBrix.PdfDocuments/InternalsVisibleTo.cs
+          -> CodeBrix.PdfDocuments.Tests
+             (so the CFF subsetter's parse results can be checked structure by
+             structure rather than only through a PDF reader)
       src/CodeBrix.PdfDocCreate/Rendering/InternalsVisibleTo.cs
           -> CodeBrix.PdfDocuments.Tests
       src/CodeBrix.PdfDocCreate.Html2Pdf/InternalsVisibleTo.cs
@@ -261,9 +290,9 @@ unconditionally. Special prep and non-obvious wiring:
              CodeBrix.PdfDocCreate.Markdown2Pdf.Tests
       src/CodeBrix.PdfDocCreate.Markdown2Pdf/InternalsVisibleTo.cs
           -> CodeBrix.PdfDocCreate.Markdown2Pdf.Tests
-    Note the first one sits in a sub-folder rather than at the project root, and
-    that CodeBrix.PdfDocuments has no InternalsVisibleTo.cs of its own - its
-    tests live in CodeBrix.PdfDocuments.Tests and use the public surface.
+    Note that the PdfDocCreate one sits in a sub-folder rather than at the
+    project root; the other three are at their project root, which is where a
+    new one goes.
 
 
 PACKAGING AND PUBLISHING
@@ -313,12 +342,17 @@ ADDITIONAL PACKAGE CONTENT.
     output under CodeBrix.Platform.Fonts.<Name>/Fonts/, which is where the
     Html2Pdf font resolver looks. Consumers can opt out with
     CodeBrixHtml2PdfDisableFontCopy=true.
-  - CodeBrix.PdfRasterizer packs a PDFium native plus the BSD LICENSE file for
-    each supported RID: win-x64, win-x86, win-arm64, osx-x64, osx-arm64,
-    linux-x64, linux-arm, linux-arm64, linux-riscv64, android-arm64. WATCH THE
-    LINUX-X64 ENTRY: its source folder on disk is runtimes\linux\native (no
-    "-x64"), packed to runtimes\linux-x64\native. Every other RID's folder name
-    matches its package path.
+  - CodeBrix.PdfRasterizer packs a PDFium native plus the BSD licence file
+    LICENSE-Pdfium.txt for each supported RID: win-x64, win-x86, win-arm64,
+    osx-x64, osx-arm64, linux-x64, linux-arm, linux-arm64, linux-riscv64,
+    android-arm64. WATCH THE LINUX-X64 ENTRY: its source folder on disk is
+    runtimes\linux\native (no "-x64"), packed to runtimes\linux-x64\native.
+    Every other RID's folder name matches its package path.
+    THE FILE NAME IS THE FAMILY RULE, NOT A CHOICE: a licence file that belongs
+    to a bundled native is named LICENSE-<Native>.txt - never a bare LICENSE,
+    which is the repository's own licence and would be ambiguous once it sits
+    beside a binary in a package. Add another native and its licence ships as
+    LICENSE-<ThatNative>.txt too.
 
 ⚠ THE NATIVE-FREE RULE. Every package this repository ships except
 CodeBrix.PdfRasterizer (which bundles PDFium) is pure managed code on every
@@ -468,10 +502,12 @@ on top of them.
 NOTES
 =====
   - .slnx SOLUTION ITEMS. The /Solution Items/ folder in
-    CodeBrix.PdfDocuments.slnx currently lists .gitignore, AGENT-README.txt,
-    icon-codebrix-128.png, LICENSE, README.md and THIRD-PARTY-NOTICES.txt. The
-    newer root documents (MAINTAINER-README.txt, EXTRAS-README.txt,
-    README-INDEX.txt) are not listed there.
+    CodeBrix.PdfDocuments.slnx lists all ten root files: .gitignore,
+    AGENT-README.txt, EXTRAS-README.txt, global.json, icon-codebrix-128.png,
+    LICENSE, MAINTAINER-README.txt, README-INDEX.txt, README.md and
+    THIRD-PARTY-NOTICES.txt. The /Tests/ folder holds the three test projects
+    and the five library projects sit at the solution root. Add a new root
+    document to that folder when you create one.
   - Root-level document filenames use dashes, not underscores, and the
     AGENT-README.txt name is referenced from the eight AI-agent pointer stubs
     (AGENTS.md, CLAUDE.md, .clinerules, .cursorrules,

@@ -5,8 +5,9 @@ Samples, tools and other content in this repository that is not part of a NuGet 
 
 This repository has no samples/ folder, no tools/ folder and no demo
 applications. The non-package content is: the inherited upstream documentation
-under docs/, the three test projects under tests/, and one optional,
-machine-local test-data folder. Each is described below.
+under docs/, the three test projects under tests/, and three optional,
+machine-local test-data sources - a dropped-in folder and two folders named by
+environment variables. Each is described below.
 
 
 docs/ - INHERITED UPSTREAM DOCUMENTATION
@@ -74,14 +75,24 @@ SUPPORTING DATA THEY CARRY
                                                     AMS face (CFF outlines, for
                                                     the CFF subsetting tests;
                                                     Apache-2.0, see its
-                                                    NOTICE.txt), a CID-keyed
-                                                    variant of it made by
-                                                    make-mathjax-cid.py, and
-                                                    three small images, all
+                                                    NOTICE.txt), two derived
+                                                    variants of that face - a
+                                                    CID-keyed one made by
+                                                    make-mathjax-cid.py and a
+                                                    custom-Encoding, seac-using
+                                                    one made by
+                                                    make-mathjax-encoded.py -
+                                                    and three small images, all
                                                     embedded as resources; the
                                                     MathJax face is also linked
                                                     into the Html2Pdf tests as
-                                                    a file
+                                                    a file. The two .py scripts
+                                                    are the generators, kept
+                                                    beside their output so a
+                                                    fixture can be rebuilt if
+                                                    the source face changes;
+                                                    nothing in the build runs
+                                                    them
     tests/CodeBrix.PdfDocCreate.Markdown2Pdf.Tests/Fixtures/
                                                     the CommonMark
                                                     specification test corpus
@@ -156,6 +167,85 @@ ONE STALE STATEMENT INSIDE THE DROP
     the document - the dialect vocabulary and the notes on millimetre sizing,
     currentColor inheritance, the "sans" generic family and invisible link
     rectangles - still describes what a renderer has to handle.
+
+
+HTML2PDF_LILYPORT_SVG_CORPUS - OPTIONAL, MACHINE-LOCAL SVG CORPUS
+=================================================================
+PATH
+    Anywhere on the machine. The folder is named by the environment variable
+    HTML2PDF_LILYPORT_SVG_CORPUS; nothing in this repository points at a
+    location.
+
+WHAT IT IS
+    A folder of REAL engraving-engine SVG output - whole pages as the engraver
+    emitted them, not synthetic markup. It is the volume counterpart to the
+    frozen dialect inventory above: the inventory says which elements and
+    attributes may appear, and this says what actually happens when several
+    hundred real pictures go through the renderer.
+
+    IT IS NOT COMMITTED AND IS NOT EXPECTED TO BE PRESENT, for the same reason
+    the inventory is not: the corpus is GFDL/GPL-3 material and this repository
+    ships MIT packages. The test reads it where it lies and copies nothing.
+
+WHAT USES IT
+    tests/CodeBrix.PdfDocCreate.Html2Pdf.Tests/LilyPortCorpusGateTests.cs. It
+    places every .svg in the folder through the vector route into one document
+    and asserts the whole run is clean: no picture failed, nothing fell back to
+    a raster, no image XObject was embedded, and the only warnings are the
+    per-glyph coverage notes the corpus is known to carry.
+
+HOW THE GATE SKIPS
+    The test reads the variable and then
+
+        Assert.SkipWhen(directory == null,
+            "HTML2PDF_LILYPORT_SVG_CORPUS is not set to an existing folder.");
+        Assert.SkipWhen(files.Count == 0,
+            "The corpus folder holds no SVG files.");
+
+    so it is green unset, green pointing at an empty folder, and meaningful only
+    when it is pointed at real material - exactly like the dialect gate above.
+
+HOW TO USE IT
+    Set HTML2PDF_LILYPORT_SVG_CORPUS to the folder and re-run
+    tests/CodeBrix.PdfDocCreate.Html2Pdf.Tests. Unset it and the test skips
+    again.
+
+RULE THAT COMES WITH IT
+    The same rule the dialect drop carries: no content from that corpus may be
+    copied into a committed file.
+
+
+CODEBRIX_CFF_FONT_SWEEP - OPTIONAL, MACHINE-LOCAL FONT DIRECTORY
+================================================================
+PATH
+    Anywhere on the machine; named by the environment variable
+    CODEBRIX_CFF_FONT_SWEEP. On a Debian machine with the URW base-35 fonts
+    installed, /usr/share/fonts/opentype/urw-base35 is the material.
+
+WHAT IT IS
+    A directory of real fonts with PostScript (CFF) outlines. This repository
+    ships three small CFF fixtures that cover the structures a CFF program can
+    have one at a time; a directory of production faces covers VOLUME instead,
+    which is a different kind of coverage and needs fonts nobody wants in a
+    git repository.
+
+WHAT USES IT
+    tests/CodeBrix.PdfDocuments.Tests/Fonts/CffSubsetFontSweepTests.cs subsets
+    every CFF face in the directory, several glyph sets each, and asserts that
+    a subset MOVED NOTHING - every kept charstring, every surviving subroutine
+    and the charset byte-identical at their original index, and every subroutine
+    INDEX still holding the same item count.
+
+HOW THE GATE SKIPS
+
+        Assert.SkipUnless(Directory.Exists(directory),
+            "CODEBRIX_CFF_FONT_SWEEP is not set to an existing folder.");
+
+    Unset, or pointing at a folder that is not there, the test skips.
+
+HOW TO USE IT
+    Set CODEBRIX_CFF_FONT_SWEEP to a folder of .otf files and re-run
+    tests/CodeBrix.PdfDocuments.Tests.
 
 
 TestResults/

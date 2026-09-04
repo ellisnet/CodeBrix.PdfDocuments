@@ -69,16 +69,16 @@ NuGet dependencies (all pulled in automatically):
   - CodeBrix.Platform.Fonts.RobotoMono.OflLicenseForever    (monospace)
   - CodeBrix.Platform.Fonts.NotoMusic.OflLicenseForever     (music-notation
     glyphs; never a body-text default)
-
-  Each of those font packages ships COMPANION families alongside its primary
-  face - Noto Sans / Noto Serif (polytonic Greek), Noto Sans/Serif Armenian,
-  Noto Sans/Serif Georgian, Iosevka and Noto Sans Mono, plus Noto Music. Every
-  companion joins the per-glyph fallback chain automatically at discovery; none
-  of them is ever a body-text default. Nothing has to be registered or
-  configured to get them.
   - CodeBrix.Imaging.Drawing.NoSkia.ApacheLicenseForever (the fully managed SVG
     engine; brings CodeBrix.SvgParse.MsplLicenseForever - all managed code, no
     native library on any platform)
+
+  Each of the four font packages above ships COMPANION families alongside its
+  primary face - Noto Sans / Noto Serif (polytonic Greek), Noto Sans/Serif
+  Armenian, Noto Sans/Serif Georgian, Iosevka and Noto Sans Mono, plus Noto
+  Music. Every companion joins the per-glyph fallback chain automatically at
+  discovery; none of them is ever a body-text default. Nothing has to be
+  registered or configured to get them.
 
 License: MIT (the font packages are OFL-licensed).
 
@@ -606,11 +606,10 @@ shadow purpose-built families such as Noto Music.
 What this buys you, with no code at all: polytonic (ancient) Greek, Armenian,
 Georgian and music notation all render, in a face that matches the surrounding
 text. Roboto itself carries just ONE code point of the Greek Extended block, so
-before the companions were auto-wired, polytonic Greek was admitted against
-Roboto by the legacy allow-list and rendered as tofu boxes with NO warning -
-a silent wrong answer. Rendering polytonic Greek requires
-CodeBrix.Platform.Fonts.Roboto.OflLicenseForever 1.0.240.51 or later, the first
-version carrying the Noto Sans companion.
+polytonic Greek renders only because the Noto Sans companion shipped inside
+CodeBrix.Platform.Fonts.Roboto.OflLicenseForever joins the chain. This package
+pins the font package versions it needs - no manual pin is required in the
+consuming project.
 
 A consumer can still extend the chain with AddFallbackFamily(...) or
 AddFontFile(..., includeInFallback: true); those append AFTER the automatic
@@ -1002,6 +1001,10 @@ is the reference for every feature area. Base URL:
   corpus placed as vectors with no fallback and no embedded bitmap (skips
   unless HTML2PDF_LILYPORT_SVG_CORPUS points at a folder of .svg files):
     -> https://github.com/ellisnet/CodeBrix.PdfDocuments/tree/main/tests/CodeBrix.PdfDocCreate.Html2Pdf.Tests/LilyPortCorpusGateTests.cs
+
+  Options.CffSubsetMode reaching the PDF document, and what each mode writes
+  for a registered PostScript-outline (.otf) face:
+    -> https://github.com/ellisnet/CodeBrix.PdfDocuments/tree/main/tests/CodeBrix.PdfDocCreate.Html2Pdf.Tests/CffSubsetModeTests.cs
 
   Every raster image format as local file and data: URI, alpha preserved
   through the PDF:

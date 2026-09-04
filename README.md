@@ -1,6 +1,6 @@
 # CodeBrix.PdfDocuments
 
-Create and process PDF documents using .NET, without the need of interop.
+Create, render and process PDF documents in .NET.
 
 CodeBrix.PdfDocuments is a .NET library for creating, reading, merging, and manipulating PDF documents.
 CodeBrix.PdfDocCreate is a companion library that provides a document object model for building
@@ -30,9 +30,6 @@ Microsoft .NET version 10.0 is a Long-Term Supported (LTS) version of .NET, and 
 and will be actively supported by Microsoft until Nov 14, 2028. Please update your C#/.NET code and projects
 to the latest LTS version of Microsoft .NET.
 
-CodeBrix.PdfDocuments is a fork of the code of the popular PdfSharpCore library version 1.3.67 and the
-MigraDocCore libraries version 1.3.67 - see below for licensing details.
-
 ## Installation
 
 The five packages are complementary rather than alternatives, and each one brings in the ones below
@@ -54,9 +51,13 @@ Note that the NuGet package IDs carry a `.MitLicenseForever` suffix that the ass
 namespaces do not - there is no package named plain `CodeBrix.PdfDocuments`. The suffix is a
 CodeBrix family convention recording the license the package will always be published under.
 
+XML documentation (IntelliSense) ships alongside the
+`CodeBrix.PdfDocCreate.Html2Pdf` and `CodeBrix.PdfDocCreate.Markdown2Pdf` assemblies. Every one
+of the five packages carries a full API reference as `AGENT-README.txt` - see Documentation below.
+
 `CodeBrix.PdfRasterizer` is the only package with a native component: it bundles pre-built PDFium
 binaries and needs no separate native-asset package on any supported platform. The other four are
-fully managed.
+fully managed code and need no interop of any kind.
 
 ## CodeBrix.PdfDocuments supports:
 
@@ -74,8 +75,12 @@ fully managed.
 * PDF security and encryption
 * Document outlines and bookmarks
 * Image data consolidation for optimized file sizes
+* Opt-in subsetting of fonts with PostScript (CFF) outlines, in a sparse or a compact mode;
+  TrueType-outline fonts are always subset
 
-## CodeBrix.PdfDocCreate additionally supports:
+## CodeBrix.PdfDocCreate supports:
+
+Everything CodeBrix.PdfDocuments does, and in addition:
 
 * Document object model for structured PDF creation
 * Styled paragraphs with headings and body text
@@ -122,8 +127,13 @@ for PDF generation - it is not a web browser.
   group opacity as a PDF transparency group - sharp at any zoom), or rasterized on request,
   identically on Windows, macOS, and Linux, with no native dependency of any kind
 * Headers/footers with page-number tokens
-* All text rendered with the CodeBrix.Platform.Fonts packages (Roboto, Merriweather, Roboto Mono),
-  automatically copied into the application output - identical PDF output on every operating system
+* All text rendered with the CodeBrix.Platform.Fonts packages (Roboto, Merriweather, Roboto Mono,
+  Noto Music), automatically copied into the application output - identical PDF output on every
+  operating system
+* The companion families those packages carry - Noto Sans and Noto Serif, Noto Sans/Serif Armenian,
+  Noto Sans/Serif Georgian, Iosevka, Noto Sans Mono and Noto Music - wired into the per-glyph
+  fallback chain automatically, which is what makes polytonic Greek, Armenian, Georgian and music
+  notation render with no configuration at all
 * Consumer font registration (loose `.ttf`/`.otf` files, no manifest needed) usable from CSS and
   SVG text, with per-glyph fallback decided against each font's actual character coverage
 * Unsupported CSS and missing resources degrade to collectable warnings, never exceptions
@@ -133,8 +143,8 @@ for PDF generation - it is not a web browser.
 CodeBrix.PdfDocCreate.Markdown2Pdf (`CodeBrix.PdfDocCreate.Markdown2Pdf.MitLicenseForever`) renders
 any Markdown (.md) file into a nice-looking, pre-formatted, printable PDF with zero configuration.
 
-* A faithful C# port of the markdown-it CommonMark parser (verified against the full CommonMark
-  specification test corpus)
+* A complete CommonMark parser, verified against every example in the CommonMark specification
+  test corpus
 * GFM tables and strikethrough, footnotes, GitHub task lists, and YAML front matter
 * Automatic syntax highlighting for common fenced-code languages
 * A polished built-in print style: Merriweather body text, Roboto headings, Roboto Mono code,
@@ -399,7 +409,15 @@ htmlRenderer.RenderHtml(html, "restyled.pdf", generated.BaseDirectory);
 
 Every one of the five NuGet packages includes its own `AGENT-README.txt` - a complete API reference
 and usage guide written for AI coding agents, specific to the package you referenced. Point your
-agent at that file when it is writing code against these libraries.
+agent at that file when it is writing code against these libraries:
+
+| Package ID | Its `AGENT-README.txt` documents |
+| --- | --- |
+| `CodeBrix.PdfDocuments.MitLicenseForever` | `PdfDocument`, `XGraphics` and the drawing, reading, merging, encryption and font-embedding surface |
+| `CodeBrix.PdfDocCreate.MitLicenseForever` | `Document`, sections, styles, tables, headers and footers, and `PdfDocumentRenderer` |
+| `CodeBrix.PdfRasterizer.MitLicenseForever` | `PageRasterizer`, the image formats, thumbnails, page information and the bundled RIDs |
+| `CodeBrix.PdfDocCreate.Html2Pdf.MitLicenseForever` | `HtmlPdfRenderer`, the supported HTML and CSS dialect, SVG placement, fonts and the warning vocabulary |
+| `CodeBrix.PdfDocCreate.Markdown2Pdf.MitLicenseForever` | `MarkdownPdfRenderer`, the Markdown feature set, the restyling workflow and the parser API |
 
 Significant additional sample code is available in the `CodeBrix.PdfDocuments.Tests`,
 `CodeBrix.PdfDocCreate.Html2Pdf.Tests`, and `CodeBrix.PdfDocCreate.Markdown2Pdf.Tests` projects:
@@ -413,17 +431,8 @@ stream wholesale, but not change a word where it sits.
 
 ## License
 
-The project is licensed under the MIT License. see: https://en.wikipedia.org/wiki/MIT_License
+CodeBrix.PdfDocuments is licensed under the MIT License - see the
+[LICENSE](https://github.com/ellisnet/CodeBrix.PdfDocuments/blob/main/LICENSE) file.
 
-All code from PdfSharpCore version 1.3.67 and MigraDocCore version 1.3.67 was licensed under the
-MIT License. This project (CodeBrix.PdfDocuments/CodeBrix.PdfDocCreate) complies with all
-provisions of the open source license of PdfSharpCore and MigraDocCore (code) - and will make
-all modified, adapted and derived code within the CodeBrix.PdfDocuments/CodeBrix.PdfDocCreate 
-libraries freely available as open source, under the same license as the PdfSharpCore and 
-MigraDocCore code license.
-
-CodeBrix.PdfRasterizer contains P/Invoke bindings and rendering logic derived from
-[Docnet.Core](https://github.com/GowenGit/docnet) (MIT License, copyright 2018 Modestas
-Petravicius). Pre-built PDFium native binaries are bundled under a BSD 3-Clause license
-(copyright 2014 The PDFium Authors). See THIRD-PARTY-NOTICES.txt in the root of the 
-repository for full license details.
+For licensing and provenance information about the open source code included in
+these packages, see [THIRD-PARTY-NOTICES.txt](https://github.com/ellisnet/CodeBrix.PdfDocuments/blob/main/THIRD-PARTY-NOTICES.txt).

@@ -35,8 +35,8 @@ ROBUSTNESS CONTRACT: any .md input produces a document. Unsupported constructs
 degrade and are reported in the result's Warnings collection - they are never
 thrown.
 
-PROVENANCE: the parser is a C# port of markdown-it 14.1.0 with ports of its
-markdown-it-footnote 4.0.0, markdown-it-task-lists and markdown-it-front-matter
+PROVENANCE: the parser is a C# port of markdown-it with ports of its
+markdown-it-footnote, markdown-it-task-lists and markdown-it-front-matter
 plugins. The API shape mirrors the JavaScript original, but EVERY namespace is
 CodeBrix.PdfDocCreate.Markdown2Pdf.*. Do not write API from memory of the
 JavaScript library - the C# names are PascalCase and several members differ.
@@ -276,6 +276,16 @@ HTML/CSS instead (see WORKFLOW (b) below). The fixed choices this package makes
 on your behalf are US Letter or your PageSize, 66 pt top margin, 72 pt bottom
 margin, a heading-derived PDF outline, and the document title/author taken from
 front matter.
+
+CFF FONT SUBSETTING IS NOT ONE OF THEM. CodeBrix.PdfDocuments can subset a font
+with PostScript (CFF) outlines instead of embedding it whole, and Html2Pdf
+exposes that as HtmlRenderOptions.CffSubsetMode - but MarkdownRenderOptions has
+no such property and does not forward one, so RenderFile / RenderMarkdown always
+render at the default (whole-font embedding). It changes nothing for a
+zero-config document: every packaged font this package uses has TrueType
+outlines and is already subset. If you register a PostScript-outline .otf and
+want it subset, take WORKFLOW (b) - GenerateHtml*, then render the HTML with
+your own HtmlPdfRenderer and set Options.CffSubsetMode on it.
 
 --- WORKFLOW (a): zero-config Markdown to PDF ---
 

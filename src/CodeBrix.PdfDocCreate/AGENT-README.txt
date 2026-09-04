@@ -21,7 +21,7 @@ rendered PdfDocument stays reachable through
 PdfDocumentRenderer.PdfDocument for low-level post-processing (security,
 extra annotations, merging).
 
-PROVENANCE: CodeBrix.PdfDocCreate is a port of MigraDocCore 1.3.67 (itself a
+PROVENANCE: CodeBrix.PdfDocCreate is a port of MigraDocCore (itself a
 port of empira's MigraDoc), with the MigraDocCore.DocumentObjectModel and
 MigraDocCore.Rendering assemblies merged into one. If you know MigraDoc the API
 is very similar - but EVERY namespace is CodeBrix.PdfDocCreate.*. Do NOT write
@@ -1431,6 +1431,20 @@ consolidation:
     var pdf = renderer.PdfDocument;
     pdf.SecuritySettings.OwnerPassword = "secret";
     pdf.Save("secured.pdf");
+
+That same seam is how a PdfDocCreate document opts in to CFF font subsetting -
+the option lives on the PDF document, not on the DOM:
+
+    var renderer = new PdfDocumentRenderer { Document = doc };
+    renderer.RenderDocument();
+    renderer.PdfDocument.Options.CffSubsetMode = PdfCffSubsetMode.Compact;
+    renderer.PdfDocument.Save("output.pdf");
+
+It only affects fonts with PostScript (CFF) outlines, the default leaves output
+byte for byte as it was, and the mode is read when the document is saved - so
+set it after RenderDocument() and before Save(). PdfCffSubsetMode lives in
+CodeBrix.PdfDocuments.Pdf; the CodeBrix.PdfDocuments AGENT-README documents the
+modes and what each one costs.
 
 new PdfDocumentRenderer(unicode: true) makes every text run use Unicode font
 encoding instead of WinAnsi - required for any text outside Windows-1252.

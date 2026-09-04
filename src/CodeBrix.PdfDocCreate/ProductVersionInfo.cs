@@ -156,7 +156,7 @@ public static class ProductVersionInfo
     /// as well as in the Package Manager Console when listing packages using the Get-Package command. 
     /// </summary>
     // This assignment must be written in one line because it will be parsed from a PS1 file.
-    public const string NuGetDescription = "CodeBrix PdfDocCreate - the Open Source .NET library that easily creates documents based on an object model with paragraphs, tables, styles, etc. and renders them into PDF or RTF.";
+    public const string NuGetDescription = "CodeBrix.PdfDocCreate is an Open Source .NET 10 (and higher) library that builds documents from an object model - sections, paragraphs, styles, tables, charts, headers and footers - lays them out with automatic pagination, and renders them to PDF. Pure managed code, with no native dependencies.";
 
     /// <summary>
     /// Nuspec Doc: A description of the changes made in each release of the package. This field only shows up
@@ -204,7 +204,7 @@ public static class ProductVersionInfo
     /// Nuspec Doc: A space-delimited list of tags and keywords that describe the package. This information is used to help make sure users can find the package using
     /// searches in the Add Package Reference dialog box or filtering in the Package Manager Console window.
     /// </summary>                  
-    public const string NuGetTags = "CodeBrix PdfDocCreate PDF RTF document creation";
+    public const string NuGetTags = "CodeBrix PdfDocCreate PDF document creation";
 
 #if DEBUG
     public static int BuildNumber = (System.DateTime.Now - new System.DateTime(2026, 1, 1)).Days;
