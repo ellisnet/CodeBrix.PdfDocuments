@@ -1067,21 +1067,15 @@ internal sealed class Parser
 
         // Implementation note 18 Appendix  H:
         // Acrobat viewers require only that the %%EOF marker appear somewhere within the last 1024 bytes of the file.
-        int idx;
-        if (length <= 1030)
-        {
-            // Reading the final 30 bytes should work for all files. But often it does not.
-            string trail = _lexer.ReadRawString(length - 31, 30); //lexer.Pdf.Substring(length - 30);
-            idx = trail.LastIndexOf("startxref", StringComparison.Ordinal);
-            _lexer.Position = length - 31 + idx;
-        }
-        else
-        {
-            // For larger files we read 1 kiB - in most cases we find "startxref" in that range.
-            string trail = _lexer.ReadRawString(length - 1031, 1030);
-            idx = trail.LastIndexOf("startxref", StringComparison.Ordinal);
-            _lexer.Position = length - 1031 + idx;
-        }
+        // Read that tail - the last 1031 bytes, or the WHOLE document when it is shorter than that - and look for
+        // "startxref" in it. The window has to be clamped to the document's own length: a document of a few hundred
+        // bytes is entirely legal, and reading a fixed-size window past its front would fail before it was parsed.
+        int tailLength = length < 1031 ? (int)length : 1031;
+        long tailPosition = length - tailLength;
+        string trail = _lexer.ReadRawString(tailPosition, tailLength);
+        int idx = trail.LastIndexOf("startxref", StringComparison.Ordinal);
+        if (idx >= 0)
+            _lexer.Position = tailPosition + idx;
 
         // SAP sometimes creates files with a size of several MByte and place "startxref" somewhere in the middle...
         if (idx == -1)
@@ -1090,12 +1084,13 @@ internal sealed class Parser
             if (length > int.MaxValue)
                 //TODO: Implement chunking to read long files.
                 throw new NotImplementedException("Reading >2GB files with a 'startxref' in the middle not implemented.");
-            var trail = _lexer.ReadRawString(0, (int)length);
-            idx = trail.LastIndexOf("startxref", StringComparison.Ordinal);
-            _lexer.Position = idx;
+            string whole = _lexer.ReadRawString(0, (int)length);
+            idx = whole.LastIndexOf("startxref", StringComparison.Ordinal);
+            if (idx >= 0)
+                _lexer.Position = idx;
         }
         if (idx == -1)
-            throw new Exception("The StartXRef table could not be found, the file cannot be opened.");
+            throw new PdfReaderException("The StartXRef table could not be found, the file cannot be opened.");
 
         ReadSymbol(Symbol.StartXRef);
         _lexer.Position = ReadLong();

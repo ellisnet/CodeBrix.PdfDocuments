@@ -1095,10 +1095,13 @@ READING EXISTING PDFs
     // Is it a PDF at all?
     if (PdfReader.TestPdfFile("unknown.bin") == 0) { /* not a PDF */ }
 
-Opening a file that is not a valid PDF throws PdfReaderException
-(CodeBrix.PdfDocuments.Pdf.IO). Text EXTRACTION is not provided (see WHAT THIS
-PACKAGE DOES NOT DO); the content stream can be read as operators (see
-CONTENT STREAMS).
+Opening a file whose header is not a PDF header throws InvalidOperationException
+with the message "The file is not a valid PDF document."; a file that has a PDF
+header but no findable cross-reference table throws PdfReaderException
+(CodeBrix.PdfDocuments.Pdf.IO), as do the password failures. The reader imposes
+no minimum document size - a one-page document of a few hundred bytes opens like
+any other. Text EXTRACTION is not provided (see WHAT THIS PACKAGE DOES NOT DO);
+the content stream can be read as operators (see CONTENT STREAMS).
 
 EDITING EXISTING PAGES
 ----------------------
@@ -2208,9 +2211,11 @@ Feature-to-test-file mapping:
   files, password failures, reading files encrypted by several tools:
     https://github.com/ellisnet/CodeBrix.PdfDocuments/tree/main/tests/CodeBrix.PdfDocuments.Tests/Security/PdfSecurity.cs
 
-  Reading PDFs from streams, invalid-file exceptions, TestPdfFile, content
-  stream round-trip (ContentReader / CSequence.ToContent):
+  Reading PDFs from streams, small documents of a few hundred bytes, the
+  1,024-byte boundary, invalid-file exceptions, TestPdfFile, content stream
+  round-trip (ContentReader / CSequence.ToContent):
     https://github.com/ellisnet/CodeBrix.PdfDocuments/tree/main/tests/CodeBrix.PdfDocuments.Tests/IO/PdfReader.cs
+    https://github.com/ellisnet/CodeBrix.PdfDocuments/tree/main/tests/CodeBrix.PdfDocuments.Tests/IO/PdfReaderTests.cs
     https://github.com/ellisnet/CodeBrix.PdfDocuments/tree/main/tests/CodeBrix.PdfDocuments.Tests/IO/IoBaseTest.cs
     https://github.com/ellisnet/CodeBrix.PdfDocuments/tree/main/tests/CodeBrix.PdfDocuments.Tests/PdfReader.cs
     https://github.com/ellisnet/CodeBrix.PdfDocuments/tree/main/tests/CodeBrix.PdfDocuments.Tests/CA2022CoverageTests.cs

@@ -67,6 +67,13 @@ public delegate void PdfPasswordProvider(PdfPasswordProviderArgs args);
 public static class PdfReader
 {
     /// <summary>
+    /// The number of bytes read from the beginning of a document when its header is inspected.
+    /// It is an upper bound, not a requirement: a document shorter than this is read in full,
+    /// because the header itself only occupies the first few bytes.
+    /// </summary>
+    private const int HeaderProbeLength = 1024;
+
+    /// <summary>
     /// Determines whether the file specified by its path is a PDF file by inspecting the first eight
     /// bytes of the data. If the file header has the form «%PDF-x.y» the function returns the version
     /// number as integer (e.g. 14 for PDF 1.4). If the file header is invalid or inaccessible
@@ -82,9 +89,7 @@ public static class PdfReader
             if (File.Exists(realPath)) // prevent unwanted exceptions during debugging
             {
                 stream = new FileStream(realPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                byte[] bytes = new byte[1024];
-                stream.ReadExactly(bytes, 0, 1024);
-                return GetPdfFileVersion(bytes);
+                return GetPdfFileVersion(ReadUpTo(stream, HeaderProbeLength));
             }
         }
         // ReSharper disable once EmptyGeneralCatchClause
@@ -118,9 +123,7 @@ public static class PdfReader
         try
         {
             pos = stream.Position;
-            byte[] bytes = new byte[1024];
-            stream.ReadExactly(bytes, 0, 1024);
-            return GetPdfFileVersion(bytes);
+            return GetPdfFileVersion(ReadUpTo(stream, HeaderProbeLength));
         }
         // ReSharper disable once EmptyGeneralCatchClause
         catch { }
@@ -154,6 +157,9 @@ public static class PdfReader
     ///
     internal static int GetPdfFileVersion(byte[] bytes)
     {
+        if (bytes == null || bytes.Length == 0)
+            return 0;
+
         try
         {
             // Acrobat accepts headers like «%!PS-Adobe-N.n PDF-M.m»...
@@ -161,7 +167,7 @@ public static class PdfReader
             if (header[0] == '%' || header.IndexOf("%PDF", StringComparison.Ordinal) >= 0)
             {
                 int ich = header.IndexOf("PDF-", StringComparison.Ordinal);
-                if (ich > 0 && header[ich + 5] == '.')
+                if (ich > 0 && ich + 6 < header.Length && header[ich + 5] == '.')
                 {
                     char major = header[ich + 4];
                     char minor = header[ich + 6];
@@ -182,7 +188,7 @@ public static class PdfReader
             if (header[0] == '%' || header.IndexOf("%PDF", StringComparison.Ordinal) >= 0)
             {
                 int ich = header.IndexOf("PDF-", StringComparison.Ordinal);
-                if (ich > 0 && header[ich + 5] == '.')
+                if (ich > 0 && ich + 6 < header.Length && header[ich + 5] == '.')
                 {
                     char major = header[ich + 4];
                     char minor = header[ich + 6];
@@ -195,6 +201,41 @@ public static class PdfReader
         catch { }
 
         return 0;
+    }
+
+    /// <summary>
+    /// Reads at most count bytes from the current position of a stream and returns exactly the
+    /// bytes that were available, so a document shorter than the requested window can still be
+    /// inspected. The length of a seekable stream bounds the read; a stream that cannot seek is
+    /// read in a loop until it yields count bytes or reaches its end.
+    /// </summary>
+    private static byte[] ReadUpTo(Stream stream, int count)
+    {
+        if (stream.CanSeek)
+        {
+            long remaining = stream.Length - stream.Position;
+            if (remaining < 0)
+                remaining = 0;
+            if (remaining < count)
+                count = (int)remaining;
+        }
+
+        byte[] buffer = new byte[count];
+        int read = 0;
+        while (read < count)
+        {
+            int bytesRead = stream.Read(buffer, read, count - read);
+            if (bytesRead <= 0)
+                break;
+            read += bytesRead;
+        }
+
+        if (read == buffer.Length)
+            return buffer;
+
+        byte[] result = new byte[read];
+        Array.Copy(buffer, result, read);
+        return result;
     }
 
     /// <summary>
@@ -384,10 +425,8 @@ public static class PdfReader
 
             // Get file version.
             gettingFileVersion = true;
-            byte[] header = new byte[1024];
             stream.Position = 0;
-            stream.ReadExactly(header, 0, 1024);
-            document._version = GetPdfFileVersion(header);
+            document._version = GetPdfFileVersion(ReadUpTo(stream, HeaderProbeLength));
             if (document._version == 0)
             {
                 throw new InvalidOperationException(PSSR.InvalidPdf);
