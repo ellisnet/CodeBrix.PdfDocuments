@@ -52,7 +52,7 @@
     <Authors>Jeremy Ellis</Authors>
     <Product>CodeBrix.PdfDocCreate.Html2Pdf</Product>
     <Title>CodeBrix.PdfDocCreate.Html2Pdf</Title>
-    <Description>Renders author-created HTML pages with CSS styling into PDF documents via the CodeBrix.PdfDocCreate document object model. Applies a documented subset of CSS - inline style attributes, style blocks, and linked local stylesheets - with real selector matching, cascade, specificity, and inheritance. Embeds every image format CodeBrix.Imaging decodes plus SVG (referenced files, data: URIs, and inline svg elements, placed as PDF vector content by default, or rasterized on request - identically on Windows, macOS, and Linux, with no native dependency). All text is rendered with the CodeBrix.Platform.Fonts Roboto (sans-serif), Merriweather (serif), and Roboto Mono (monospace) font packages - plus the Noto companion families they bundle, which extend coverage to polytonic (ancient) Greek, Armenian, Georgian and music notation, and any fonts the consumer registers - so output is identical on every operating system. Designed for HTML/CSS written for PDF generation, not for repurposing arbitrary web pages.</Description>
+    <Description>Turns HTML pages, including their CSS styling and images, into PDF documents. Output looks the same on Windows, macOS, and Linux, since nothing else on the machine is needed to produce it. Supports inline styles, style blocks, and linked stylesheets, and embeds any images or SVG graphics used on the page.</Description>
     <PackageProjectUrl>https://github.com/ellisnet/CodeBrix.PdfDocuments</PackageProjectUrl>
     <RepositoryUrl>https://github.com/ellisnet/CodeBrix.PdfDocuments</RepositoryUrl>
     <RepositoryType>git</RepositoryType>

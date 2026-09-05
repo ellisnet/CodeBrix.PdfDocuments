@@ -52,7 +52,7 @@
     <Authors>Jeremy Ellis</Authors>
     <Product>CodeBrix.PdfDocCreate.Markdown2Pdf</Product>
     <Title>CodeBrix.PdfDocCreate.Markdown2Pdf</Title>
-    <Description>Renders any Markdown (.md) file into a nice-looking, pre-formatted, printable PDF with zero configuration. Markdown is parsed by a vendored C# port of the markdown-it CommonMark parser (with tables, strikethrough, footnotes, task lists, and YAML front matter), converted to HTML with a polished default stylesheet, and rendered through CodeBrix.PdfDocCreate.Html2Pdf. Consumers who want a different look can ask for the generated ready-to-render HTML/CSS instead, restyle it, and hand it to Html2Pdf themselves.</Description>
+    <Description>Turns a Markdown file into a polished, print-ready PDF document with no configuration required. Supports the full CommonMark Markdown spec, including tables, footnotes, and task lists, and applies a clean default look automatically. Prefer a different look? Ask for the generated HTML instead and restyle it however you like.</Description>
     <PackageProjectUrl>https://github.com/ellisnet/CodeBrix.PdfDocuments</PackageProjectUrl>
     <RepositoryUrl>https://github.com/ellisnet/CodeBrix.PdfDocuments</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
