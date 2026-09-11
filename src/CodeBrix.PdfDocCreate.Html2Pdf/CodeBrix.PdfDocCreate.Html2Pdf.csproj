@@ -75,11 +75,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="CodeBrix.MarkupParse.MitLicenseForever" Version="1.0.238.561" />
-    <PackageReference Include="CodeBrix.StyleSheetParse.MitLicenseForever" Version="1.0.238.81" />
-    <PackageReference Include="CodeBrix.Platform.Fonts.Roboto.OflLicenseForever" Version="1.0.240.51" />
-    <PackageReference Include="CodeBrix.Platform.Fonts.Merriweather.OflLicenseForever" Version="1.0.238.511" />
-    <PackageReference Include="CodeBrix.Platform.Fonts.RobotoMono.OflLicenseForever" Version="1.0.238.534" />
+    <PackageReference Include="CodeBrix.MarkupParse.MitLicenseForever" Version="1.0.248.1160" />
+    <PackageReference Include="CodeBrix.StyleSheetParse.MitLicenseForever" Version="1.0.248.1122" />
+    <PackageReference Include="CodeBrix.Platform.Fonts.Roboto.OflLicenseForever" Version="1.0.248.1219" />
+    <PackageReference Include="CodeBrix.Platform.Fonts.Merriweather.OflLicenseForever" Version="1.0.248.1209" />
+    <PackageReference Include="CodeBrix.Platform.Fonts.RobotoMono.OflLicenseForever" Version="1.0.248.1223" />
     <!--
       Every companion family these packages ship joins the per-glyph fallback chain
       automatically at discovery - see Html2PdfFonts.ScanFontDirectories. Noto Music is
@@ -93,7 +93,7 @@
       so before that version polytonic Greek rendered as tofu with no warning at all.
       Do not float this pin backwards.
     -->
-    <PackageReference Include="CodeBrix.Platform.Fonts.NotoMusic.OflLicenseForever" Version="1.0.238.517" />
+    <PackageReference Include="CodeBrix.Platform.Fonts.NotoMusic.OflLicenseForever" Version="1.0.248.1217" />
     <!--
       SVG placement: the fully managed SVG engine. It parses SVG into a display list
       that is written into the page as vector operators (the default), or rasterized in
@@ -102,7 +102,7 @@
       consuming application to install. It shares CodeBrix.SvgParse with the rest of
       the family; the StyleSheetParse pin below matches the version that package brings.
     -->
-    <PackageReference Include="CodeBrix.Imaging.Drawing.NoSkia.ApacheLicenseForever" Version="1.0.238.425" />
+    <PackageReference Include="CodeBrix.Imaging.Drawing.NoSkia.ApacheLicenseForever" Version="1.0.252.351" />
   </ItemGroup>
 
   <ItemGroup>

@@ -5,8 +5,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
-    <PackageReference Include="SilverAssertions.ApacheLicenseForever" Version="1.0.237.1200" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.0" />
+    <PackageReference Include="SilverAssertions.ApacheLicenseForever" Version="1.0.248.1071" />
     <PackageReference Include="xunit.runner.visualstudio" Version="4.0.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -23,9 +23,7 @@
     <!-- The CFF-outline test face lives with the PdfDocuments tests (as an embedded
          resource there); Html2PdfFonts.AddFontFile wants a FILE, so it is linked here
          and copied beside the tests. Test-only; see its NOTICE.txt beside it. -->
-    <None Include="..\CodeBrix.PdfDocuments.Tests\SampleFiles\MathJax_AMS-Regular.otf"
-          Link="SampleFiles\MathJax_AMS-Regular.otf"
-          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\CodeBrix.PdfDocuments.Tests\SampleFiles\MathJax_AMS-Regular.otf" Link="SampleFiles\MathJax_AMS-Regular.otf" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <!--
