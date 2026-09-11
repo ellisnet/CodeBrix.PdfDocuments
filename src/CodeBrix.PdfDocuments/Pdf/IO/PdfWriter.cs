@@ -49,9 +49,11 @@ internal class PdfWriter
         _stream = pdfStream;
         _securityHandler = securityHandler;
         //System.Xml.XmlTextWriter
-#if DEBUG
-        _layout = PdfWriterLayout.Verbose;
-#endif
+
+//As of 9/10/2026, this is breaking tests; I have removed it
+//#if DEBUG
+//        _layout = PdfWriterLayout.Verbose;
+//#endif
     }
 
     public void Close(bool closeUnderlyingStream)
