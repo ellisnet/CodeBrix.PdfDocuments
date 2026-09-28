@@ -257,11 +257,13 @@ handling is provided by the CodeBrix.Imaging and CodeBrix.Compression packages.
 7. pdfium-binaries (pre-compiled PDFium builds by Benoit Blanchon)
    https://github.com/bblanchon/pdfium-binaries
 
-   The PDFium native binaries for the win-arm64, android-arm64, and
-   linux-riscv64 platforms were obtained from the bblanchon/pdfium-binaries
-   project, which provides pre-compiled PDFium builds distributed as NuGet
-   packages (bblanchon.PDFium.Win32 and bblanchon.PDFium.Android) and via
-   the pypdfium2 Python package (see entry #8 below).
+   The PDFium native binaries for the win-arm64, android-arm64, android-x64
+   and linux-riscv64 platforms were obtained from the bblanchon/pdfium-binaries
+   project, which provides pre-compiled PDFium builds distributed as release
+   archives, as NuGet packages (bblanchon.PDFium.Win32) and via the pypdfium2
+   Python package (see entry #8 below). The android-arm64 and android-x64
+   binaries come from the project's release archives (pdfium-android-arm64.tgz
+   and pdfium-android-x64.tgz).
 
    The linux-riscv64 binary was extracted from the pypdfium2 Python package
    (version 5.6.0, manylinux_2_38_riscv64), which uses the pdfium-binaries

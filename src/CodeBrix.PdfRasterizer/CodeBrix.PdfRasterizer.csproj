@@ -96,6 +96,8 @@
     <None Include="runtimes\win-x86\native\LICENSE-Pdfium.txt" Pack="true" PackagePath="runtimes\win-x86\native" Link="runtimes\win-x86\native\LICENSE-Pdfium.txt" CopyToOutputDirectory="PreserveNewest" />
     <None Include="runtimes\android-arm64\native\pdfium.so" Pack="true" PackagePath="runtimes\android-arm64\native" Link="runtimes\android-arm64\native\pdfium.so" CopyToOutputDirectory="PreserveNewest" />
     <None Include="runtimes\android-arm64\native\LICENSE-Pdfium.txt" Pack="true" PackagePath="runtimes\android-arm64\native" Link="runtimes\android-arm64\native\LICENSE-Pdfium.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="runtimes\android-x64\native\pdfium.so" Pack="true" PackagePath="runtimes\android-x64\native" Link="runtimes\android-x64\native\pdfium.so" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="runtimes\android-x64\native\LICENSE-Pdfium.txt" Pack="true" PackagePath="runtimes\android-x64\native" Link="runtimes\android-x64\native\LICENSE-Pdfium.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CodeBrix.Imaging.ApacheLicenseForever" Version="1.0.248.1113" />

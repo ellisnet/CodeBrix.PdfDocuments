@@ -82,6 +82,7 @@ SUPPORTED PLATFORMS - PDFium binaries are bundled for exactly these RIDs:
     - linux-arm        Linux ARM (32-bit)   (pdfium.so)
     - linux-riscv64    Linux RISC-V 64      (pdfium.so)
     - android-arm64    Android ARM64        (pdfium.so)
+    - android-x64      Android x64          (pdfium.so)
 
 UNSUPPORTED PLATFORMS: iOS, WebAssembly (Blazor WASM), and any other platform
 not listed above. There are no PDFium binaries for those targets, and
@@ -95,7 +96,10 @@ for the platform's PDFium file (win-arm64 additionally falls back to the
 win-x64 binary; linux-x64 additionally falls back to runtimes/linux/native/).
 If that probe fails, the .NET runtime's ordinary native-library probing
 applies. Keep the runtimes/ folder that the build produces next to the
-application's assemblies. PDFium is initialized once per process and stays
+application's assemblies. On Android the .NET Android SDK packs the native
+into the APK's lib/arm64-v8a/ or lib/x86_64/ folder instead, and the runtime's
+ordinary probing loads it from the app's native library directory - nothing
+to configure; build the app for android-arm64, android-x64 or both. PDFium is initialized once per process and stays
 loaded for the lifetime of the application.
 
 ================================================================================
@@ -778,7 +782,8 @@ COMMON PITFALLS TO AVOID
    throws TimeoutException.
 
 7. DO NOT use CodeBrix.PdfRasterizer on iOS or WebAssembly. PDFium binaries
-   are bundled for Windows, macOS, Linux and Android (ARM64) only. The library
+   are bundled for Windows, macOS, Linux and Android (ARM64 and x64)
+   only. The library
    fails at runtime on any platform without a bundled PDFium binary.
 
 8. DO NOT try to install PDFium separately. The native binaries are bundled
@@ -896,7 +901,7 @@ Formats:        PngFormat, JpegFormat, BmpFormat, GifFormat, TiffFormat (.Instan
 Resolution:     method arg > property > default (Dpi 300, PNG, 200 x 260)
 Threading:      native calls serialized; 10 s lock wait then TimeoutException
 Platforms:      win-x64/x86/arm64, osx-x64/arm64, linux-x64/arm64/arm/riscv64,
-                android-arm64; NOT iOS / WebAssembly
+                android-arm64/x64; NOT iOS / WebAssembly
 
 Target: .NET 10 or later
 

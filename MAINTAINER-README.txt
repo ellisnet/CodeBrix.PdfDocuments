@@ -345,7 +345,7 @@ ADDITIONAL PACKAGE CONTENT.
   - CodeBrix.PdfRasterizer packs a PDFium native plus the BSD licence file
     LICENSE-Pdfium.txt for each supported RID: win-x64, win-x86, win-arm64,
     osx-x64, osx-arm64, linux-x64, linux-arm, linux-arm64, linux-riscv64,
-    android-arm64. WATCH THE LINUX-X64 ENTRY: its source folder on disk is
+    android-arm64, android-x64. WATCH THE LINUX-X64 ENTRY: its source folder on disk is
     runtimes\linux\native (no "-x64"), packed to runtimes\linux-x64\native.
     Every other RID's folder name matches its package path.
     THE FILE NAME IS THE FAMILY RULE, NOT A CHOICE: a licence file that belongs
@@ -391,9 +391,26 @@ the full license texts. Summary of where the code came from:
       PDFium P/Invoke bindings and the rendering approach derive from Docnet.Core
       (github.com/GowenGit/docnet, MIT), simplified from CppSharp-generated
       wrappers to hand-written direct P/Invoke. The bundled PDFium natives are
-      BSD-licensed builds of Google/Foxit's PDFium; the win-arm64, android-arm64
-      and linux-riscv64 binaries come from bblanchon/pdfium-binaries and, for
-      linux-riscv64, from the pypdfium2 5.6.0 manylinux wheel.
+      BSD-licensed builds of Google/Foxit's PDFium; the win-arm64, android-arm64,
+      android-x64 and linux-riscv64 binaries come from bblanchon/pdfium-binaries
+      and, for linux-riscv64, from the pypdfium2 5.6.0 manylinux wheel.
+      The two Android natives are lib/libpdfium.so from the release archives
+      of bblanchon/pdfium-binaries release chromium/8066 (PDFium 156.0.8066.0),
+      renamed to pdfium.so; LICENSE-Pdfium.txt beside each is that archive's
+      LICENSE file:
+        https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/8066/pdfium-android-arm64.tgz
+          archive sha256 a665e3a9d40fb0024e3959261a400a722a13f7aa6602c59a82c93d44a362c055
+          pdfium.so sha256 bfb97004336bf8ecce4957bc7a5fd544edc587dfaec99b59fa04885aeacb2c1e
+        https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/8066/pdfium-android-x64.tgz
+          archive sha256 44b9444d58f055ab892019aea27423bab74d671a37b5bad84647a91abec82a1d
+          pdfium.so sha256 62c7d4bad74cd87d8aa6e45fe7228144f9100347669906854e08ef586025a42a
+      Refresh the two together from ONE release so they always match. The
+      Android natives keep the family name pdfium.so (no "lib" prefix): the .NET
+      Android SDK packs them verbatim as lib/<abi>/pdfium.so, Android's
+      installer extracts them to the app's native library directory, and
+      DllImport("pdfium") resolves them there - tested on an API 37 x86_64
+      emulator and on API 33 arm64 and x86_64 devices, so no rename is needed.
+      Both natives are 16 KB page-aligned.
 
   CodeBrix.PdfDocCreate.Html2Pdf
       Written for this repository. It composes onto PdfDocCreate and delegates

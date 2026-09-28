@@ -9,6 +9,21 @@ using System.Linq;
 
 namespace CodeBrix.PdfDocuments.Utils; //Was previously: namespace PdfSharpCore.Utils;
 
+/// <summary>
+/// The system-font resolver: discovers the TrueType (.ttf) fonts installed on the host the first time the type is used,
+/// and serves them by family name. Font sources per platform:
+/// <list type="table">
+/// <listheader><term>Platform</term><description>Fonts discovered</description></listheader>
+/// <item><term>Windows</term><description>%SystemRoot%\Fonts and %LOCALAPPDATA%\Microsoft\Windows\Fonts</description></item>
+/// <item><term>macOS</term><description>/Library/Fonts</description></item>
+/// <item><term>Linux</term><description>fontconfig's font list (fallback: the directories named in /etc/fonts/fonts.conf)</description></item>
+/// <item><term>Android</term><description>/system/fonts, plus /system/font and /product/fonts where they exist</description></item>
+/// <item><term>Any other platform</term><description>none - only faces registered through an <see cref="IFontResolver"/>
+/// (for example an <see cref="EmbeddedFontResolver"/> on <see cref="MetaFontResolver"/>) are available</description></item>
+/// </list>
+/// An unrecognised platform does not throw: it gets an empty font set. With no fonts discovered, <see cref="ResolveTypeface"/> throws a
+/// <see cref="System.IO.FileNotFoundException"/> for any family that is asked of it.
+/// </summary>
 public class FontResolver 
     : IFontResolver
 {
@@ -64,7 +79,58 @@ public class FontResolver
             return;
         }
 
-        throw new System.NotImplementedException("FontResolver not implemented for this platform (CodeBrix.PdfDocuments.Utils.FontResolver.cs).");
+        if (System.OperatingSystem.IsAndroid())
+        {
+            SSupportedFonts = ScanFontFolders(AndroidFontFolders);
+            SetupFontsFiles(SSupportedFonts);
+            return;
+        }
+
+        // Any other platform (iOS, browser, unknown): no system font source is known, so the set is empty.
+        // Faces registered through an IFontResolver keep working; a system-face lookup fails at ResolveTypeface.
+        SSupportedFonts = System.Array.Empty<string>();
+        SetupFontsFiles(SSupportedFonts);
+    }
+
+    /// <summary>
+    /// The folders Android keeps its system fonts in. Only the ones that exist on the device are scanned.
+    /// </summary>
+    internal static readonly string[] AndroidFontFolders = { "/system/fonts", "/system/font", "/product/fonts" };
+
+    /// <summary>
+    /// Returns every TrueType (.ttf) file under the given folders (recursively), skipping folders that do not exist
+    /// and sub-folders that cannot be read. Never throws.
+    /// </summary>
+    /// <param name="folders">The folders to scan.</param>
+    /// <returns>The full paths of the .ttf files found; empty when there are none.</returns>
+    internal static string[] ScanFontFolders(IEnumerable<string> folders)
+    {
+        var fontPaths = new List<string>();
+        var options = new System.IO.EnumerationOptions
+        {
+            RecurseSubdirectories = true,
+            IgnoreInaccessible = true,
+            MatchCasing = System.IO.MatchCasing.CaseInsensitive
+        };
+
+        foreach (string folder in folders ?? Enumerable.Empty<string>())
+        {
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(folder) && System.IO.Directory.Exists(folder))
+                    fontPaths.AddRange(System.IO.Directory.GetFiles(folder, "*.ttf", options));
+            }
+#pragma warning disable CS0168 // Variable is declared but never used
+            catch (System.Exception e)
+#pragma warning restore CS0168 // Variable is declared but never used
+            {
+#if DEBUG
+                System.Console.Error.WriteLine(e);
+#endif
+            }
+        }
+
+        return fontPaths.ToArray();
     }
 
 

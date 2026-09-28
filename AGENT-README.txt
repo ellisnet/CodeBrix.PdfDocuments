@@ -92,14 +92,20 @@ Requirements:
   - .NET 10 or later.
   - Pure managed code; no native libraries are bundled or required.
   - System-font discovery (used when you do not register your own font
-    resolver) is implemented for Windows, macOS and Linux only. Linux
-    discovery asks fontconfig for installed .ttf files (with a fallback scan
-    of the font directories named in /etc/fonts/fonts.conf); Windows scans
+    resolver) covers Windows, macOS, Linux and Android. Linux discovery asks
+    fontconfig for installed .ttf files (with a fallback scan of the font
+    directories named in /etc/fonts/fonts.conf); Windows scans
     %SystemRoot%\Fonts and %LOCALAPPDATA%\Microsoft\Windows\Fonts; macOS
-    scans /Library/Fonts. Only .ttf files are considered. On any other
-    platform, or in a container with no fonts, register your own
-    IFontResolver before creating the first XFont (see FONTS AND FONT
-    RESOLUTION).
+    scans /Library/Fonts; Android scans its system font folders
+    (/system/fonts, plus /system/font and /product/fonts where they exist).
+    Only .ttf files are considered. On any other platform (iOS, browser,
+    unknown) discovery does not throw - it finds no fonts, so only the faces
+    you register (for example an EmbeddedFontResolver on
+    MetaFontResolver.Instance) are available, and asking the system-font
+    resolver for a family then throws FileNotFoundException ("No Fonts
+    installed on this device!"). There, and in a container with no fonts,
+    register your own IFontResolver before creating the first XFont (see
+    FONTS AND FONT RESOLUTION).
 
 ================================================================================
 
@@ -390,7 +396,7 @@ Fonts:
 
 FONTS AND FONT RESOLUTION
 -------------------------
-NO IFontResolver REGISTRATION IS REQUIRED on Windows, macOS and Linux: the
+NO IFontResolver REGISTRATION IS REQUIRED on Windows, macOS, Linux and Android: the
 installed system fonts are discovered automatically the first time a font is
 needed. Just construct an XFont with a family name and draw. (This differs
 from upstream PdfSharpCore, where forgetting to set the resolver is the classic
