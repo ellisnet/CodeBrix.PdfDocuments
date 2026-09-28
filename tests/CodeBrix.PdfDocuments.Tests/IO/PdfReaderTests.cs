@@ -3,7 +3,6 @@ using CodeBrix.PdfDocuments.Pdf;
 using CodeBrix.PdfDocuments.Pdf.IO;
 using SilverAssertions;
 using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text;
@@ -99,26 +98,30 @@ public class PdfReaderTests
         imported.Pages[0].Height.Point.Should().Be(PageHeightPoints);
     }
 
-    [Fact]
-    public void Open_documents_on_both_sides_of_the_1024_byte_boundary_all_open()
+    [Theory]
+    [InlineData(1023)]
+    [InlineData(1024)]
+    [InlineData(1025)]
+    public void Open_documents_on_both_sides_of_the_1024_byte_boundary_all_open(int byteLength)
     {
         //Arrange
-        List<int> sizes = new List<int>();
+        string minimalPdf = Encoding.ASCII.GetString(MinimalPdfBytes());
+        //Pad before the trailer so object offsets and startxref stay valid. ASCII and explicit
+        //newlines keep the size independent of the platform and the writer's version metadata.
+        string paddedPdf = minimalPdf.Insert(minimalPdf.IndexOf("trailer", StringComparison.Ordinal),
+            new string(' ', byteLength - minimalPdf.Length));
+        byte[] bytes = Encoding.ASCII.GetBytes(paddedPdf);
+        bytes.Length.Should().Be(byteLength);
+        using MemoryStream stream = new MemoryStream(bytes);
 
         //Act
-        for (int padding = 0; padding <= 40; padding++)
-        {
-            byte[] bytes = SaveOnePageDocument(new string('x', padding));
-            sizes.Add(bytes.Length);
-            PdfDocument document = Pdf.IO.PdfReader.Open(new MemoryStream(bytes), PdfDocumentOpenMode.InformationOnly);
-            document.PageCount.Should().Be(1);
-            document.Pages[0].Width.Point.Should().Be(PageWidthPoints);
-        }
+        using PdfDocument document = Pdf.IO.PdfReader.Open(stream, PdfDocumentOpenMode.InformationOnly);
 
         //Assert
-        //The walk has to straddle 1,024 bytes, or it would fence nothing.
-        sizes.Exists(size => size < 1024).Should().BeTrue();
-        sizes.Exists(size => size > 1024).Should().BeTrue();
+        document.Should().NotBeNull();
+        document.PageCount.Should().Be(1);
+        document.Pages[0].Width.Point.Should().Be(PageWidthPoints);
+        document.Pages[0].Height.Point.Should().Be(PageHeightPoints);
     }
 
     [Fact]
