@@ -699,7 +699,7 @@ direction when the box is not square.
     wash.Transform = new XMatrix(200, 0, 0, 100, 0, 0);   // unit square -> 200x100
     gfx.DrawRectangle(wash, new XRect(0, 0, 200, 100));
 
-⚠ Transform is honoured ONLY by XShadingBrush. XLinearGradientBrush and
+Transform is honoured ONLY by XShadingBrush. XLinearGradientBrush and
 XRadialGradientBrush inherit the same property from XBaseGradientBrush, but the
 PDF renderer never applies it for them - use XShadingBrush when a gradient
 needs a transform. Those two brushes also used to write FOUR colour components
@@ -1075,8 +1075,9 @@ READING EXISTING PDFs
 
     PdfDocumentOpenMode:
         Modify          - open for editing; can be saved
-        Import          - open to copy pages from; CANNOT be saved or drawn on
-        ReadOnly        - open for reading only
+        Import          - open to copy pages from; can be saved, CANNOT be drawn on
+        ReadOnly        - open for reading; like Import, can be saved, CANNOT be
+                          drawn on
         InformationOnly - only the trailer/info is parsed
     PdfReadAccuracy: Strict (default), Moderate (tolerates broken references)
 
@@ -1686,7 +1687,15 @@ SAVING
     ...
     doc.Close();
 
-A document opened in Import mode cannot be saved (InvalidOperationException).
+A document opened in Modify, Import or ReadOnly mode can be saved; the open
+mode does not gate Save. Save re-serializes the object graph (it never copies
+the input bytes), so the output differs byte-wise from the file that was read.
+Only Modify mode stamps a new document ID and modification date and drops
+unreachable objects at open time. A document opened in Import or ReadOnly
+mode builds its page collection lazily: touch Pages or PageCount before Save,
+otherwise Save throws InvalidOperationException ("Cannot save a PDF document
+with no pages."). The open mode restricts drawing only: Version, PageLayout,
+PageMode, AddPage and InsertPage behave the same in every mode.
 A document with a security level but no password cannot be saved
 (PdfDocumentsException). Save can be called more than once. Dispose the
 document when done; disposal does not save.
@@ -2028,10 +2037,12 @@ COMMON PITFALLS TO AVOID
    XUnit.FromMillimeter(), XUnit.FromCentimeter() for conversion, or obtain
    the graphics object with XGraphics.FromPdfPage(page, XGraphicsUnit.X).
 
-4. DO NOT open a PDF for Import and then try to modify or save it. Use
+4. DO NOT open a PDF for Import and then try to draw on its pages. Use
    PdfDocumentOpenMode.Modify for editing; PdfDocumentOpenMode.Import for
-   extracting pages to copy into another document. Saving an imported
-   document throws InvalidOperationException.
+   extracting pages to copy into another document. XGraphics.FromPdfPage on
+   a page of a document opened in any mode other than Modify throws
+   InvalidOperationException. Saving an Import-mode document is allowed (see
+   SAVING) but is a re-serialized copy, not an edit.
 
 5. DO NOT target .NET versions below 10.0.
 

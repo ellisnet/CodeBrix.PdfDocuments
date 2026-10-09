@@ -345,7 +345,7 @@ public sealed partial class PageRasterizer : IDisposable
     /// <summary>
     /// Gets or sets the default output directory for rasterized image files.
     /// Used when <c>outputDirectory</c> is not specified (or is <c>null</c>) in a call
-    /// to <see cref="RasterizeToImageFiles(string, string, int?, string, IImageFormat, PdfRenderFlags)"/>.
+    /// to <see cref="RasterizeToImageFiles(string, string, int?, string, IImageFormat, IReadOnlyList{int}, PdfRenderFlags, CancellationToken)"/>.
     /// If neither this property nor the method argument provides a directory,
     /// an <see cref="ArgumentException"/> is thrown.
     /// </summary>

@@ -73,12 +73,13 @@ NuGet dependencies (all pulled in automatically):
     engine; brings CodeBrix.SvgParse.MsplLicenseForever - all managed code, no
     native library on any platform)
 
-  Each of the four font packages above ships COMPANION families alongside its
-  primary face - Noto Sans / Noto Serif (polytonic Greek), Noto Sans/Serif
-  Armenian, Noto Sans/Serif Georgian, Iosevka and Noto Sans Mono, plus Noto
-  Music. Every companion joins the per-glyph fallback chain automatically at
-  discovery; none of them is ever a body-text default. Nothing has to be
-  registered or configured to get them.
+  The Roboto, Merriweather and RobotoMono packages above ship COMPANION
+  families alongside their primary face - Noto Sans / Noto Serif (polytonic
+  Greek), Noto Sans/Serif Armenian, Noto Sans/Serif Georgian, Iosevka and Noto
+  Sans Mono - and the NotoMusic package adds Noto Music. Every companion
+  joins the per-glyph fallback chain automatically at discovery; none of them
+  is ever a body-text default. Nothing has to be registered or configured to
+  get them.
 
 License: MIT (the font packages are OFL-licensed).
 
@@ -282,7 +283,7 @@ has no effect at all on a picture that stays entirely vector.
         public RenderWarningCategory Category { get; }
         public string Code { get; }        // stable machine-readable code (below)
         public string Message { get; }     // display text, "[category] ..." form
-        public int Occurrences { get; }    // how many times this exact warning fired
+        public int Occurrences { get; }    // how many times this exact warning was raised
         public int? CodePoint { get; }     // the Unicode code point, for glyph-
                                            // coverage warnings; else null
     }
@@ -429,21 +430,21 @@ Linux, no native library, GPU or window system involved:
     hard-light, soft-light, difference, exclusion, hue, saturation, color,
     luminosity) to PDF /BM on a transparency group, and a single draw carrying
     a blend mode goes into a group of one.
-    ⚠ NO SVG REACHES THAT PATH TODAY: the SVG engine (CodeBrix.SvgParse) does
+    NO SVG REACHES THAT PATH TODAY: the SVG engine (CodeBrix.SvgParse) does
     not parse the CSS mix-blend-mode property, so a picture never arrives
     carrying a blend mode. The mapping is exercised by the
     CodeBrix.PdfDocuments tests instead. Treat blend modes as machinery that
     is in place, not as a feature the HTML/SVG input can reach.
   - WHERE VECTOR MODE FALLS BACK: only for what PDF cannot express, and only
     for THAT part - the single command, or the layer or clip scope it governs.
-    The complete trigger list is: image filters (a blur, and so on), colour
+    The complete list of causes is: image filters (a blur, and so on), colour
     filters, Porter-Duff compositing other than source-over, the "plus" and
     "modulate" blends, difference clips, cropped images, image opacity,
     repeating or reflecting gradients (spreadMethod="repeat" or "reflect"),
     gradients whose stops DIFFER in alpha (per-stop stop-opacity - a PDF
-    shading carries no alpha, so those need a soft mask, which is future
-    work), and pattern fills (<pattern>). Such a part is rasterized on its own
-    at Options.SvgRasterScale, embedded as a transparent PNG, and reported
+    shading carries no alpha, so those need a soft mask, which is not
+    implemented), and pattern fills (<pattern>). Such a part is rasterized on
+    its own at Options.SvgRasterScale, embedded as a transparent PNG, and reported
     with the code "image.svg.rasterized" (the message names the reason).
     The same code also covers the safety net: should the vector writer throw on a
     picture (it never should - the case is a defect to report), the picture is
@@ -531,7 +532,7 @@ next render:
 
     public static bool HasDefaultFamilies { get; }
         // True when Roboto, Merriweather and RobotoMono were all found.
-        // Triggers EnsureRegistered. Use it as a startup self-check.
+        // Calls EnsureRegistered. Use it as a startup self-check.
 
     public static void AddFontDirectory(string directory)
         // Extra directory to probe for package-shaped font folders
@@ -837,7 +838,7 @@ COMMON PITFALLS TO AVOID
 
 1. DO NOT add a Skia or native-assets package "for SVG". Nothing in this
    package needs one on any operating system, and no version of it ever will
-   again - see the notice above. ⚠ The same rule binds the library itself:
+   again - see the notice above. THE SAME RULE BINDS THE LIBRARY ITSELF:
    Html2Pdf must never reacquire a Skia or native dependency.
 
 2. DO NOT read PdfBytes after RenderFile/RenderHtml, or OutputFilePath after
@@ -896,16 +897,7 @@ COMMON PITFALLS TO AVOID
 14. DO NOT rely on Landscape = true flipping an already-wide page. The swap
     only happens when height > width.
 
-15. ⚠ DO NOT expect PERCENTAGE rgba() colours in SVG to render. A colour
-    written as rgba(r%, g%, b%, a%) is mis-parsed as opaque black by the
-    CodeBrix.SvgParse the SVG engine currently brings in, so such fills and
-    strokes come out black. This is a pre-existing parser limitation, not a
-    vector-placement one - Raster mode is black too. The fix already exists in
-    the SvgParse repository; once it is published, Html2Pdf will pin the newer
-    SvgParse directly. Until then, rewrite those colours in the numeric or hex
-    form (LilyPond's SVG backend is a known source of the percentage form).
-
-16. DO NOT assume EVERY SVG text run is selectable. Vector mode writes SVG
+15. DO NOT assume EVERY SVG text run is selectable. Vector mode writes SVG
     <text> as real PDF text in the embedded face, so it copies, searches and
     extracts - except where PDF has no way to say it: a STROKED (or stroked-
     and-filled) run, a run filled with a GRADIENT, and a run in a family no

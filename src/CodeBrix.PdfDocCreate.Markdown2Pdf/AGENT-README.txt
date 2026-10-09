@@ -445,7 +445,9 @@ unknown name unless ignoreInvalid is true:
     public bool Breaks { get; set; }            // default false - "\n" becomes <br>
     public string LangPrefix { get; set; }      // default "language-" - class
                                                 // prefix on fenced code blocks
-    public bool Linkify { get; set; }           // default false - autolink bare URLs
+    public bool Linkify { get; set; }           // default false - accepted but
+                                                // inert: bare-URL autolinking
+                                                // (linkify-it) is not ported
     public bool Typographer { get; set; }       // default false - smart quotes,
                                                 // (c), (tm), dashes, ellipses
     public string Quotes { get; set; }          // default the four curly quotes,
@@ -948,6 +950,7 @@ Example 5: Mine a document's structure from the token stream
 
 Example 6: Verify the produced PDF by rasterizing it
 -----------------------------------------------------
+    // Also needs the CodeBrix.PdfRasterizer.MitLicenseForever package
     using CodeBrix.PdfDocCreate.Markdown2Pdf;
     using CodeBrix.PdfRasterizer;
 

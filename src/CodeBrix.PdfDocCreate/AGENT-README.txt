@@ -117,8 +117,7 @@ KEY NAMESPACES / USINGS
         // SectionPagesField, DateField, InfoField, InfoFieldType
 
     using CodeBrix.PdfDocCreate.DocumentObjectModel.IO;
-        // DdlReader, DdlWriter, DdlReaderError(s), DdlErrorLevel,
-        // DdlParserException
+        // DdlReader, DdlWriter, DdlReaderError(s), DdlErrorLevel
 
     using CodeBrix.PdfDocCreate.Rendering;
         // PdfDocumentRenderer, DocumentRenderer, PageRenderOptions
@@ -1585,10 +1584,7 @@ This is genuinely useful: templates as files, golden-file regression tests, and
         public int SourceLine;
         public int SourceColumn;
 
-    public enum DdlErrorLevel { None, Info, Warning, Error, ... }
-
-    public class DdlParserException : Exception
-        public DdlReaderError Error { get; }
+    public enum DdlErrorLevel { None, Info, Warning, Error }
 
 Round trip:
 
@@ -1608,8 +1604,9 @@ Round trip:
         }
     }
 
-Pass a DdlReaderErrors instance to collect problems; without one, a malformed
-document throws DdlParserException instead.
+Pass a DdlReaderErrors instance to see the problems. The parser records each
+one there and recovers past it rather than throwing; without your instance the
+problems are still recorded, but in a collection you cannot reach.
 
 UTILITIES AND THE REMAINING PUBLIC TYPES
 ----------------------------------------

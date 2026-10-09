@@ -67,7 +67,7 @@ internal class DdlParser
         else
             this.errors = new DdlReaderErrors();
 
-        scanner = new DdlScanner(fileName, ddl, errors);
+        scanner = new DdlScanner(fileName, ddl, this.errors);
     }
 
     /// <summary>
