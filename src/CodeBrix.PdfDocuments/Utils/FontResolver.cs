@@ -267,33 +267,63 @@ public class FontResolver
             throw new System.IO.FileNotFoundException("No Fonts installed on this device!");
 
         if (InstalledFonts.TryGetValue(familyName.ToLower(), out FontFamilyModel family))
-        {
-            if (isBold && isItalic)
-            {
-                if (family.FontFiles.TryGetValue(XFontStyle.BoldItalic, out string boldItalicFile))
-                    return new FontResolverInfo(System.IO.Path.GetFileName(boldItalicFile));
-            }
-            else if (isBold)
-            {
-                if (family.FontFiles.TryGetValue(XFontStyle.Bold, out string boldFile))
-                    return new FontResolverInfo(System.IO.Path.GetFileName(boldFile));
-            }
-            else if (isItalic)
-            {
-                if (family.FontFiles.TryGetValue(XFontStyle.Italic, out string italicFile))
-                    return new FontResolverInfo(System.IO.Path.GetFileName(italicFile));
-            }
-
-            if (family.FontFiles.TryGetValue(XFontStyle.Regular, out string regularFile))
-                return new FontResolverInfo(System.IO.Path.GetFileName(regularFile));
-
-            return new FontResolverInfo(System.IO.Path.GetFileName(family.FontFiles.First().Value));
-        }
+            return SelectFace(family, isBold, isItalic);
 
         if (NullIfFontNotFound)
             return null;
 
-        string ttfFile = InstalledFonts.First().Value.FontFiles.First().Value;
-        return new FontResolverInfo(System.IO.Path.GetFileName(ttfFile));
+        //Was previously: the first installed family (InstalledFonts.First()) - on Android that is AndroidClock.ttf, a
+        //digits-only face, so every letter of an unmatched family vanished; on Linux and macOS it was arbitrary too.
+        string fallbackKey = PickFallbackFamily(InstalledFonts.Keys);
+        return SelectFace(InstalledFonts[fallbackKey], isBold, isItalic);
     }
+
+    /// <summary>
+    /// The families tried, in order, for a requested family that is not installed: Arial (the default font name),
+    /// its metric-compatible equivalents, then the common system sans-serif faces of Android, Linux, macOS and Windows.
+    /// </summary>
+    internal static readonly string[] FallbackFamilies =
+    {
+        "arial", "liberation sans", "arimo", "helvetica", "roboto", "dejavu sans", "noto sans", "open sans",
+        "segoe ui", "verdana", "droid sans"
+    };
+
+    /// <summary>
+    /// Picks the installed family used for a requested family that is not installed: the first of
+    /// <see cref="FallbackFamilies"/> that is installed, else the first installed family.
+    /// </summary>
+    /// <param name="installedFamilyKeys">The installed family names, lower case, in installation order.</param>
+    /// <returns>The key of the family to use.</returns>
+    internal static string PickFallbackFamily(IEnumerable<string> installedFamilyKeys)
+    {
+        var keys = installedFamilyKeys.ToList();
+        foreach (string preferred in FallbackFamilies)
+            if (keys.Contains(preferred))
+                return preferred;
+        return keys.First();
+    }
+
+    /// <summary>
+    /// Picks the face of <paramref name="family"/> for the requested style. A style the family has no file for is
+    /// simulated from the nearest face it does have (a family whose only file is a variable font - Android's Roboto -
+    /// has just a Regular face). Was previously: the Regular face, unsimulated, so bold and italic text came out plain.
+    /// </summary>
+    internal static FontResolverInfo SelectFace(FontFamilyModel family, bool isBold, bool isItalic)
+    {
+        var files = family.FontFiles;
+
+        if (isBold && isItalic && files.TryGetValue(XFontStyle.BoldItalic, out string boldItalicFile))
+            return Face(boldItalicFile, false, false);
+        if (isBold && files.TryGetValue(XFontStyle.Bold, out string boldFile))
+            return Face(boldFile, false, isItalic);
+        if (isItalic && files.TryGetValue(XFontStyle.Italic, out string italicFile))
+            return Face(italicFile, isBold, false);
+        if (files.TryGetValue(XFontStyle.Regular, out string regularFile))
+            return Face(regularFile, isBold, isItalic);
+
+        return Face(files.First().Value, isBold, isItalic);
+    }
+
+    private static FontResolverInfo Face(string path, bool simulateBold, bool simulateItalic) =>
+        new FontResolverInfo(System.IO.Path.GetFileName(path), simulateBold, simulateItalic);
 }

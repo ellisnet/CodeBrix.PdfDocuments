@@ -81,8 +81,8 @@ SUPPORTED PLATFORMS - PDFium binaries are bundled for exactly these RIDs:
     - linux-arm64      Linux ARM64          (pdfium.so)
     - linux-arm        Linux ARM (32-bit)   (pdfium.so)
     - linux-riscv64    Linux RISC-V 64      (pdfium.so)
-    - android-arm64    Android ARM64        (pdfium.so)
-    - android-x64      Android x64          (pdfium.so)
+    - android-arm64    Android ARM64        (libpdfium.so)
+    - android-x64      Android x64          (libpdfium.so)
 
 UNSUPPORTED PLATFORMS: iOS, WebAssembly (Blazor WASM), and any other platform
 not listed above. There are no PDFium binaries for those targets, and
@@ -97,10 +97,15 @@ win-x64 binary; linux-x64 additionally falls back to runtimes/linux/native/).
 If that probe fails, the .NET runtime's ordinary native-library probing
 applies. Keep the runtimes/ folder that the build produces next to the
 application's assemblies. On Android the .NET Android SDK packs the native
-into the APK's lib/arm64-v8a/ or lib/x86_64/ folder instead, and the runtime's
-ordinary probing loads it from the app's native library directory - nothing
-to configure; build the app for android-arm64, android-x64 or both. PDFium is initialized once per process and stays
-loaded for the lifetime of the application.
+into the APK as lib/arm64-v8a/libpdfium.so or lib/x86_64/libpdfium.so, the
+installer extracts it to the app's native library directory, and the resolver
+loads it from there by name - nothing to configure; build the app for
+android-arm64, android-x64 or both. Device-tested on ARM64 (API 33 and
+API 36) and x86_64 (API 33) (page count and dimensions, PNG/JPEG rasterizing, thumbnails, image
+files, password-protected documents, concurrent rasterizers). PDFium is
+initialized once per process and stays loaded for the lifetime of the
+application; if the native library cannot be loaded, the constructor throws
+DllNotFoundException, and a later PageRasterizer tries again.
 
 ================================================================================
 

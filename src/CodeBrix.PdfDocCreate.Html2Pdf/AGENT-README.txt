@@ -89,9 +89,22 @@ FONT FILES: the font packages ship .ttf files inside their nupkgs, and this
 package's buildTransitive targets copy them into the consuming application's
 build output under CodeBrix.Platform.Fonts.<Name>/Fonts/ (the same layout a
 CodeBrix.Platform application uses). No font installation or registration is
-required - the renderer discovers them there automatically. If an application
-already delivers those fonts through its own asset pipeline and the duplicate
-copy is unwanted, opt out with this MSBuild property:
+required - the renderer discovers them there automatically.
+
+ANDROID: an APK does not carry the build output folder, so in an Android
+application (net10.0-android) the same targets pack the font files into the APK
+as assets under CodeBrix.Html2Pdf/CodeBrix.Platform.Fonts.<Name>/Fonts/ instead,
+and the renderer reads them in place through the app's AssetManager - nothing to
+configure, no copy on disk, and a font file is read only when a document uses
+one of its faces. The fonts add about 50 MB (compressed) to the APK.
+Device-tested on ARM64 (API 33 and API 36) and x86_64 (API 33): text,
+bold/italic/monospace, lists, tables, inline SVG, Greek and Cyrillic, zero
+warnings.
+
+If an application already delivers those fonts through its own asset pipeline
+(for example a CodeBrix.Platform application) and the duplicate copy is
+unwanted, opt out - on every platform, Android included - with this MSBuild
+property:
 
     <CodeBrixHtml2PdfDisableFontCopy>true</CodeBrixHtml2PdfDisableFontCopy>
 
@@ -515,6 +528,11 @@ The renderer discovers the copied font packages automatically (see
 INSTALLATION). A missing font layout produces an InvalidOperationException
 naming the fix (call Html2PdfFonts.AddFontDirectory before rendering).
 
+ON ANDROID the fonts are discovered from the APK's assets automatically (see
+INSTALLATION, ANDROID); the application does nothing. Discovery reads only the
+.ttf.manifest files; a font file is read the first time one of its faces is
+used, on every platform.
+
 Html2PdfFonts (static class, namespace CodeBrix.PdfDocCreate.Html2Pdf.Fonts) -
 every member. All registration methods are idempotent and thread-safe, and all
 may also be called AFTER renders have happened - additions take effect on the
@@ -876,7 +894,8 @@ COMMON PITFALLS TO AVOID
    folders the build places in the output. Without them the first render
    throws InvalidOperationException. If the fonts must live elsewhere, call
    Html2PdfFonts.AddFontDirectory(path) before rendering; if you set
-   CodeBrixHtml2PdfDisableFontCopy=true, you own delivering them.
+   CodeBrixHtml2PdfDisableFontCopy=true, you own delivering them. (On Android
+   the same applies to the CodeBrix.Html2Pdf/ assets the build packs.)
 
 10. DO NOT expect a second registration of the same family name to replace
     the first. The first registration wins; later ones are silently ignored.

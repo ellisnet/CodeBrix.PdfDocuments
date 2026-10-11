@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 
 namespace CodeBrix.PdfDocCreate.Html2Pdf.Fonts;
@@ -15,17 +16,23 @@ internal static class FontManifest
 {
     /// <summary>
     /// Parses a single manifest file and returns one face entry per usable static font
-    /// file that exists on disk next to the manifest. Returns an empty list when the
-    /// manifest cannot be parsed.
+    /// file that exists next to the manifest (on disk, or in the same application asset
+    /// folder - see <see cref="FontStorage"/>). Returns an empty list when the manifest
+    /// cannot be parsed. Only the manifest is read; the font files are not opened.
     /// </summary>
     public static List<PackageFontFace> ReadFaces(string manifestPath)
     {
         var faces = new List<PackageFontFace>();
-        var fontDirectory = Path.GetDirectoryName(manifestPath);
+        var fontDirectory = FontStorage.GetDirectoryName(manifestPath);
 
         try
         {
-            using var document = JsonDocument.Parse(File.ReadAllText(manifestPath));
+            // One listing of the folder answers every "does the face file exist?" below.
+            var presentFiles = new HashSet<string>(
+                FontStorage.EnumerateFiles(fontDirectory, ".ttf").Select(FontStorage.GetFileName),
+                StringComparer.OrdinalIgnoreCase);
+
+            using var document = JsonDocument.Parse(FontStorage.ReadAllText(manifestPath));
             if (!document.RootElement.TryGetProperty("fonts", out var fonts)
                 || fonts.ValueKind != JsonValueKind.Array)
             {
@@ -50,8 +57,8 @@ internal static class FontManifest
                 var lastSlash = fileName.LastIndexOf('/');
                 if (lastSlash >= 0) { fileName = fileName.Substring(lastSlash + 1); }
 
-                var filePath = Path.Combine(fontDirectory, fileName);
-                if (!File.Exists(filePath)) { continue; }
+                if (!presentFiles.Contains(fileName)) { continue; }
+                var filePath = FontStorage.Combine(fontDirectory, fileName);
 
                 faces.Add(new PackageFontFace(
                     Path.GetFileNameWithoutExtension(fileName),

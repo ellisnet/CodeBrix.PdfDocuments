@@ -207,11 +207,9 @@ public sealed class PdfDocument : PdfObject, IDisposable
     }
     static int _nameCount;
 
-    internal bool CanModify
-    {
-        //get {return _state == DocumentState.Created || _state == DocumentState.Modifyable;}
-        get { return true; }
-    }
+    //Was previously: internal bool CanModify { get { return true; } } (PdfSharpCore); now as empira PDFsharp 6.2.4 -
+    //only a document created in code or opened in Modify mode can be modified or saved.
+    internal bool CanModify => _openMode == PdfDocumentOpenMode.Modify;
 
     /// <summary>
     /// Closes this instance.

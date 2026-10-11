@@ -15,10 +15,18 @@ internal sealed class SingleFaceFontResolver : IFontResolver
     private readonly PackageFontFace _face;
     private readonly Lazy<byte[]> _bytes;
 
-    public SingleFaceFontResolver(PackageFontFace face)
+    /// <param name="face">The face this resolver serves.</param>
+    /// <param name="bytesLoaded">Called once with the face's bytes when they are first read
+    /// (the family registers the face's own name-table family names then).</param>
+    public SingleFaceFontResolver(PackageFontFace face, Action<byte[]> bytesLoaded = null)
     {
         _face = face;
-        _bytes = new Lazy<byte[]>(() => File.ReadAllBytes(face.FilePath));
+        _bytes = new Lazy<byte[]>(() =>
+        {
+            var bytes = FontStorage.ReadAllBytes(face.FilePath);
+            bytesLoaded?.Invoke(bytes);
+            return bytes;
+        });
     }
 
     /// <inheritdoc />

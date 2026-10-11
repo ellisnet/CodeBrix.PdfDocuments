@@ -58,6 +58,7 @@ public sealed partial class PageRasterizer : IDisposable
     {
         private static SemaphoreSlim _locker;
         internal static bool _isInitialized;
+        private static bool _resolverRegistered;
 
         internal static void EnsureInitialized(SemaphoreSlim locker)
         {
@@ -80,8 +81,14 @@ public sealed partial class PageRasterizer : IDisposable
                 }
 
                 if (_isInitialized) return;
-                NativeLibrary.SetDllImportResolver(
-                    typeof(PageRasterizer).Assembly, ResolvePdfium);
+                // The resolver can be set only once per assembly; a failed FPDF_InitLibrary (native library not
+                // found) must leave a later attempt free to try again, not fail on a second SetDllImportResolver.
+                if (!_resolverRegistered)
+                {
+                    NativeLibrary.SetDllImportResolver(
+                        typeof(PageRasterizer).Assembly, ResolvePdfium);
+                    _resolverRegistered = true;
+                }
                 PdfiumBindings.FPDF_InitLibrary();
                 _isInitialized = true;
             }
@@ -119,10 +126,15 @@ public sealed partial class PageRasterizer : IDisposable
             }
             else if (OperatingSystem.IsAndroid())
             {
-                rid = RuntimeInformation.OSArchitecture == Architecture.Arm64
+                // The .NET Android SDK packs the native as lib/<abi>/libpdfium.so; the package installer extracts
+                // only lib*.so files into the app's native library directory, and loading by file name finds it
+                // there (or inside the APK when native libraries are not extracted).
+                if (NativeLibrary.TryLoad("libpdfium.so", out var androidHandle))
+                    return androidHandle;
+                rid = RuntimeInformation.ProcessArchitecture == Architecture.Arm64
                     ? "android-arm64"
-                    : $"android-{RuntimeInformation.OSArchitecture.ToString().ToLowerInvariant()}";
-                fileName = "pdfium.so";
+                    : $"android-{RuntimeInformation.ProcessArchitecture.ToString().ToLowerInvariant()}";
+                fileName = "libpdfium.so";
             }
             else
             {

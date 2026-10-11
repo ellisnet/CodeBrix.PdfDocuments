@@ -10,6 +10,9 @@ using Xunit;
 
 namespace CodeBrix.PdfDocuments.Tests.IO;
 
+//These tests open documents in the obsolete InformationOnly mode on purpose: it still opens.
+#pragma warning disable CS0618
+
 /// <summary>
 /// Fences the reader against a size floor: it used to read a fixed 1,024-byte window with
 /// ReadExactly, so every document shorter than that - including one-page documents this

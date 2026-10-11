@@ -17,9 +17,12 @@ namespace CodeBrix.PdfDocCreate.Html2Pdf.Fonts;
 /// The font packages place their files at
 /// <c>&lt;application base directory&gt;/CodeBrix.Platform.Fonts.&lt;Name&gt;/Fonts/</c>;
 /// in a plain .NET application the CodeBrix.PdfDocCreate.Html2Pdf package's
-/// buildTransitive targets perform that copy at build time. Call
-/// <see cref="AddFontDirectory"/> before anything renders when fonts live somewhere
-/// else (for example a custom plugin layout).
+/// buildTransitive targets perform that copy at build time. In an Android application the
+/// same targets pack the files into the APK as assets instead, and they are read from there
+/// in place (see <see cref="FontStorage"/>). Call <see cref="AddFontDirectory"/> before
+/// anything renders when fonts live somewhere else (for example a custom plugin layout).
+/// Only the manifests are read during discovery; a font file is read when its face is
+/// first used.
 /// </remarks>
 public static class Html2PdfFonts
 {
@@ -225,10 +228,10 @@ public static class Html2PdfFonts
 
             var packageFamilies = new List<string>();
 
-            foreach (var manifestPath in SafeEnumerateFiles(fontDirectory, "*.ttf.manifest"))
+            foreach (var manifestPath in FontStorage.EnumerateFiles(fontDirectory, ".ttf.manifest"))
             {
                 var familyName = Path.GetFileNameWithoutExtension(
-                    Path.GetFileNameWithoutExtension(manifestPath));
+                    Path.GetFileNameWithoutExtension(FontStorage.GetFileName(manifestPath)));
                 var key = NormalizeFamilyKey(familyName);
 
                 if (!Families.ContainsKey(key))
@@ -401,13 +404,40 @@ public static class Html2PdfFonts
         }
     }
 
-    private static void RegisterFamily(PackageFontFamily family)
+    internal static void RegisterFamily(PackageFontFamily family)
     {
         var faceResolvers = new Dictionary<string, SingleFaceFontResolver>(StringComparer.OrdinalIgnoreCase);
+
+        // The font files' own family names (typographic and legacy) must resolve to
+        // this family too: the PDF layer re-resolves fonts by the name-table family
+        // during metrics computation, and an unknown name there would silently fall
+        // through to operating-system fonts. Those names come from the font file, so
+        // they are registered when a face's bytes are first read - which always happens
+        // before the PDF layer can ask for them, since it takes them from those bytes.
+        // Was previously: every face file of every family read in full at registration
+        // (about 105 MB for the four font packages) just to learn these names.
+        var registeredNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { family.FamilyName };
+        void RegisterAliases(byte[] fontBytes)
+        {
+            var info = FontFileInfo.FromBytes(fontBytes);
+            if (info == null) { return; }
+
+            lock (registeredNames)
+            {
+                foreach (var aliasName in new[] { info.FamilyName, info.LegacyFamilyName })
+                {
+                    if (string.IsNullOrWhiteSpace(aliasName) || !registeredNames.Add(aliasName)) { continue; }
+                    MetaFontResolver.Instance.RegisterFontResolver(
+                        aliasName,
+                        new PackageFontFamilyResolver(family, faceResolvers, aliasName));
+                }
+            }
+        }
+
         foreach (var face in family.Faces)
         {
             if (faceResolvers.ContainsKey(face.FaceName)) { continue; }
-            var faceResolver = new SingleFaceFontResolver(face);
+            var faceResolver = new SingleFaceFontResolver(face, RegisterAliases);
             faceResolvers.Add(face.FaceName, faceResolver);
             MetaFontResolver.Instance.RegisterFontResolver(face.FaceName, faceResolver);
             if (!FaceFiles.ContainsKey(face.FaceName))
@@ -420,25 +450,6 @@ public static class Html2PdfFonts
         MetaFontResolver.Instance.RegisterFontResolver(
             family.FamilyName,
             new PackageFontFamilyResolver(family, faceResolvers));
-
-        // The font files' own family names (typographic and legacy) must resolve to
-        // this family too: the PDF layer re-resolves fonts by the name-table family
-        // during metrics computation, and an unknown name there would silently fall
-        // through to operating-system fonts.
-        var registeredNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { family.FamilyName };
-        foreach (var face in family.Faces)
-        {
-            var info = FontFileInfo.Read(face.FilePath);
-            if (info == null) { continue; }
-
-            foreach (var aliasName in new[] { info.FamilyName, info.LegacyFamilyName })
-            {
-                if (string.IsNullOrWhiteSpace(aliasName) || !registeredNames.Add(aliasName)) { continue; }
-                MetaFontResolver.Instance.RegisterFontResolver(
-                    aliasName,
-                    new PackageFontFamilyResolver(family, faceResolvers, aliasName));
-            }
-        }
     }
 
     /// <summary>
@@ -533,6 +544,13 @@ public static class Html2PdfFonts
     {
         var roots = new List<string> { AppContext.BaseDirectory };
         roots.AddRange(ExtraDirectories);
+
+        // On Android the build targets pack the font folders as application assets. They
+        // come after the file-system roots, so an explicitly added directory still wins.
+        foreach (var assetFontDirectory in FontStorage.EnumerateAssetFontDirectories())
+        {
+            yield return assetFontDirectory;
+        }
 
         foreach (var root in roots.Where(r => !string.IsNullOrWhiteSpace(r) && Directory.Exists(r)))
         {

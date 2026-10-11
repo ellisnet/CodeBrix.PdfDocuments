@@ -43,7 +43,7 @@ public enum PdfDocumentOpenMode
 
     /// <summary>
     /// The PDF stream is opened for importing pages from it. A document opened in this mode cannot
-    /// be modified.
+    /// be modified, but you can extract pages from it.
     /// </summary>
     Import,
 
@@ -51,6 +51,7 @@ public enum PdfDocumentOpenMode
     /// The PDF stream is completely read into memory, but cannot be modified. This mode preserves the
     /// original internal structure of the document and is useful for analyzing existing PDF files.
     /// </summary>
+    [System.Obsolete("ReadOnly is not implemented, use Import instead.")]
     ReadOnly,
 
     /// <summary>
@@ -58,5 +59,6 @@ public enum PdfDocumentOpenMode
     /// call the Info property at the imported document. This option is very fast and needs less memory
     /// and is e.g. useful for browsing information about a collection of PDF documents in a user interface.
     /// </summary>
-    InformationOnly,  // TODO: not yet implemented
+    [System.Obsolete("InformationOnly is not implemented, use Import instead.")]
+    InformationOnly,
 }

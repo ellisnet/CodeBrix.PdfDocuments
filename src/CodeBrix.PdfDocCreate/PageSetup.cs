@@ -33,6 +33,7 @@
 using System;
 using System.Diagnostics;
 using System.Reflection;
+using System.Threading;
 using CodeBrix.PdfDocCreate.DocumentObjectModel.Internals;
 
 namespace CodeBrix.PdfDocCreate.DocumentObjectModel; //Was previously: namespace MigraDocCore.DocumentObjectModel;
@@ -351,51 +352,63 @@ public class PageSetup : DocumentObject
     {
         get
         {
-            if (PageSetup.defaultPageSetup == null)
+            // Was previously: the shared default was published BEFORE its properties were set, so a
+            // document rendering on another thread at the same moment could read a half-initialized
+            // default (wrong page size and margins in Release; a NullReferenceException in Debug).
+            var setup = Volatile.Read(ref defaultPageSetup);
+            if (setup == null)
             {
-                PageSetup.defaultPageSetup = new PageSetup();
-                PageSetup.defaultPageSetup.PageFormat = PageFormat.A4;
-                PageSetup.defaultPageSetup.SectionStart = BreakType.BreakNextPage;
-                PageSetup.defaultPageSetup.Orientation = Orientation.Portrait;
-                PageSetup.defaultPageSetup.PageWidth = "21cm";
-                PageSetup.defaultPageSetup.PageHeight = "29.7cm";
-                PageSetup.defaultPageSetup.TopMargin = "2.5cm";
-                PageSetup.defaultPageSetup.BottomMargin = "2cm";
-                PageSetup.defaultPageSetup.LeftMargin = "2.5cm";
-                PageSetup.defaultPageSetup.RightMargin = "2.5cm";
-                PageSetup.defaultPageSetup.HeaderDistance = "1.25cm";
-                PageSetup.defaultPageSetup.FooterDistance = "1.25cm";
-                PageSetup.defaultPageSetup.OddAndEvenPagesHeaderFooter = false;
-                PageSetup.defaultPageSetup.DifferentFirstPageHeaderFooter = false;
-                PageSetup.defaultPageSetup.MirrorMargins = false;
-                PageSetup.defaultPageSetup.HorizontalPageBreak = false;
+                lock (DefaultPageSetupLock)
+                {
+                    setup = defaultPageSetup;
+                    if (setup == null)
+                    {
+                        setup = new PageSetup();
+                        setup.PageFormat = PageFormat.A4;
+                        setup.SectionStart = BreakType.BreakNextPage;
+                        setup.Orientation = Orientation.Portrait;
+                        setup.PageWidth = "21cm";
+                        setup.PageHeight = "29.7cm";
+                        setup.TopMargin = "2.5cm";
+                        setup.BottomMargin = "2cm";
+                        setup.LeftMargin = "2.5cm";
+                        setup.RightMargin = "2.5cm";
+                        setup.HeaderDistance = "1.25cm";
+                        setup.FooterDistance = "1.25cm";
+                        setup.OddAndEvenPagesHeaderFooter = false;
+                        setup.DifferentFirstPageHeaderFooter = false;
+                        setup.MirrorMargins = false;
+                        setup.HorizontalPageBreak = false;
 #if DEBUG
-                PageSetup.defaultPageSetupClone = PageSetup.defaultPageSetup.Clone();
+                        defaultPageSetupClone = setup.Clone();
 #endif
+                        Volatile.Write(ref defaultPageSetup, setup);
+                    }
+                }
+                return setup;
             }
 #if DEBUG
-            else
-            {
-                Debug.Assert(PageSetup.defaultPageSetup.PageFormat == PageSetup.defaultPageSetupClone.PageFormat, "DefaultPageSetup must not be modified");
-                Debug.Assert(PageSetup.defaultPageSetup.SectionStart == PageSetup.defaultPageSetupClone.SectionStart, "DefaultPageSetup must not be modified");
-                Debug.Assert(PageSetup.defaultPageSetup.Orientation == PageSetup.defaultPageSetupClone.Orientation, "DefaultPageSetup must not be modified");
-                Debug.Assert(PageSetup.defaultPageSetup.PageWidth == PageSetup.defaultPageSetupClone.PageWidth, "DefaultPageSetup must not be modified");
-                Debug.Assert(PageSetup.defaultPageSetup.PageHeight == PageSetup.defaultPageSetupClone.PageHeight, "DefaultPageSetup must not be modified");
-                Debug.Assert(PageSetup.defaultPageSetup.TopMargin == PageSetup.defaultPageSetupClone.TopMargin, "DefaultPageSetup must not be modified");
-                Debug.Assert(PageSetup.defaultPageSetup.BottomMargin == PageSetup.defaultPageSetupClone.BottomMargin, "DefaultPageSetup must not be modified");
-                Debug.Assert(PageSetup.defaultPageSetup.LeftMargin == PageSetup.defaultPageSetupClone.LeftMargin, "DefaultPageSetup must not be modified");
-                Debug.Assert(PageSetup.defaultPageSetup.RightMargin == PageSetup.defaultPageSetupClone.RightMargin, "DefaultPageSetup must not be modified");
-                Debug.Assert(PageSetup.defaultPageSetup.HeaderDistance == PageSetup.defaultPageSetupClone.HeaderDistance, "DefaultPageSetup must not be modified");
-                Debug.Assert(PageSetup.defaultPageSetup.FooterDistance == PageSetup.defaultPageSetupClone.FooterDistance, "DefaultPageSetup must not be modified");
-                Debug.Assert(PageSetup.defaultPageSetup.OddAndEvenPagesHeaderFooter == PageSetup.defaultPageSetupClone.OddAndEvenPagesHeaderFooter, "DefaultPageSetup must not be modified");
-                Debug.Assert(PageSetup.defaultPageSetup.DifferentFirstPageHeaderFooter == PageSetup.defaultPageSetupClone.DifferentFirstPageHeaderFooter, "DefaultPageSetup must not be modified");
-                Debug.Assert(PageSetup.defaultPageSetup.MirrorMargins == PageSetup.defaultPageSetupClone.MirrorMargins, "DefaultPageSetup must not be modified");
-                Debug.Assert(PageSetup.defaultPageSetup.HorizontalPageBreak == PageSetup.defaultPageSetupClone.HorizontalPageBreak, "DefaultPageSetup must not be modified");
-            }
+            var clone = defaultPageSetupClone;
+            Debug.Assert(setup.PageFormat == clone.PageFormat, "DefaultPageSetup must not be modified");
+            Debug.Assert(setup.SectionStart == clone.SectionStart, "DefaultPageSetup must not be modified");
+            Debug.Assert(setup.Orientation == clone.Orientation, "DefaultPageSetup must not be modified");
+            Debug.Assert(setup.PageWidth == clone.PageWidth, "DefaultPageSetup must not be modified");
+            Debug.Assert(setup.PageHeight == clone.PageHeight, "DefaultPageSetup must not be modified");
+            Debug.Assert(setup.TopMargin == clone.TopMargin, "DefaultPageSetup must not be modified");
+            Debug.Assert(setup.BottomMargin == clone.BottomMargin, "DefaultPageSetup must not be modified");
+            Debug.Assert(setup.LeftMargin == clone.LeftMargin, "DefaultPageSetup must not be modified");
+            Debug.Assert(setup.RightMargin == clone.RightMargin, "DefaultPageSetup must not be modified");
+            Debug.Assert(setup.HeaderDistance == clone.HeaderDistance, "DefaultPageSetup must not be modified");
+            Debug.Assert(setup.FooterDistance == clone.FooterDistance, "DefaultPageSetup must not be modified");
+            Debug.Assert(setup.OddAndEvenPagesHeaderFooter == clone.OddAndEvenPagesHeaderFooter, "DefaultPageSetup must not be modified");
+            Debug.Assert(setup.DifferentFirstPageHeaderFooter == clone.DifferentFirstPageHeaderFooter, "DefaultPageSetup must not be modified");
+            Debug.Assert(setup.MirrorMargins == clone.MirrorMargins, "DefaultPageSetup must not be modified");
+            Debug.Assert(setup.HorizontalPageBreak == clone.HorizontalPageBreak, "DefaultPageSetup must not be modified");
 #endif
-            return defaultPageSetup;
+            return setup;
         }
     }
+    private static readonly object DefaultPageSetupLock = new object();
     private static PageSetup defaultPageSetup;
 #if DEBUG
     private static PageSetup defaultPageSetupClone;

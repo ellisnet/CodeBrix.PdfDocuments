@@ -114,7 +114,9 @@ internal sealed class XGlyphTypeface
         Debug.Assert(fontSource != null);
 
         // Each font source already contains its OpenTypeFontface.
-        glyphTypeface = new XGlyphTypeface(typefaceKey, fontSource);
+        // Was previously: new XGlyphTypeface(typefaceKey, fontSource) - the resolver's style simulations were dropped, so a
+        // resolver asking for simulated bold or italic (a family with no such face) got plain text.
+        glyphTypeface = new XGlyphTypeface(typefaceKey, fontSource) { _styleSimulations = fontResolverInfo.StyleSimulations };
         GlyphTypefaceCache.AddGlyphTypeface(glyphTypeface);
 
         return glyphTypeface;

@@ -36,7 +36,7 @@ internal sealed class FontGlyphCoverage
         {
             try
             {
-                return Parse(File.ReadAllBytes(path));
+                return Parse(FontStorage.ReadAllBytes(path));
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {

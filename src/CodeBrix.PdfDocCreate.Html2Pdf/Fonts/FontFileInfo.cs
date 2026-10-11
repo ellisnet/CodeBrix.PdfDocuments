@@ -25,13 +25,22 @@ internal sealed record FontFileInfo(string FamilyName, string LegacyFamilyName, 
         byte[] fileData;
         try
         {
-            fileData = File.ReadAllBytes(filePath);
+            fileData = FontStorage.ReadAllBytes(filePath);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             return null;
         }
 
+        return FromBytes(fileData);
+    }
+
+    /// <summary>
+    /// Reads the face metadata from a font file already in memory. Returns null when the
+    /// data is not a parseable sfnt font or carries no usable family name.
+    /// </summary>
+    public static FontFileInfo FromBytes(byte[] fileData)
+    {
         var familyName = ReadFamilyName(fileData, preferTypographic: true);
         if (string.IsNullOrWhiteSpace(familyName)) { return null; }
 

@@ -294,6 +294,90 @@ everything else runs unconditionally. Special prep and non-obvious wiring:
     project root; the other three are at their project root, which is where a
     new one goes.
 
+ANDROID DEVICE TESTING (2026-10-11)
+-----------------------------------
+All five packages were exercised on real Android devices. There is no Android
+test project in this repository; the run used a throw-away harness, described
+here so it can be repeated:
+
+  - Devices: Google Pixel 4 XL (arm64-v8a, Android 13 / API 33, USB), a
+    Samsung Galaxy Tab S8 SM-X700 (arm64-v8a, Android 16 / API 36, USB) and an
+    HP Laptop 15-dy2xxx running Android 13 / API 33 (x86_64, over adb TCP).
+    The installed APK's primaryCpuAbi was checked on each (arm64-v8a /
+    x86_64), so the x64 run really used the x86_64 natives, not ARM
+    translation.
+  - Packages: all five packed from the working tree into a local folder feed
+    (dotnet pack -c Release -p:BuildVersion=<a version that can never be
+    published>), so the test consumed the real .nupkg layout, runtimes/
+    folders included. Remove that version from ~/.nuget/packages before each
+    re-pack.
+  - App: a plain `dotnet new android` application (net10.0-android,
+    SupportedOSPlatformVersion 33, Release, TrimMode=full) referencing the five
+    packages and containing NO Android-specific font or native-library code,
+    built once per RID (-r android-arm64 / -r android-x64). Its
+    activity runs the checks on a background thread, logs PASS/FAIL lines to
+    logcat (tag PDFTEST), and writes every PDF plus a PNG of each page (via
+    PdfRasterizer) to GetExternalFilesDir, which `adb pull` can read from a
+    Release (non-debuggable) app. Every PNG was inspected by eye.
+  - The 12 checks: PdfDocuments drawing (system font "Roboto" bold, shapes,
+    dash pen, linear gradient, XTextFormatter wrapping, an in-memory PNG via
+    XImage); Import-mode page merge + Modify-mode edit + re-save; the open-mode
+    gate (Import refuses Save); 128-bit encryption with user/owner passwords
+    (right password opens, wrong one refused); PdfDocCreate rendering
+    (header, Heading1, bold/italic runs, a 4x3 bordered table, page break);
+    PdfRasterizer page count / dimensions, PNG at 96 dpi and JPEG at 150 dpi,
+    thumbnails, RasterizeToImageFiles, an encrypted document with password,
+    five concurrent rasterizers; Html2Pdf (headings, bold/italic/monospace,
+    list, table, inline SVG, Greek and Cyrillic, zero warnings); Markdown2Pdf
+    (heading, emphasis, inline code, list, table, fenced code, zero warnings).
+  - Result: 12/12 on all three devices, after the fixes below. Process memory
+    rose by about 47 MB across the Html2Pdf and Markdown2Pdf checks together
+    (code, parsers, SVG engine, document objects and the faces used) - well
+    under the 105 MB the whole font set would cost.
+
+What the first runs found (all fixed and fenced):
+  - PdfRasterizer: DllNotFoundException: pdfium on every Android app - the
+    natives were named pdfium.so and never extracted (see PROVENANCE AND
+    VENDORED SOURCES, CodeBrix.PdfRasterizer). Also, a failed first
+    initialization left the DllImport resolver registered, so every later
+    PageRasterizer threw InvalidOperationException
+    ("CannotRegisterSecondResolver") instead of retrying; the resolver is now
+    registered once and initialization can be retried.
+  - PdfDocCreate: letters missing (digits only) - the unmatched-family
+    fallback (see PROVENANCE, font fixes).
+  - Bold and italic drawn plain on the Pixel - style simulation (same place).
+  - Html2Pdf on the x86_64 device: ArgumentException from the font-source
+    cache, then NullReferenceException - two font files sharing an internal
+    name (same place). Not Android-specific: any machine with Roboto installed
+    system-wide could hit it once PdfDocuments had already used that font.
+  - Html2Pdf / Markdown2Pdf: the CodeBrix.Platform.Fonts.* folders were copied
+    to the build output, which an APK does not carry, so the first render threw
+    InvalidOperationException (fonts not found). Now automatic, with no change
+    to the font packages: on Android the buildTransitive targets pack the same
+    files as AndroidAsset items under CodeBrix.Html2Pdf/<Package>/Fonts/, and
+    Fonts/FontStorage.cs reads "android-asset:" locations in place through
+    Fonts/AndroidFontAssets.cs - Android.App.Application.Context.Assets reached
+    by reflection, kept under full trimming by [DynamicDependency]. Discovery
+    reads only the .ttf.manifest files; a face's bytes are read when it is
+    first used, and its name-table family aliases are registered at that
+    moment (they used to be read from EVERY face file at registration - about
+    105 MB on the first render, desktop included). FontStorageTests fence it
+    with a fake asset source serving non-seekable streams.
+    Embedding the fonts as resources in the app assembly was MEASURED and
+    rejected: .NET Android unpacks the compressed assembly store into RAM, so
+    process memory at start-up went from ~110 MB to ~268 MB (anonymous RAM
+    ~43 MB -> ~148 MB) on the Pixel, in an app that had not yet touched a PDF.
+  - PdfDocCreate, all platforms: PageSetup.DefaultPageSetup was published
+    before its properties were set, so a document rendering on another thread
+    at the same moment read a half-initialized default - in Release a page
+    width of 0 cm with no error, in Debug a NullReferenceException. It caused
+    the "flaky" Debug test failures seen under full-solution parallel runs.
+    Now built under a lock and published complete
+    (DocumentObjectModel/PageSetupTests: 300 rounds of 8 threads).
+  - Not defects, noted: the Release trimmed build reports IL2104 (assembly
+    produced trim warnings) for CodeBrix.Imaging and CodeBrix.PdfDocCreate; no
+    check failed because of trimming.
+
 
 PACKAGING AND PUBLISHING
 ========================
@@ -381,6 +465,37 @@ the full license texts. Summary of where the code came from:
       PdfSharpCore.Charting merged in. PdfSharpCore is itself a port of
       PdfSharp.Xamarin, which is a port of PdfSharp by empira Software GmbH.
       MIT throughout.
+      One behaviour is taken from empira PDFsharp 6.2.4 instead of PdfSharpCore:
+      the open-mode gate. PdfDocument.CanModify is true only for a document
+      created in code or opened in Modify mode (PdfSharpCore hard-wired it to
+      true), so Save/Close/AddPage/InsertPage and the Version/PageLayout/
+      PageMode setters throw for Import documents, and PdfDocumentOpenMode
+      ReadOnly/InformationOnly are [Obsolete] ("use Import instead"), as in
+      6.2.4. BEHAVIOUR CHANGE for consumers that saved Import/ReadOnly
+      documents; fenced by tests/.../IO/PdfDocumentOpenModeTests.cs.
+      Font fixes found by the Android device testing (see TESTING), all
+      inherited from PdfSharpCore and all fenced:
+        - Utils/FontResolver: a family that is not installed used to resolve to
+          the FIRST installed family - on Android AndroidClock.ttf, a digits-
+          only face, so every letter of a PdfDocCreate document (default
+          Verdana/Arial) vanished. It now takes the first installed family of
+          FontResolver.FallbackFamilies (Arial, Liberation Sans, Arimo,
+          Helvetica, Roboto, DejaVu Sans, Noto Sans, Open Sans, Segoe UI,
+          Verdana, Droid Sans), else the first installed family
+          (FontResolverTests fallback_* tests).
+        - Utils/FontResolver.SelectFace: a style the family has no file for
+          (Android's single variable-font Roboto has only Regular) is now
+          returned as the nearest face WITH MustSimulateBold/-Italic, instead of
+          the plain Regular face (FontResolverTests a_family_with_only_*).
+        - Drawing/XGlyphTypeface.GetOrCreateFrom built the typeface without the
+          resolver's StyleSimulations, so NO resolver's simulation request ever
+          reached the PDF; it now carries them (Fonts/StyleSimulationTests).
+        - Fonts/FontFactory: two different font files with the same internal
+          name (a system Roboto Bold and a packaged one) made CacheFontSource
+          throw ArgumentException and left a half-registered typeface behind
+          (later XFonts: NullReferenceException). The name entry is now TryAdd
+          (first wins) and the resolver's face name is always mapped to its own
+          source (Fonts/FontFactoryTests).
 
   CodeBrix.PdfDocCreate
       A fork of MigraDocCore.DocumentObjectModel with MigraDocCore.Rendering
@@ -396,24 +511,31 @@ the full license texts. Summary of where the code came from:
       and, for linux-riscv64, from the pypdfium2 5.6.0 manylinux wheel.
       The two Android natives are lib/libpdfium.so from the release archives
       of bblanchon/pdfium-binaries release chromium/8066 (PDFium 156.0.8066.0),
-      renamed to pdfium.so; LICENSE-Pdfium.txt beside each is that archive's
-      LICENSE file:
+      kept under that name (libpdfium.so); LICENSE-Pdfium.txt beside each is
+      that archive's LICENSE file:
         https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/8066/pdfium-android-arm64.tgz
           archive sha256 a665e3a9d40fb0024e3959261a400a722a13f7aa6602c59a82c93d44a362c055
-          pdfium.so sha256 bfb97004336bf8ecce4957bc7a5fd544edc587dfaec99b59fa04885aeacb2c1e
+          libpdfium.so sha256 bfb97004336bf8ecce4957bc7a5fd544edc587dfaec99b59fa04885aeacb2c1e
         https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/8066/pdfium-android-x64.tgz
           archive sha256 44b9444d58f055ab892019aea27423bab74d671a37b5bad84647a91abec82a1d
-          pdfium.so sha256 62c7d4bad74cd87d8aa6e45fe7228144f9100347669906854e08ef586025a42a
+          libpdfium.so sha256 62c7d4bad74cd87d8aa6e45fe7228144f9100347669906854e08ef586025a42a
       Refresh the two together from ONE release so they always match. The
-      Android natives keep the family name pdfium.so (no "lib" prefix): the .NET
-      Android SDK packs them verbatim as lib/<abi>/pdfium.so, Android's
-      installer extracts them to the app's native library directory, and
-      DllImport("pdfium") resolves them there - tested on an API 37 x86_64
-      emulator and on API 33 arm64 and x86_64 devices, so no rename is needed.
-      Both natives are 16 KB page-aligned.
+      Android natives MUST keep the "lib" prefix. The .NET Android SDK packs
+      them verbatim as lib/<abi>/<name>, and Android's package installer
+      extracts ONLY lib*.so files into the app's native library directory: an
+      earlier layout named them pdfium.so (the desktop family name), which was
+      packed into the APK but never extracted, so a plain Android app (the
+      template default is extractNativeLibs=true) failed with
+      DllNotFoundException: pdfium. ResolvePdfium loads "libpdfium.so" by name
+      first on Android (found in the native library directory, or inside the
+      APK when native libraries are not extracted). Both natives are 16 KB
+      page-aligned.
 
   CodeBrix.PdfDocCreate.Html2Pdf
-      Written for this repository. It composes onto PdfDocCreate and delegates
+      Written for this repository. (Its Android font delivery - FontStorage,
+      AndroidFontAssets and the AndroidAsset branch of the buildTransitive
+      targets - is described under TESTING, ANDROID DEVICE TESTING.) It
+      composes onto PdfDocCreate and delegates
       parsing to the CodeBrix.MarkupParse and CodeBrix.StyleSheetParse packages
       and SVG parsing/drawing to CodeBrix.Imaging.Drawing.NoSkia (which brings
       CodeBrix.SvgParse). The Svg folder turns that engine's display list into

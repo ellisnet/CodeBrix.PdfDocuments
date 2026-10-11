@@ -72,7 +72,8 @@ public sealed class HtmlPdfRenderer
             throw new InvalidOperationException(
                 "The CodeBrix.Platform.Fonts packages were not found next to the application. " +
                 "They are normally copied to '<application base directory>/CodeBrix.Platform.Fonts.<Name>/Fonts/' " +
-                "at build time by the CodeBrix.PdfDocCreate.Html2Pdf package's build targets. " +
+                "at build time by the CodeBrix.PdfDocCreate.Html2Pdf package's build targets " +
+                "(on Android: packed into the APK as assets under '" + FontStorage.AndroidAssetFolder + "/'). " +
                 "If the fonts live elsewhere, call Html2PdfFonts.AddFontDirectory before rendering.");
         }
 

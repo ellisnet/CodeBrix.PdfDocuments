@@ -100,7 +100,7 @@ internal static class SvgFontBridge
 
         if (!registered.Add((filePath, overrideName ?? string.Empty))) { return; }
 
-        var bytes = FileBytes.GetOrAdd(filePath, static path => File.ReadAllBytes(path));
+        var bytes = FileBytes.GetOrAdd(filePath, static path => FontStorage.ReadAllBytes(path));
         if (overrideName == null)
         {
             fonts.RegisterFont(bytes);

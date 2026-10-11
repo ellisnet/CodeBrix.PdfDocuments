@@ -99,7 +99,7 @@ public class XPdfForm : XForm
         if (PdfReader.TestPdfFile(stream) == 0)
             throw new ArgumentException("The specified stream has no valid PDF file header.", "stream");
 
-        _externalDocument = PdfReader.Open(stream, password, PdfDocumentOpenMode.ReadOnly, accuracy);
+        _externalDocument = PdfReader.Open(stream, password, PdfDocumentOpenMode.Import, accuracy); //Was previously: PdfDocumentOpenMode.ReadOnly (obsolete, as in empira PDFsharp 6.2.4)
     }
 
     /// <summary>

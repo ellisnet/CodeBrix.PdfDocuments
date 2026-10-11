@@ -20,6 +20,9 @@
     assembly, next to it. Globbing relative to the assembly path therefore finds the
     exact restored version of each font package, wherever the package cache lives.
 
+    In an Android application (TargetPlatformIdentifier android) the files are packed as
+    APK assets instead of being copied to the output - see the second ItemGroup below.
+
     Opt out (for example when a CodeBrix.Platform app's own asset pipeline already
     delivers the fonts and the duplicate copy is unwanted) by setting:
 
@@ -40,11 +43,23 @@
         <FontPackageFolder>%(_CodeBrixHtml2PdfFontAssembly.Filename)</FontPackageFolder>
       </_CodeBrixHtml2PdfFontFile>
     </ItemGroup>
-    <ItemGroup>
+    <ItemGroup Condition="'$(TargetPlatformIdentifier)' != 'android'">
       <None Include="@(_CodeBrixHtml2PdfFontFile)"
             Condition="'@(_CodeBrixHtml2PdfFontFile)' != ''"
             Link="%(_CodeBrixHtml2PdfFontFile.FontPackageFolder)\Fonts\%(Filename)%(Extension)"
             CopyToOutputDirectory="PreserveNewest"
+            Visible="false" />
+    </ItemGroup>
+    <!--
+      Android: an APK does not carry the build output folder, so the same files are packed
+      as application assets under CodeBrix.Html2Pdf/<PackageName>/Fonts/ instead. The
+      library reads them in place through the app's AssetManager (Fonts/FontStorage.cs and
+      Fonts/AndroidFontAssets.cs) - only the faces a document uses, and never a copy on disk.
+    -->
+    <ItemGroup Condition="'$(TargetPlatformIdentifier)' == 'android'">
+      <AndroidAsset Include="@(_CodeBrixHtml2PdfFontFile)"
+            Condition="'@(_CodeBrixHtml2PdfFontFile)' != ''"
+            Link="$(MonoAndroidAssetsPrefix)\CodeBrix.Html2Pdf\%(_CodeBrixHtml2PdfFontFile.FontPackageFolder)\Fonts\%(Filename)%(Extension)"
             Visible="false" />
     </ItemGroup>
   </Target>

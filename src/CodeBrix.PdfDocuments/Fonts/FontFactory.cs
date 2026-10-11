@@ -119,9 +119,10 @@ internal static class FontFactory
                             byte[] bytes = customFontResolver.GetFont(fontResolverInfo.FaceName);
                             XFontSource fontSource = XFontSource.GetOrCreateFrom(bytes);
 
-                            // Add font source's font resolver name if it is different to the face name.
-                            if (string.Compare(fontResolverInfo.FaceName, fontSource.FontName, StringComparison.OrdinalIgnoreCase) != 0)
-                                FontSourcesByName.Add(fontResolverInfo.FaceName, fontSource);
+                            // Map the resolver's face name to this font source. Was previously: only when the face name
+                            // differed from the font's internal name - but that entry can belong to ANOTHER font file with
+                            // the same internal name (a system Roboto Bold and a packaged one), so map it always.
+                            FontSourcesByName.TryAdd(fontResolverInfo.FaceName, fontSource);
                         }
                     }
                 }
@@ -257,7 +258,9 @@ internal static class FontFactory
                 fontSource.Fontface = new OpenTypeFontface(fontSource);
             }
             FontSourcesByKey.Add(fontSource.Key, fontSource);
-            FontSourcesByName.Add(fontSource.FontName, fontSource);
+            // Two different font files can share an internal name; the first keeps the name entry, and the new one
+            // stays reachable by its key and its resolver face name. Was previously: Add, which threw.
+            FontSourcesByName.TryAdd(fontSource.FontName, fontSource);
             return fontSource;
         }
         finally { Lock.ExitFontFactory(); }
@@ -305,7 +308,7 @@ internal static class FontFactory
         }
 
         FontSourcesByName.Add(typefaceKey, fontSource);
-        FontSourcesByName.Add(fontSource.FontName, fontSource);
+        FontSourcesByName.TryAdd(fontSource.FontName, fontSource); //Was previously: Add - throws for a second file with the same internal name
         FontSourcesByKey.Add(fontSource.Key, fontSource);
 
         return fontSource;

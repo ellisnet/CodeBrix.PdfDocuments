@@ -55,17 +55,20 @@ internal class DdlScanner
     /// <summary>
     /// Initializes a new instance of the DdlScanner class.
     /// </summary>
-    internal DdlScanner(string documentFileName, string ddl, DdlReaderErrors errors)
+    /// <remarks>
+    /// The scanner reports a problem by throwing DdlParserException; the DdlParser catches it and records it in its
+    /// DdlReaderErrors, so the scanner keeps no errors collection of its own.
+    /// </remarks>
+    internal DdlScanner(string documentFileName, string ddl) //was previously: (string documentFileName, string ddl, DdlReaderErrors errors) - the errors were stored and never written
     {
-        this.errors = errors;
         Init(ddl, documentFileName);
     }
 
     /// <summary>
     /// Initializes a new instance of the DdlScanner class.
     /// </summary>
-    internal DdlScanner(string ddl, DdlReaderErrors errors)
-        : this("", ddl, errors)
+    internal DdlScanner(string ddl)
+        : this("", ddl)
     {
     }
 
@@ -1570,6 +1573,4 @@ internal class DdlScanner
     Symbol prevSymbol = Symbol.None;
     TokenType tokenType = TokenType.None;
     bool emptyLine;
-
-    DdlReaderErrors errors;
 }

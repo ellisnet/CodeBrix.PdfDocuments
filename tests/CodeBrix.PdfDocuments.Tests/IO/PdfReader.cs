@@ -22,7 +22,7 @@ public class PdfReader
     public void WillThrowExceptionWhenReadingInvalidPdf()
     {
         using var fs = File.OpenRead(PathHelper.GetInstance().GetAssetPath("NotAValid.pdf"));
-        Action act = () => Pdf.IO.PdfReader.Open(fs, PdfDocumentOpenMode.ReadOnly);
+        Action act = () => Pdf.IO.PdfReader.Open(fs, PdfDocumentOpenMode.Import); //Was previously: PdfDocumentOpenMode.ReadOnly (now obsolete)
         act.Should().Throw<InvalidOperationException>().WithMessage("The file is not a valid PDF document.");
     }
 

@@ -103,6 +103,11 @@ CSS, images, fonts and SVG - is managed code. Windows, macOS and Linux need
 NOTHING beyond the NuGet package: no native library, no runtime identifier, no
 native-assets package.
 
+ANDROID (device-tested on ARM64, API 33 and 36, and x86_64, API 33): nothing to
+do either. The font files are packed into the APK as assets by the
+CodeBrix.PdfDocCreate.Html2Pdf build targets and read from there in place - see
+that package's AGENT-README, INSTALLATION.
+
 UPGRADING FROM AN OLDER VERSION: releases before the vector SVG route asked
 Linux applications that embedded SVG content to reference
 SkiaSharp.NativeAssets.Linux or SkiaSharp.NativeAssets.Linux.NoDependencies

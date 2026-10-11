@@ -107,6 +107,32 @@ Requirements:
     register your own IFontResolver before creating the first XFont (see
     FONTS AND FONT RESOLUTION).
 
+ANDROID (API 33 AND HIGHER, ARM64 AND X64):
+  - Supported, and device-tested: this package and its companions
+    (CodeBrix.PdfDocCreate, CodeBrix.PdfRasterizer,
+    CodeBrix.PdfDocCreate.Html2Pdf, CodeBrix.PdfDocCreate.Markdown2Pdf) were
+    exercised from a trimmed Release net10.0-android app on an ARM64 phone
+    (API 33), an ARM64 tablet (API 36) and an x86_64 device (API 33), with no
+    Android-specific code in the app: drawing (text, shapes, gradients, images),
+    page import / merge, Modify-mode editing, 128-bit encryption, document
+    rendering with tables, rasterizing pages with PDFium, HTML and Markdown to
+    PDF. Nothing needs configuring.
+  - Fonts come from /system/fonts. Android has no Arial, Verdana or Times New
+    Roman, so those families resolve to the substitute (Roboto on a stock
+    device - see THE CATCH below); ask for "Roboto", "Noto Serif" or
+    "Droid Sans Mono" to get exactly what you name. Some devices (a Pixel on
+    Android 13, for one) ship Roboto as ONE variable font with no bold or
+    italic file, so its bold and italic are simulated (see MISSING BOLD /
+    ITALIC FACES ARE SIMULATED); embed real Roboto-Bold / -Italic faces with
+    an EmbeddedFontResolver if you need the designed weights on every device.
+  - CodeBrix.PdfRasterizer ships PDFium for android-arm64 and android-x64 as
+    libpdfium.so; the .NET Android SDK packs it into the APK and it loads with
+    no setup.
+  - CodeBrix.PdfDocCreate.Html2Pdf / Markdown2Pdf: their bundled fonts are
+    packed into the APK as assets by Html2Pdf's build targets and read in
+    place - nothing to configure (about 50 MB added to the APK; see that
+    package's AGENT-README).
+
 ================================================================================
 
 KEY NAMESPACES / USINGS
@@ -451,8 +477,11 @@ requests are routed by the FACE name that was registered.
 
 THE CATCH: AN UNAVAILABLE FAMILY NEVER THROWS - IT IS SILENTLY SUBSTITUTED.
 
-The system-font resolver returns the FIRST installed font it knows when the
-family is not found (NullIfFontNotFound is false by default). A misspelled or
+When the family is not found (NullIfFontNotFound is false by default) the
+system-font resolver substitutes the first INSTALLED family of this list:
+Arial, Liberation Sans, Arimo, Helvetica, Roboto, DejaVu Sans, Noto Sans,
+Open Sans, Segoe UI, Verdana, Droid Sans - and only when none of them is
+installed, the first font it found. A misspelled or
 not-installed family name therefore produces a document that renders in some
 other face with no exception, no warning and no log entry. Verify what you
 actually got:
@@ -475,6 +504,14 @@ results on a stock Linux desktop with no resolver registered:
 The three families in that middle group are monospace, and their substitute is
 typically a PROPORTIONAL font. Code blocks, aligned columns and ASCII tables
 therefore look correct on Windows and visibly wrong on Linux, silently.
+
+MISSING BOLD / ITALIC FACES ARE SIMULATED. When the resolved family has no
+file for the requested style (a family installed as a single variable font -
+Android's Roboto - has only a Regular face), the system-font resolver returns
+the nearest face with MustSimulateBold / MustSimulateItalic set, and the PDF
+draws simulated bold (fill + stroke) or italic (slant). A custom resolver can
+ask for the same with new FontResolverInfo(faceName, mustSimulateBold,
+mustSimulateItalic).
 
 RECOMMENDATIONS:
   - For cross-platform monospace, prefer "Courier New" or "DejaVu Sans Mono".
@@ -1074,11 +1111,12 @@ READING EXISTING PDFs
     public class PdfPasswordProviderArgs { public string Password; public bool Abort; }
 
     PdfDocumentOpenMode:
-        Modify          - open for editing; can be saved
-        Import          - open to copy pages from; can be saved, CANNOT be drawn on
-        ReadOnly        - open for reading; like Import, can be saved, CANNOT be
-                          drawn on
-        InformationOnly - only the trailer/info is parsed
+        Modify          - open for editing; can be changed and saved
+        Import          - open to read or copy pages from; CANNOT be changed,
+                          saved or drawn on
+        ReadOnly        - [Obsolete] not implemented - use Import; behaves as
+                          Import (cannot be changed or saved)
+        InformationOnly - [Obsolete] not implemented - use Import
     PdfReadAccuracy: Strict (default), Moderate (tolerates broken references)
 
     using CodeBrix.PdfDocuments.Pdf;
@@ -1687,15 +1725,16 @@ SAVING
     ...
     doc.Close();
 
-A document opened in Modify, Import or ReadOnly mode can be saved; the open
-mode does not gate Save. Save re-serializes the object graph (it never copies
+ONLY a document created in code or opened in Modify mode can be changed or
+saved. For a document opened in any other mode (Import, or the obsolete
+ReadOnly / InformationOnly) Save, Close, the Version, PageLayout and PageMode
+setters, AddPage and InsertPage throw InvalidOperationException, and
+IsReadOnly is true. To change an existing file, open it in Modify mode; to
+build a new file from its pages, open it in Import mode and AddPage its pages
+into a new PdfDocument. Save re-serializes the object graph (it never copies
 the input bytes), so the output differs byte-wise from the file that was read.
-Only Modify mode stamps a new document ID and modification date and drops
-unreachable objects at open time. A document opened in Import or ReadOnly
-mode builds its page collection lazily: touch Pages or PageCount before Save,
-otherwise Save throws InvalidOperationException ("Cannot save a PDF document
-with no pages."). The open mode restricts drawing only: Version, PageLayout,
-PageMode, AddPage and InsertPage behave the same in every mode.
+Modify mode stamps a new document ID and modification date and drops
+unreachable objects at open time.
 A document with a security level but no password cannot be saved
 (PdfDocumentsException). Save can be called more than once. Dispose the
 document when done; disposal does not save.
@@ -1840,7 +1879,7 @@ Example 6: Password-Protected PDF with Restricted Permissions
     document.Save("restricted.pdf");
 
     // Reopen with the user password
-    var reopened = PdfReader.Open("restricted.pdf", "open-me", PdfDocumentOpenMode.ReadOnly);
+    var reopened = PdfReader.Open("restricted.pdf", "open-me", PdfDocumentOpenMode.Import);
     Console.WriteLine(reopened.PageCount);
 
 Example 7: Fill an Existing Form and Flatten It
@@ -2312,7 +2351,7 @@ Clip:           gfx.IntersectClip(rect | path)
 Container:      var c = gfx.BeginContainer(); ... gfx.EndContainer(c)
 
 --- Existing PDFs ---
-Open:           PdfReader.Open(path | stream, PdfDocumentOpenMode.Modify | Import | ReadOnly)
+Open:           PdfReader.Open(path | stream, PdfDocumentOpenMode.Modify | Import)   // only Modify can be saved
 With password:  PdfReader.Open(path, "pw", PdfDocumentOpenMode.Modify)
 Tolerant:       PdfReader.Open(path, PdfDocumentOpenMode.Modify, PdfReadAccuracy.Moderate)
 Is PDF?:        PdfReader.TestPdfFile(path | stream | bytes) != 0
