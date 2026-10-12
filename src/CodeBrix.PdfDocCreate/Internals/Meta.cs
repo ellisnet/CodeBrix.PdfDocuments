@@ -45,7 +45,7 @@ public class Meta
     /// <summary>
     /// Initializes a new instance of the DomMeta class.
     /// </summary>
-    public Meta(Type documentObjectType)
+    public Meta([System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicFields | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicFields | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)]Type documentObjectType)
     {
         Meta.AddValueDescriptors(this, documentObjectType);
     }
@@ -238,7 +238,7 @@ public class Meta
     /// <summary>
     /// Adds a value descriptor for each field and property found in type to meta.
     /// </summary>
-    static void AddValueDescriptors(Meta meta, Type type)
+    static void AddValueDescriptors(Meta meta, [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicFields | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicFields | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)]Type type)
     {
         var fieldInfos = type.GetRuntimeFields(); //(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
         foreach (FieldInfo fieldInfo in fieldInfos)

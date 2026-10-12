@@ -102,7 +102,7 @@
       consuming application to install. It shares CodeBrix.SvgParse with the rest of
       the family; the StyleSheetParse pin below matches the version that package brings.
     -->
-    <PackageReference Include="CodeBrix.Imaging.Drawing.NoSkia.ApacheLicenseForever" Version="1.0.252.351" />
+    <PackageReference Include="CodeBrix.Imaging.Drawing.NoSkia.ApacheLicenseForever" Version="1.0.285.659" />
   </ItemGroup>
 
   <ItemGroup>

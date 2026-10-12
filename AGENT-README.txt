@@ -90,6 +90,9 @@ License: MIT
 
 Requirements:
   - .NET 10 or later.
+  - Trimming: trim-clean - this package and its four companions publish
+    fully trimmed (PublishTrimmed, and Android Release builds) with no trim
+    warnings, and work the same trimmed as untrimmed.
   - Pure managed code; no native libraries are bundled or required.
   - System-font discovery (used when you do not register your own font
     resolver) covers Windows, macOS, Linux and Android. Linux discovery asks

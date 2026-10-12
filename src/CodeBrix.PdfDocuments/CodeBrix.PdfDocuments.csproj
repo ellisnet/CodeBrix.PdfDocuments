@@ -76,7 +76,7 @@
 
   <ItemGroup>
     <PackageReference Include="CodeBrix.Compression.MitLicenseForever" Version="1.0.248.1109" />
-    <PackageReference Include="CodeBrix.Imaging.ApacheLicenseForever" Version="1.0.248.1113" />
+    <PackageReference Include="CodeBrix.Imaging.ApacheLicenseForever" Version="1.0.285.619" />
   </ItemGroup>
 
   <ItemGroup>

@@ -100,7 +100,7 @@
     <None Include="runtimes\android-x64\native\LICENSE-Pdfium.txt" Pack="true" PackagePath="runtimes\android-x64\native" Link="runtimes\android-x64\native\LICENSE-Pdfium.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="CodeBrix.Imaging.ApacheLicenseForever" Version="1.0.248.1113" />
+    <PackageReference Include="CodeBrix.Imaging.ApacheLicenseForever" Version="1.0.285.619" />
   </ItemGroup>
 
   <ItemGroup>

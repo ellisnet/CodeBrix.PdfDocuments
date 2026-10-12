@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Reflection;
 
@@ -8,8 +7,9 @@ namespace CodeBrix.PdfDocCreate.Html2Pdf.Fonts;
 /// <summary>
 /// The Android application's assets, reached through <c>Android.App.Application.Context.Assets</c>
 /// (an <c>Android.Content.Res.AssetManager</c>) by reflection, so this net10.0 library needs no
-/// reference to Mono.Android. The <see cref="DynamicDependencyAttribute"/>s keep the four members
-/// used here in a trimmed application.
+/// reference to Mono.Android. Every type and member is named by a constant string, which the
+/// trimmer resolves on Android, so the four members used here stay in a trimmed application; on
+/// other platforms Mono.Android does not exist and nothing is kept or reported.
 /// </summary>
 internal sealed class AndroidFontAssets : IFontAssetSource
 {
@@ -28,12 +28,6 @@ internal sealed class AndroidFontAssets : IFontAssetSource
     /// The application's assets on Android; null on every other platform, and when the
     /// Android members cannot be reached.
     /// </summary>
-    [DynamicDependency("get_Context", "Android.App.Application", "Mono.Android")]
-    [DynamicDependency("get_Assets", "Android.Content.Context", "Mono.Android")]
-    [DynamicDependency("List(System.String)", "Android.Content.Res.AssetManager", "Mono.Android")]
-    [DynamicDependency("Open(System.String)", "Android.Content.Res.AssetManager", "Mono.Android")]
-    [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "The members are kept by the DynamicDependency attributes.")]
-    [UnconditionalSuppressMessage("Trimming", "IL2075", Justification = "The members are kept by the DynamicDependency attributes.")]
     public static AndroidFontAssets TryCreate()
     {
         if (!OperatingSystem.IsAndroid()) { return null; }

@@ -357,7 +357,8 @@ What the first runs found (all fixed and fenced):
     files as AndroidAsset items under CodeBrix.Html2Pdf/<Package>/Fonts/, and
     Fonts/FontStorage.cs reads "android-asset:" locations in place through
     Fonts/AndroidFontAssets.cs - Android.App.Application.Context.Assets reached
-    by reflection, kept under full trimming by [DynamicDependency]. Discovery
+    by reflection on constant type and member names, which the trimmer
+    resolves and keeps on Android (see TRIMMING under NOTES). Discovery
     reads only the .ttf.manifest files; a face's bytes are read when it is
     first used, and its name-table family aliases are registered at that
     moment (they used to be read from EVERY face file at registration - about
@@ -374,9 +375,10 @@ What the first runs found (all fixed and fenced):
     the "flaky" Debug test failures seen under full-solution parallel runs.
     Now built under a lock and published complete
     (DocumentObjectModel/PageSetupTests: 300 rounds of 8 threads).
-  - Not defects, noted: the Release trimmed build reports IL2104 (assembly
-    produced trim warnings) for CodeBrix.Imaging and CodeBrix.PdfDocCreate; no
-    check failed because of trimming.
+  - The Release trimmed build used to report IL2104 (assembly produced trim
+    warnings) for CodeBrix.Imaging and CodeBrix.PdfDocCreate. Both are gone
+    (2026-10-12; see TRIMMING under NOTES): the build reports no warnings and
+    the app still passes 12/12 on all three devices.
 
 
 PACKAGING AND PUBLISHING
@@ -661,3 +663,29 @@ NOTES
     bin/obj output are ignored as well.
   - The PDFium natives make a full clone about 54 MB heavier than the source
     alone; that is expected, not an accident of history.
+  - TRIMMING: all five assemblies are trim-clean. Check with a small console
+    app that references the five src projects, with a <TrimmerRootAssembly>
+    item for each so every type is analysed (PublishTrimmed=true,
+    TrimmerSingleWarn=false, -r linux-x64): ILLink must report nothing. Re-run
+    it after adding reflection. What it took (2026-10-12):
+      - PdfDocCreate Meta / ValueDescriptor (the DOM metadata behind
+        GetValue/SetValue/CreateValue and the DDL reader). Meta(Type) and
+        AddValueDescriptors annotate the type parameter for public and
+        non-public fields and properties. ValueDescriptor.CreateValue builds
+        a [DV] member's value through the member type's public parameterless
+        constructor; nothing else calls most of those constructors, so the
+        trimmer removed them and DdlReader threw NullReferenceException on,
+        for example, a paragraph with shading or borders. CreateValue now
+        carries a [DynamicDependency(PublicParameterlessConstructor, ...)]
+        for each such type, and CreateValueDescriptor suppresses the IL2072
+        that annotation answers. A type-level [DynamicallyAccessedMembers] on
+        DocumentObject was tried first: ILLink did not apply it here, so do
+        not swap the list for it. ValueDescriptorTrimmingTests fails when a
+        new [DV] member type is missing from the list, and round-trips DDL.
+      - Html2Pdf AndroidFontAssets named Mono.Android in [DynamicDependency]
+        attributes, which reported IL2035 (unresolved assembly) on every
+        trimmed publish that is NOT Android. The attributes are gone: the
+        type and member names are constant strings the trimmer resolves on
+        Android itself, and the trimmed Release app on all three devices
+        still finds the asset fonts (Html2PdfFonts.HasDefaultFamilies=True).
+      - CodeBrix.Imaging 1.0.285.619 (pinned) fixed the IL2075 it had.
